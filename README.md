@@ -9,9 +9,9 @@ This project template demonstrates how to:
 - Configure your project to optimize dev and prod environments.
 - Set up VS Code to execute local unit tests for your transformations.
 - Execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions) after a push.
-- Utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG (refer to the diagram below).
+- Utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG (refer to the diagram below). Yes!!! You don't need Airflow to manage your DAGs here!!!
 - Utilize [Databricks CLI and DBX](https://docs.databricks.com/en/dev-tools/cli/index.html) and DBX to package/deploy/run a Python package on Databricks.
-- Utilize [Databricks Workflow parameters](https://community.databricks.com/t5/data-engineering/passing-a-date-parameter-through-workflow/td-p/9845) to manage DAG execution.
+- Utilize [task value](https://docs.databricks.com/en/workflows/jobs/share-task-context.html) to share information between tasks.
 - Utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
 - Utilize [chispa package](https://pypi.org/project/chispa/) to validate the outputted dataframes from your transformations.
 
