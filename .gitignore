@@ -1,0 +1,13 @@
+.coveragerc
+.databricks/
+.vscode/
+.venv/
+.dbx/lock.json
+*.pyc
+__pycache__/
+.pytest_cache/
+conf/test.yml
+dist/
+build/
+output/
+template.egg-info/**

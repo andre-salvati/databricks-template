@@ -1,0 +1,2 @@
+pyspark==3.3.1
+funcy==2.0
