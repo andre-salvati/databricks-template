@@ -1,13 +1,20 @@
 
-This project template demonstrates:
-	
-- how to configure VS Code to run local unit tests for transformations  	
-- how to use Databricks Workflows to run a DAG (see diagram)
-- how to use Databricks CLI and DBX to pack / deploy / run a Python package on Databricks
-- how to configure your project to use dev and prod environments
-- how to run a CI/CD pipeline with Github Actions after push
-- the use of parameters to control DAG configurations	
-- the use of funcy to log the execution time of each transformation.
+## Project Template for a CI/CD Pipeline with a PySpark/Databricks Project
+
+This project template provides a structured approach to enhance your productivity when delivering data pipelines on Databricks. Feel free to further customize it based on your project's specific nuances and the audience you are targeting.
+
+This project template demonstrates how to:
+
+- structure your code inside Python classes / packages.
+- Configure your project to optimize dev and prod environments.
+- Set up VS Code to execute local unit tests for your transformations.
+- Execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions) after a push.
+- Utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG (refer to the diagram below).
+- Utilize [Databricks CLI and DBX](https://docs.databricks.com/en/dev-tools/cli/index.html) and DBX to package/deploy/run a Python package on Databricks.
+- Utilize [Databricks Workflow parameters](https://community.databricks.com/t5/data-engineering/passing-a-date-parameter-through-workflow/td-p/9845) to manage DAG execution.
+- Utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
+- Utilize [chispa package](https://pypi.org/project/chispa/) to validate the outputted dataframes from your transformations.
+
 
 <br>
 
@@ -39,7 +46,7 @@ This project template demonstrates:
 
 ## CI/CD pipeline  
 
-This is .....
+This diagram illustrates the CI/CD pipeline for this project.
 
 <br>
 
@@ -49,5 +56,7 @@ This is .....
 
 ## Possible improvements
 
-- Use Delta Live Tables
+- Introduce Delta Live Tables
+- Introduce Databricks Connect
+- Introduce Databricks Asset Bundle (preview)
 
