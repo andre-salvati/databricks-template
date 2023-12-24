@@ -1,19 +1,19 @@
 
-## Project Template for a CI/CD Pipeline with a PySpark/Databricks Project
+## Project Template for a CI/CD Pipeline with a PySpark/Databricks
 
 This project template provides a structured approach to enhance your productivity when delivering data pipelines on Databricks. Feel free to further customize it based on your project's specific nuances and the audience you are targeting.
 
 This project template demonstrates how to:
 
 - structure your code inside Python classes / packages.
-- Configure your project to optimize dev and prod environments.
-- Set up VS Code to execute local unit tests for your transformations.
-- Execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions) after a push.
-- Utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG (refer to the diagram below). Yes!!! You don't need Airflow to manage your DAGs here!!!
-- Utilize [Databricks CLI and DBX](https://docs.databricks.com/en/dev-tools/cli/index.html) and DBX to package/deploy/run a Python package on Databricks.
-- Utilize [task value](https://docs.databricks.com/en/workflows/jobs/share-task-context.html) to share information between tasks.
-- Utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
-- Utilize [chispa package](https://pypi.org/project/chispa/) to validate the outputted dataframes from your transformations.
+- configure your project to optimize dev and prod environments.
+- set up VS Code to execute local unit tests for your transformations.
+- execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions) after a push.
+- utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG (refer to the diagram below). Yes!!! You don't need Airflow to manage your DAGs here!!!
+- utilize [Databricks CLI and DBX](https://docs.databricks.com/en/dev-tools/cli/index.html) and DBX to package/deploy/run a Python package on Databricks.
+- utilize [task values](https://docs.databricks.com/en/workflows/jobs/share-task-context.html) to share information between tasks.
+- utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
+- utilize [chispa package](https://pypi.org/project/chispa/) to validate the outputted dataframes from your transformations.
 
 
 <br>
