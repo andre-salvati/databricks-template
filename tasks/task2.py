@@ -12,25 +12,27 @@ class Task2(BaseTask):
         super().__init__(spark, config)
 
     @print_durations
-    def transf2(self):
+    def transf2(self, df):
 
+        #TODO Replace createDataFrame() by your transformation
         data = [("task2", "transf2")]
-
         return self.spark.createDataFrame(data, schema=sc.schema_template)
 
     @print_durations
-    def transf3(self):
+    def transf3(self, df):
 
+        #TODO Replace createDataFrame() by your transformation
         data = [("task2", "transf3")]
-
         return self.spark.createDataFrame(data, schema=sc.schema_template)
     
     def run(self):
 
-        #TODO read
+        #TODO Replace createDataFrame() by something like df = self.spark.read....
+        data = [("task1", "")]
+        df = self.spark.createDataFrame(data, schema=sc.schema_template)
 
-        self.transf2()
+        df_transf2 = self.transf2(df)
 
-        self.transf3()
+        self.transf3(df_transf2)
 
-        #TODO write
+        #TODO df_out.write...

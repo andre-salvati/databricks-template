@@ -22,51 +22,57 @@ def spark() -> DataFrame:
    return SparkSession.builder.appName('unit-tests').getOrCreate()
 
 @pytest.fixture
+def df_in(spark) -> DataFrame:
+   
+   data = [("task1", "")]
+   return spark.createDataFrame(data, schema=sc.schema_template)
+
+@pytest.fixture
 def config() -> TaskConfig:
 
    return TaskConfig("", "", "", "", False)
 
-def test_transf1(spark, config):
+def test_transf1(spark, config, df_in):
 
    task = Task1(spark, config)
 
-   df = task.transf1()
+   df_out = task.transf1(df_in)
 
-   assert df.count() == 1
+   assert df_out.count() == 1
 
    expected_data = [("task1", "transf1")]
 
    expected_df = spark.createDataFrame(expected_data, schema=sc.schema_template)
    
-   assert_df_equality(df, expected_df, ignore_row_order=True, ignore_nullable=True)
+   assert_df_equality(df_out, expected_df, ignore_row_order=True, ignore_nullable=True)
 
 
-def test_transf2(spark, config):
+def test_transf2(spark, config, df_in):
 
    task = Task2(spark, config)
 
-   df = task.transf2()
+   df_out = task.transf2(df_in)
 
-   assert df.count() == 1
+   assert df_out.count() == 1
 
    expected_data = [("task2", "transf2")]
 
    expected_df = spark.createDataFrame(expected_data, schema=sc.schema_template)
    
-   assert_df_equality(df, expected_df, ignore_row_order=True, ignore_nullable=True)
+   assert_df_equality(df_out, expected_df, ignore_row_order=True, ignore_nullable=True)
 
 
-def test_transf3(spark, config):
+def test_transf3(spark, config, df_in):
 
    task = Task2(spark, config)
 
-   df = task.transf3()
+   df_out = task.transf3(df_in)
 
-   assert df.count() == 1
+   assert df_out.count() == 1
 
    expected_data = [("task2", "transf3")]
 
    expected_df = spark.createDataFrame(expected_data, schema=sc.schema_template)
    
-   assert_df_equality(df, expected_df, ignore_row_order=True, ignore_nullable=True)
+   assert_df_equality(df_out, expected_df, ignore_row_order=True, ignore_nullable=True)
 
