@@ -32,12 +32,16 @@ This project template demonstrates how to:
         pytest tests/
         
 
-- configure databricks tools, deploy and execute on "dev" aws account
-
-        databricks configure -t *token* (generate token on your dev Databricks workspace)
+- configure databricks tools, deploy and execute on "dev" aws account. First, [generate token](https://docs.databricks.com/en/dev-tools/auth/pat.html#databricks-personal-access-tokens-for-workspace-users) on your Databricks workspace.
+        
+        databricks configure -t *token*
         databricks workspace ls /
+        adjust cluster policy (???)
         dbx deploy wf_template_dev --environment=dev
         dbx launch wf_template_dev --environment=dev
+                
+- configure repository secrets DATABRICKS_HOST and DATABRICKS_TOKEN for Github Actions.
+
 
 <br>
 
@@ -47,7 +51,7 @@ You can also execute unit tests from your preferred IDE. Here's a screenshot fro
 
 ## CI/CD pipeline  
 
-This diagram illustrates the CI/CD pipeline for this project.
+The below diagram illustrates the CI/CD pipeline for this project.
 
 <br>
 
@@ -60,4 +64,5 @@ This diagram illustrates the CI/CD pipeline for this project.
 - Introduce Delta Live Tables
 - Introduce Databricks Connect
 - Introduce Databricks Asset Bundle (preview)
+- Visualize data lineage with Unity Catalog
 

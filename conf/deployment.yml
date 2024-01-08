@@ -10,7 +10,7 @@ environments:
               cluster_source: "JOB"
               spark_version: "13.2.x-scala2.12"
               node_type_id: "c5d.4xlarge"
-              policy_id: "9C6308F7030079E8"
+              policy_id: "00131D6C7D916231"
               num_workers: 1
               aws_attributes:
                 first_on_demand: 1
@@ -56,7 +56,7 @@ environments:
               cluster_source: "JOB"
               spark_version: "13.2.x-scala2.12"
               node_type_id: "c5d.4xlarge"
-              policy_id: "9C63D8C50400EF74"
+              policy_id: "00131D6C7D916231"
               num_workers: 1
               aws_attributes:
                 first_on_demand: 1

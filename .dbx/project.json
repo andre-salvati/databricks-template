@@ -13,20 +13,6 @@
                 "workspace_directory": "/Shared/dbx/projects/dev",
                 "artifact_location": "dbfs:/dbx/dev"
             }
-        },
-        "stag": {
-            "profile": "STAG",
-            "properties": {
-                "workspace_directory": "/Shared/dbx/projects/stag",
-                "artifact_location": "dbfs:/dbx/stag"
-            }
-        },
-        "prod": {
-            "profile": "PROD",
-            "properties": {
-                "workspace_directory": "/Shared/dbx/projects/prod",
-                "artifact_location": "dbfs:/dbx/prod"
-            }
         }
     },
     "inplace_jinja_support": true,
