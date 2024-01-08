@@ -43,10 +43,10 @@ jobs:
       - name: Jobless deployment (files only upload)
         run: |
           export account="dev"
-          dbx deploy --environment=dev
+          dbx deploy wf_template_dev --environment=dev
 
       - name: Run the job in a jobless fashion
         run: |
-          dbx launch wf_template_dev --trace
+          dbx launch wf_template_dev --environment=dev
 
 
