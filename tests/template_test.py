@@ -32,7 +32,7 @@ def df_in(spark) -> DataFrame:
 @pytest.fixture
 def config() -> TaskConfig:
 
-   return TaskConfig(Namespace(task='task1', env='dev', input='2024-01-01'))
+   return TaskConfig(Namespace(task='task1', env='dev', input='2024-01-01', output=None, skip=False))
 
 def test_arg_parser():
 
