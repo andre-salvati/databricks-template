@@ -8,9 +8,9 @@ environments:
           - job_cluster_key: "cluster_dev"
             new_cluster:
               cluster_source: "JOB"
-              spark_version: "13.2.x-scala2.12"
-              node_type_id: "c5d.4xlarge"
-              policy_id: "00131D6C7D916231"
+              spark_version: "14.2.x-scala2.12"
+              node_type_id: "c5d.xlarge"
+              policy_id: "0016D1880B6C0182"
               num_workers: 1
               aws_attributes:
                 first_on_demand: 1
@@ -20,29 +20,20 @@ environments:
                 ebs_volume_count: 0     
 
         tasks:
-
-          - task_key: "set_parameters"
-            job_cluster_key: "cluster_dev"
-            max_retries: 0
-            spark_python_task:
-              python_file: "file://tasks/main.py"
-              parameters: ["--task=set_parameters","--env=dev","--input=test","--output=test1"]
           
           - task_key: "task1"
             job_cluster_key: "cluster_dev"
             max_retries: 0
             spark_python_task:
               python_file: "file://tasks/main.py"
-              parameters: ["--task=task1"]
-            depends_on:
-            - task_key: "set_parameters"                   
+              parameters: ["--task=task1", "--env=dev","--input=test"]            
 
           - task_key: "task2"
             job_cluster_key: "cluster_dev"
             max_retries: 0
             spark_python_task:
               python_file: "file://tasks/main.py"
-              parameters: ["--task=task2"]
+              parameters: ["--task=task2", "--env=dev","--input=test"]
             depends_on:
             - task_key: "task1"
 
@@ -54,9 +45,9 @@ environments:
           - job_cluster_key: "cluster_prod"
             new_cluster:
               cluster_source: "JOB"
-              spark_version: "13.2.x-scala2.12"
-              node_type_id: "c5d.4xlarge"
-              policy_id: "00131D6C7D916231"
+              spark_version: "14.2.x-scala2.12"
+              node_type_id: "c5d.xlarge"
+              policy_id: "0016D1880B6C0182"
               num_workers: 1
               aws_attributes:
                 first_on_demand: 1
@@ -65,28 +56,19 @@ environments:
                 spot_bid_price_percent: 100
                 ebs_volume_count: 0     
         tasks:
-
-          - task_key: "set_parameters"
-            job_cluster_key: "cluster_prod"
-            max_retries: 0
-            spark_python_task:
-              python_file: "file://tasks/main.py"
-              parameters: ["--task=set_parameters","--env=prod","--input=202309-1"]
           
           - task_key: "task1"
             job_cluster_key: "cluster_prod"
             max_retries: 0
             spark_python_task:
               python_file: "file://tasks/main.py"
-              parameters: ["--task=task1"]
-            depends_on:
-            - task_key: "set_parameters"
+              parameters: ["--task=task1", "--env=prod","--input=202309-1"]
 
           - task_key: "task2"
             job_cluster_key: "cluster_prod"
             max_retries: 0
             spark_python_task:
               python_file: "file://tasks/main.py"
-              parameters: ["--task=task2"]
+              parameters: ["--task=task2", "--env=prod","--input=202309-1"]
             depends_on:
             - task_key: "task1"

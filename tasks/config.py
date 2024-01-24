@@ -1,31 +1,36 @@
+import argparse
+
 class Config:
 
-    buckets = dict()
-    task = None
-    input = None
-    only_delta = None
+    params = dict()
+    args = None
 
-    def __init__(self, env, input, output, task, only_delta):
-
-        self.input = input
-        self.task = task
-        self.only_delta = only_delta
-
-        self.buckets.update({"input" : "s3://parsed-serps-" + env + "/" + input + "/S/"})
-
-        if output is None:
-            output = input
-
-        self.buckets.update({"root" : env + "-databricks-"})
-        self.buckets.update({"prefix_hbase" :  output + "/hbase"})
-        self.buckets.update({"output_hbase" : "s3://" + env + "-databricks-test/"  + output + "/hbase/"})
-        self.buckets.update({"delta" : "s3://" + env + "-databricks-test/" + output + "/delta/"})
-        self.buckets.update({"delta_basic_type" : "s3://" + env + "-databricks-test/" + output + "/delta/serps_basic_type"})
+    def __init__(self, args):
         
+        print("args: " + str(args))
+
+        if args.output == None:
+            output = args.input
+        else:
+            output = args.output
+
+        self.args = args
+        self.params.update({"input" : "s3://" + args.env + "-dbtemplate123/"  + args.input + "/"})
+        self.params.update({"output" : "s3://" + args.env + "-dbtemplate123/"  + output + "/"})
+        self.params.update({"skip" : args.skip})
+                
         print("Setting task configs... ")
-        for key, value in self.buckets.items():
+        for key, value in self.params.items():
             print(f"{key}: {value}")
     
     def get_bucket(self, key):
         
-        return self.buckets[key]
+        return self.params[key]
+    
+    def skip_task(self):
+        
+        return self.params['skip']
+
+    def get_test_output(self):
+
+        return (self.params)

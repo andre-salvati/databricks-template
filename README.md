@@ -1,11 +1,11 @@
 
-## Project Template for a CI/CD Pipeline with a PySpark/Databricks
+## Project Template for a PySpark/Databricks project (with automation for CI/CD)
 
 This project template provides a structured approach to enhance your productivity when delivering data pipelines on Databricks. Feel free to further customize it based on your project's specific nuances and the audience you are targeting.
 
 This project template demonstrates how to:
 
-- structure your PySpark code inside classes / packages.
+- structure your PySpark code inside classes/packages.
 - configure your pipeline to run in dev and prod environments.
 - set up VS Code to execute local unit tests for your transformations.
 - utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations.
@@ -24,32 +24,30 @@ This project template demonstrates how to:
 
 ## Prepare local env  
 
-- build python env and execute unit tests
+### 1) build python env and execute unit tests
 
         pipenv --python 3.10
         pipenv shell
         pip install -r unit-requirements.txt
         pytest tests/
         
-
-- configure databricks tools, deploy and execute on "dev" aws account. First, [generate token](https://docs.databricks.com/en/dev-tools/auth/pat.html#databricks-personal-access-tokens-for-workspace-users) on your Databricks workspace.
-        
-        databricks configure -t *token*
-        databricks workspace ls /
-        adjust cluster policy (???)
-        dbx deploy wf_template_dev --environment=dev
-        dbx launch wf_template_dev --environment=dev
-                
-- configure repository secrets DATABRICKS_HOST and DATABRICKS_TOKEN for Github Actions.
-
-
-<br>
-
 You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
 <img src="docs/vscode.png"  width="30%" height="30%">
 
-## CI/CD pipeline  
+### 2) configure databricks tools, deploy and execute on "dev" aws account. 
+
+First, [generate a token](https://docs.databricks.com/en/dev-tools/auth/pat.html#databricks-personal-access-tokens-for-workspace-users) in your Databricks workspace.
+        
+        databricks configure -t *token*
+        databricks workspace ls /
+        adjust cluster policy on deployment.yml. You can find it on your workspace -> compute -> policies -> Job Compute.
+        dbx deploy wf_template_dev --environment=dev
+        dbx launch wf_template_dev --environment=dev
+                
+### 3) configure CI/CD pipeline
+
+Generate [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) DATABRICKS_HOST and DATABRICKS_TOKEN.
 
 The below diagram illustrates the CI/CD pipeline for this project.
 
@@ -59,9 +57,11 @@ The below diagram illustrates the CI/CD pipeline for this project.
 
 <br>
 
+### ... and now you can code the transformations for each task and run unit and integration tests
+
 ## Possible improvements
 
-- Introduce Delta Live Tables
+- Introduce Delta Live Tables (???)
 - Introduce Databricks Connect
 - Introduce Databricks Asset Bundle (preview)
 - Visualize data lineage with Unity Catalog
