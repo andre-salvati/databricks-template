@@ -3,9 +3,9 @@ import argparse
 from pyspark import *
 from pyspark.sql import *
 
-from tasks.config import *
-from tasks.task1 import *
-from tasks.task2 import *
+from .config import *
+from .task1 import *
+from .task2 import *
 
 def arg_parser():
 
@@ -19,7 +19,7 @@ def arg_parser():
 
     return parser
 
-if __name__ == "__main__":
+def main():
 
     args = arg_parser().parse_args()
 
@@ -37,3 +37,6 @@ if __name__ == "__main__":
     else:
         
         print(args.task + " skipped")
+
+if __name__ == '__main__':
+  main()

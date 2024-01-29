@@ -6,12 +6,12 @@ from pyspark.sql import *
 from pyspark.sql import functions as F
 from pyspark.sql.types import *
 
-from tasks.main import *
-from tasks import commonSchemas as sc
-from tasks.config import Config as TaskConfig
-from tasks.task1 import *
-from tasks.task2 import *
-from tasks.task1 import *
+from template.main import *
+from template import commonSchemas as sc
+from template.config import Config as TaskConfig
+from template.task1 import *
+from template.task2 import *
+from template.task1 import *
 
 #from databricks.connect import DatabricksSession
 #from databricks.sdk.core import Config

@@ -2,8 +2,8 @@ from funcy import print_durations
 from pyspark.sql import functions as F
 from pyspark.sql.types import *
 
-from tasks.baseTask import *
-from tasks import commonSchemas as sc
+from .baseTask import *
+from .commonSchemas import *
 
 class Task1(BaseTask):
 
@@ -16,13 +16,13 @@ class Task1(BaseTask):
 
         #TODO Replace createDataFrame() by your transformation
         data = [("task1", "transf1")]
-        return self.spark.createDataFrame(data, schema=sc.schema_template)
+        return self.spark.createDataFrame(data, schema=schema_template)
 
     def run(self):
 
         #TODO Replace createDataFrame() by something like df = self.spark.read....
         data = [("task1", "")]
-        df = self.spark.createDataFrame(data, schema=sc.schema_template)
+        df = self.spark.createDataFrame(data, schema=schema_template)
 
         df_out = self.transf1(df)
 

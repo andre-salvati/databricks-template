@@ -13,7 +13,7 @@ This project template demonstrates how to:
 - utilize [chispa package](https://pypi.org/project/chispa/) to validate the outputted dataframes from your transformations.
 - utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG (refer to the diagram below) and [task values](https://docs.databricks.com/en/workflows/jobs/share-task-context.html) to share flow control information between tasks. Yes!!! You don't need Airflow to manage your DAGs here!!!
 - utilize [Databricks job clusters](https://docs.databricks.com/en/workflows/jobs/use-compute.html#use-databricks-compute-with-your-jobs) to reduce costs. 
-- utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and DBX to package/deploy/run a Python package on Databricks.
+- utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and (the new!!!) [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
 - execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions) after a repo push.
 
 <br>
@@ -22,9 +22,14 @@ This project template demonstrates how to:
 
 <br>
 
-## Prepare local env  
+## Instructions
 
-### 1) build python env and execute unit tests
+### 1) install the Databricks CLI
+
+Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html).
+
+
+### 2) build python env and execute unit tests
 
         pipenv --python 3.10
         pipenv shell
@@ -35,19 +40,22 @@ You can also execute unit tests from your preferred IDE. Here's a screenshot fro
 
 <img src="docs/vscode.png"  width="30%" height="30%">
 
-### 2) configure databricks tools, deploy and execute on "dev" aws account. 
+### 3) configure databricks tools, deploy and execute on "dev" aws account. 
 
-First, [generate a token](https://docs.databricks.com/en/dev-tools/auth/pat.html#databricks-personal-access-tokens-for-workspace-users) in your Databricks workspace.
+- [generate a token](https://docs.databricks.com/en/dev-tools/auth/pat.html#databricks-personal-access-tokens-for-workspace-users) in your Databricks workspace. 
+- adjust cluster policy_id on deployment.yml. You can find it on your workspace -> compute -> policies -> Job Compute.
+- adjust host with your workspace url on deployment.yml.
         
         databricks configure -t *token*
         databricks workspace ls /
-        adjust cluster policy on deployment.yml. You can find it on your workspace -> compute -> policies -> Job Compute.
-        dbx deploy wf_template_dev --environment=dev
-        dbx launch wf_template_dev --environment=dev
-                
-### 3) configure CI/CD pipeline
+        databricks bundle deploy --target dev
+        databricks bundle run
 
-Generate [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) DATABRICKS_HOST and DATABRICKS_TOKEN.
+### 4) configure CI/CD automation
+
+Generate [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) DATABRICKS_HOST and DATABRICKS_TOKEN. 
+
+And now you can code the transformations for each task and run unit and integration tests
 
 The below diagram illustrates the CI/CD pipeline for this project.
 
@@ -56,13 +64,3 @@ The below diagram illustrates the CI/CD pipeline for this project.
 <img src="docs/ci_cd.png"  width="70%" height="70%">
 
 <br>
-
-### ... and now you can code the transformations for each task and run unit and integration tests
-
-## Possible improvements
-
-- Introduce Delta Live Tables (???)
-- Introduce Databricks Connect
-- Introduce Databricks Asset Bundle (preview)
-- Visualize data lineage with Unity Catalog
-
