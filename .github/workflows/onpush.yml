@@ -34,12 +34,11 @@ jobs:
       - name: Install dependencies and project
         run: |
           pipenv install packages
-          pipenv shell
 
       - name: Run unit tests
         run: |
           echo "Launching unit tests"
-          pytest tests/
+          pipenv run pytest tests/
 
       - name: Jobless deployment (files only upload)
         run: |
