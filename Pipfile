@@ -6,11 +6,11 @@ name = "pypi"
 [packages]
 pyspark = "==3.3.1"
 funcy = "==2.0"
-databricks = "*"
+databricks = "==0.2"
 packages = "*"
 setuptools = "*"
 wheel = "*"
-#pytest = "*"
+pytest = "*"
 coverage = "*"
 chispa = "*"
 
