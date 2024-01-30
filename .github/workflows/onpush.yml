@@ -42,8 +42,7 @@ jobs:
 
       - name: Jobless deployment (files only upload)
         run: |
-          export account="dev"
-          dbx deploy wf_template_dev --environment=dev
+          databricks bundle deploy --target dev
 
       - name: Run the job in a jobless fashion
         run: |
