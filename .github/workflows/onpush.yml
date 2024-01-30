@@ -41,7 +41,7 @@ jobs:
       - name: Jobless deployment (files only upload)
         run: |
           databricks --version
-          databricks bundle deploy --target dev
+          databricks workspace list /
 
       - name: Run the job in a jobless fashion
         run: |
