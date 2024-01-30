@@ -48,6 +48,7 @@ jobs:
         run: |
           curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
           databricks --version
+          databricks workspace list /
           
       #- name: Run the job in a jobless fashion
       #  run: |
