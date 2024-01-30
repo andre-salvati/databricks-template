@@ -10,7 +10,7 @@ databricks = "*"
 packages = "*"
 setuptools = "*"
 wheel = "*"
-pytest = "*"
+#pytest = "*"
 coverage = "*"
 chispa = "*"
 
