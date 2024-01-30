@@ -42,7 +42,8 @@ jobs:
 
       - name: Jobless deployment (files only upload)
         run: |
-          pipenv run databricks bundle deploy --target dev
+          databricks --version
+          pipenv run databricks --version
 
       - name: Run the job in a jobless fashion
         run: |
