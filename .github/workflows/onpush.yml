@@ -32,8 +32,7 @@ jobs:
 
       - name: Install dependencies and project
         run: |
-          pip install -r unit-requirements.txt
-          pip install -e .
+          pipenv install packages
 
       - name: Run unit tests
         run: |

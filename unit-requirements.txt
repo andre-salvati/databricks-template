@@ -1,6 +1,0 @@
--rrequirements.txt
-setuptools
-wheel
-pytest
-coverage
-chispa
