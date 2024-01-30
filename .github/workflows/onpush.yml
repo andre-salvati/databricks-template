@@ -30,13 +30,14 @@ jobs:
           
       - name: Install dependencies and project
         run: |
-          pip install packages
-          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+          pipenv install packages
+      #    pip install packages
+      #    curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
 
-      #- name: Run unit tests
-      #  run: |
-      #    echo "Launching unit tests"
-      #    pytest tests/
+      - name: Run unit tests
+       run: |
+         echo "Launching unit tests"
+         pyenv run pytest tests/
 
       - name: Jobless deployment (files only upload)
         run: |
