@@ -39,7 +39,7 @@ jobs:
           pipenv run databricks --version
           pipenv run databricks workspace list /
           pipenv run databricks bundle deploy --target dev
-          pipenv run databricks bundle run default_python
+          pipenv run databricks bundle run default_python_job
           
       # - name: Run unit tests
       #   run: |
