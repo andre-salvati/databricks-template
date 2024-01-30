@@ -27,22 +27,28 @@ jobs:
       - name: Install pip
         run: |
           python -m pip install --upgrade pip
+
+      - name: pipenv
+        run: |
           pip install pipenv
+          pipenv install packages
+          pipenv run pytest tests/
+          pipenv run curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+          pipenv run databricks --version
           
       - name: Install dependencies and project
         run: |
-          pipenv install packages
           
-      - name: Run unit tests
-        run: |
-          echo "Launching unit tests"
-          pipenv run pytest tests/
+      # - name: Run unit tests
+      #   run: |
+      #     echo "Launching unit tests"
+      #     pytest tests/
 
       - name: Jobless deployment (files only upload)
         run: |
-          pipenv run curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
-          pipenv run databricks --version
-
-      - name: Run the job in a jobless fashion
-        run: |
-          pipenv run databricks bundle run
+          curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
+          databricks --version
+          
+      #- name: Run the job in a jobless fashion
+      #  run: |
+      #    pipenv run databricks bundle run
