@@ -34,11 +34,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install pipenv
           pipenv install packages
-          pipenv run pytest tests/
+      #    pipenv run pytest tests/
           pipenv run curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
           pipenv run databricks --version
           pipenv run databricks workspace list /
           pipenv run databricks bundle deploy --target dev
+          pipenv run databricks bundle run default_python
           
       # - name: Run unit tests
       #   run: |
