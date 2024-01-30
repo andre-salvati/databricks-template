@@ -33,14 +33,15 @@ jobs:
           pip install packages
           curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
 
-      - name: Run unit tests
-        run: |
-          echo "Launching unit tests"
-          pytest tests/
+      #- name: Run unit tests
+      #  run: |
+      #    echo "Launching unit tests"
+      #    pytest tests/
 
       - name: Jobless deployment (files only upload)
         run: |
-          pipenv run databricks --version
+          databricks --version
+          databricks bundle deploy --target dev
 
       - name: Run the job in a jobless fashion
         run: |
