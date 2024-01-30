@@ -32,15 +32,15 @@ jobs:
       - name: Install dependencies and project
         run: |
           pipenv install packages
-          pipenv activate
           
       - name: Run unit tests
         run: |
           echo "Launching unit tests"
-          pytest tests/
+          pipenv run pytest tests/
 
       - name: Jobless deployment (files only upload)
         run: |
+          pipenv run curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
           pipenv run databricks --version
 
       - name: Run the job in a jobless fashion
