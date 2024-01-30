@@ -42,10 +42,10 @@ jobs:
 
       - name: Jobless deployment (files only upload)
         run: |
-          databricks bundle deploy --target dev
+          pipenv run databricks bundle deploy --target dev
 
       - name: Run the job in a jobless fashion
         run: |
-          dbx launch wf_template_dev --trace
+          pipenv run databricks bundle run
 
 
