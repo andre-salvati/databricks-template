@@ -32,7 +32,6 @@ jobs:
       - name: Install dependencies and project
         run: |
           pipenv install packages
-          pipenv pip list
 
       - name: Run unit tests
         run: |
