@@ -3,6 +3,7 @@
 .vscode/
 .venv/
 *.pyc
+*.lock
 __pycache__/
 .pytest_cache/
 dist/

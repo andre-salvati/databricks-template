@@ -1,5 +1,5 @@
 
-## Project Template for a PySpark/Databricks project (with automation for CI/CD)
+# Project Template for a PySpark/Databricks project (with automation for CI/CD)
 
 This project template provides a structured approach to enhance your productivity when delivering data pipelines on Databricks. Feel free to further customize it based on your project's specific nuances and the audience you are targeting.
 
@@ -8,6 +8,7 @@ This project template demonstrates how to:
 - structure your PySpark code inside classes/packages.
 - configure your pipeline to run in dev and prod environments.
 - set up VS Code to execute local unit tests for your transformations.
+- utilize [pipenv//Pipfile](https://pipenv.pypa.io/) instead of pip/requirements.txt.
 - utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations.
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
 - utilize [chispa package](https://pypi.org/project/chispa/) to validate the outputted dataframes from your transformations.
@@ -22,7 +23,7 @@ This project template demonstrates how to:
 
 <br>
 
-## Instructions
+# Instructions
 
 ### 1) install the Databricks CLI
 
@@ -31,9 +32,8 @@ Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.
 
 ### 2) build python env and execute unit tests
 
-        pipenv --python 3.10
+        pipenv install packages
         pipenv shell
-        pip install -r unit-requirements.txt
         pytest tests/
         
 You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
@@ -43,11 +43,8 @@ You can also execute unit tests from your preferred IDE. Here's a screenshot fro
 ### 3) configure databricks tools, deploy and execute on "dev" aws account. 
 
 - [generate a token](https://docs.databricks.com/en/dev-tools/auth/pat.html#databricks-personal-access-tokens-for-workspace-users) in your Databricks workspace. 
-- adjust cluster policy_id on deployment.yml. You can find it on your workspace -> compute -> policies -> Job Compute.
-- adjust host with your workspace url on deployment.yml.
-        
-        databricks configure -t *token*
-        databricks workspace ls /
+- adjust cluster **policy_id** on deployment.yml. You can find it on **your workspace -> compute -> policies -> Job Compute.**
+
         databricks bundle deploy --target dev
         databricks bundle run
 
