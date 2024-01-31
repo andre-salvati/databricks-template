@@ -1,5 +1,5 @@
 
-# Project Template for a PySpark/Databricks project (with automation for CI/CD)
+# Project Template for PySpark/Databricks with automation for CI/CD
 
 This project template provides a structured approach to enhance your productivity when delivering data pipelines on Databricks. Feel free to further customize it based on your project's specific nuances and the audience you are targeting.
 
