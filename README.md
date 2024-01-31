@@ -25,9 +25,9 @@ This project template demonstrates how to:
 
 # Instructions
 
-### 1) install the Databricks CLI
+### 1) install and configure Databricks CLI
 
-Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html).
+Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html)
 
 
 ### 2) build python env and execute unit tests
@@ -40,9 +40,8 @@ You can also execute unit tests from your preferred IDE. Here's a screenshot fro
 
 <img src="docs/vscode.png"  width="30%" height="30%">
 
-### 3) configure databricks tools, deploy and execute on "dev" aws account. 
+### 3) deploy and execute on "dev" aws account. 
 
-- [generate a token](https://docs.databricks.com/en/dev-tools/auth/pat.html#databricks-personal-access-tokens-for-workspace-users) in your Databricks workspace. 
 - adjust cluster **policy_id** on deployment.yml. You can find it on **your workspace -> compute -> policies -> Job Compute.**
 
         databricks bundle deploy --target dev

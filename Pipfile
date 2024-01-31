@@ -5,13 +5,12 @@ name = "pypi"
 
 [packages]
 funcy = "==2.0"
+pyspark = "==3.3.1"
 chispa = "*"
+pytest = "*"
 packages = "*"
 
 [dev-packages]
-pyspark = "==3.3.1"
-pytest = "*"
-databricks = "==0.2"
 wheel = "*"
 coverage = "*"
 setuptools = "*"
