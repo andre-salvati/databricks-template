@@ -1,7 +1,7 @@
 
 # Project Template for PySpark/Databricks with automation for CI/CD
 
-This project template provides a structured approach to enhance your productivity when delivering data pipelines on Databricks. Feel free to further customize it based on your project's specific nuances and the audience you are targeting.
+This project template provides a structured approach to enhance your productivity when delivering ETL pipelines on Databricks. Feel free to customize it based on your project's specific nuances and the audience you are targeting.
 
 This project template demonstrates how to:
 
@@ -40,7 +40,7 @@ You can also execute unit tests from your preferred IDE. Here's a screenshot fro
 
 <img src="docs/vscode.png"  width="30%" height="30%">
 
-### 3) deploy and execute on "dev" aws account. 
+### 3) deploy and execute on a "dev" Databricks workspace. 
 
 - adjust cluster **policy_id** on deployment.yml. You can find it on **your workspace -> compute -> policies -> Job Compute.**
 
@@ -49,9 +49,9 @@ You can also execute unit tests from your preferred IDE. Here's a screenshot fro
 
 ### 4) configure CI/CD automation
 
-Generate [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) DATABRICKS_HOST and DATABRICKS_TOKEN. 
+Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) DATABRICKS_HOST and DATABRICKS_TOKEN. 
 
-And now you can code the transformations for each task and run unit and integration tests
+And now you can code the transformations for each task and run unit and integration tests.
 
 The below diagram illustrates the CI/CD pipeline for this project.
 
