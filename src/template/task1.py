@@ -26,4 +26,7 @@ class Task1(BaseTask):
 
         df_out = self.transf1(df)
 
+        if self.config.get_value("debug"):
+            print("run code for debug mode")
+
         #TODO df_out.write...

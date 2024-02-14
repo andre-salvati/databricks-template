@@ -1,44 +1,45 @@
 # The main job for default_python
 resources:
   jobs:
+
     default_python_job:
-      name: wf_template_dev
+      name: wf_template_${bundle.target}
       
       tasks:
-      
+
         - task_key: task1
-          job_cluster_key: "cluster_dev"
+          job_cluster_key: cluster_dev
           max_retries: 0
           python_wheel_task:
             package_name: template
             entry_point: main
-            parameters: ["--task=task1", "--env=dev","--input=test"]
+            parameters: ["--task={{task.name}}","--env=${bundle.target}","--input=${var.input}","${var.debug}"]
           libraries:
             - whl: ../dist/*.whl
      
-        - task_key: "task2"
+        - task_key: task2
           depends_on:
-            - task_key: "task1"
-          job_cluster_key: "cluster_dev"
+            - task_key: task1
+          job_cluster_key: cluster_dev
           max_retries: 0
           python_wheel_task:
             package_name: template
             entry_point: main
-            parameters: ["--task=task2", "--env=dev","--input=test"]
+            parameters: ["--task={{task.name}}","--env=${bundle.target}","--input=${var.input}","${var.debug}"]
           libraries:
             - whl: ../dist/*.whl
 
       job_clusters:
-        - job_cluster_key: "cluster_dev"
+        
+        - job_cluster_key: cluster_dev
           new_cluster:
-            cluster_source: "JOB"
-            spark_version: "14.2.x-scala2.12"
-            node_type_id: "c5d.xlarge"
-            policy_id: "0016D1880B6C0182"
+            spark_version: 14.2.x-scala2.12
+            node_type_id: c5d.xlarge
             num_workers: 1
             aws_attributes:
               first_on_demand: 1
-              availability: "SPOT_WITH_FALLBACK"
-              zone_id: "auto"
+              availability: SPOT_WITH_FALLBACK
+              zone_id: auto
               spot_bid_price_percent: 100
               ebs_volume_count: 0
+

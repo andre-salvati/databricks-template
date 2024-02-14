@@ -18,12 +18,13 @@ class Config:
         self.params.update({"input" : "s3://" + args.env + "-dbtemplate123/"  + args.input + "/"})
         self.params.update({"output" : "s3://" + args.env + "-dbtemplate123/"  + output + "/"})
         self.params.update({"skip" : args.skip})
-                
+        self.params.update({"debug" : args.debug})
+
         print("Setting task configs... ")
         for key, value in self.params.items():
             print(f"{key}: {value}")
     
-    def get_bucket(self, key):
+    def get_value(self, key):
         
         return self.params[key]
     

@@ -32,29 +32,30 @@ def df_in(spark) -> DataFrame:
 @pytest.fixture
 def config() -> TaskConfig:
 
-   return TaskConfig(Namespace(task='task1', env='dev', input='2024-01-01', output=None, skip=False))
+   return TaskConfig(Namespace(task='task1', env='dev', input='2024-01-01', output=None, skip=False, debug=True))
 
 def test_arg_parser():
 
    parser = arg_parser()
 
-   args = parser.parse_args(["--task=task1", "--env=dev","--input=test", "--skip"])
+   args = parser.parse_args(["--task=task1", "--env=dev","--input=test", "--skip", "--debug"])
 
-   assert args == Namespace(task='task1', env='dev', input='test', output=None, skip=True)
+   assert args == Namespace(task='task1', env='dev', input='test', output=None, skip=True, debug=True)
 
 @pytest.mark.parametrize("args, expected_output", [
-   (Namespace(task='task1', env='dev', input='2024-01-01', output=None, skip=False),
-      {'input': 's3://dev-dbtemplate123/2024-01-01/', 'output':'s3://dev-dbtemplate123/2024-01-01/', 'skip':False}),
-   (Namespace(task='task2', env='prod', input='2024-01-02', output='test', skip=False),
-      {'input': 's3://prod-dbtemplate123/2024-01-02/', 'output':'s3://prod-dbtemplate123/test/', 'skip':False}),
-   (Namespace(task='task3', env='prod', input='2024-01-03', output=None, skip=True), 
-      {'input': 's3://prod-dbtemplate123/2024-01-03/', 'output':'s3://prod-dbtemplate123/2024-01-03/', 'skip':True})
+   (Namespace(task='task1', env='dev', input='2024-01-01', output=None, skip=False, debug=True),
+      {'input': 's3://dev-dbtemplate123/2024-01-01/', 'output':'s3://dev-dbtemplate123/2024-01-01/', 'skip':False, 'debug':True}),
+   (Namespace(task='task2', env='prod', input='2024-01-02', output='test', skip=False, debug=False),
+      {'input': 's3://prod-dbtemplate123/2024-01-02/', 'output':'s3://prod-dbtemplate123/test/', 'skip':False, 'debug':False}),
+   (Namespace(task='task3', env='prod', input='2024-01-03', output=None, skip=True, debug=False), 
+      {'input': 's3://prod-dbtemplate123/2024-01-03/', 'output':'s3://prod-dbtemplate123/2024-01-03/', 'skip':True, 'debug':False})
 ])
 def test_config(args, expected_output):
 
    config = TaskConfig(args)
 
    assert config.get_test_output() == expected_output
+
 
 def test_transf1(spark, config, df_in):
 

@@ -16,6 +16,7 @@ def arg_parser():
     parser.add_argument("--output")  
     parser.add_argument("--task", required=True, choices=["task1", "task2"])
     parser.add_argument("--skip", action='store_true')
+    parser.add_argument("--debug", action='store_true')
 
     return parser
 

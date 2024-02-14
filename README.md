@@ -12,10 +12,10 @@ This project template demonstrates how to:
 - utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations.
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
 - utilize [chispa package](https://pypi.org/project/chispa/) to validate the outputted dataframes from your transformations.
-- utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG (refer to the diagram below) and [task values](https://docs.databricks.com/en/workflows/jobs/share-task-context.html) to share flow control information between tasks. Yes!!! You don't need Airflow to manage your DAGs here!!!
-- utilize [Databricks job clusters](https://docs.databricks.com/en/workflows/jobs/use-compute.html#use-databricks-compute-with-your-jobs) to reduce costs. 
 - utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and (the new!!!) [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
 - execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions) after a repo push.
+- utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG (refer to the diagram below) and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
+- utilize [Databricks job clusters](https://docs.databricks.com/en/workflows/jobs/use-compute.html#use-databricks-compute-with-your-jobs) to reduce costs. 
 
 <br>
 
@@ -40,12 +40,13 @@ You can also execute unit tests from your preferred IDE. Here's a screenshot fro
 
 <img src="docs/vscode.png"  width="30%" height="30%">
 
-### 3) deploy and execute on a "dev" Databricks workspace. 
-
-- adjust cluster **policy_id** on deployment.yml. You can find it on **your workspace -> compute -> policies -> Job Compute.**
+### 3) deploy and execute on dev and prod workspaces. 
 
         databricks bundle deploy --target dev
-        databricks bundle run
+        databricks bundle run default_python_job --target dev
+
+        databricks bundle deploy --target prod
+        databricks bundle run default_python_job --target prod
 
 ### 4) configure CI/CD automation
 
@@ -60,3 +61,14 @@ The below diagram illustrates the CI/CD pipeline for this project.
 <img src="docs/ci_cd.png"  width="70%" height="70%">
 
 <br>
+
+# Task parameters
+
+<br>
+
+- **task** (required) - determines the current task to be executed.
+- **env** (required) - determines the AWS account where the job is running. 
+- **input** (required) - determines the bucket to be used as input.
+- **output** (optional) - determines the bucket to be used as output. If omitted, uses the value provided on **input** parameter.
+- **skip** (optional) - determines if the current task should be skipped.
+- **debug** (optional) - determines if the current task should go through debug conditional.
