@@ -13,15 +13,35 @@ This project template demonstrates how to:
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
 - utilize [chispa package](https://pypi.org/project/chispa/) to validate the outputted dataframes from your transformations.
 - utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and (the new!!!) [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
-- execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions) after a repo push.
-- utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG (refer to the diagram below) and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
+- utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) instead of Hive as your data catalog and earn for free data lineage for your tables and columns and a simplified permission model for your data.
+- utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
 - utilize [Databricks job clusters](https://docs.databricks.com/en/workflows/jobs/use-compute.html#use-databricks-compute-with-your-jobs) to reduce costs. 
+- execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions) after a repo push.
+
+### DAG
 
 <br>
 
 <img src="docs/dag.png"  width="70%" height="70%">
 
 <br>
+
+### Data Lineage
+
+<br>
+
+<img src="docs/data lineage.png"  width="70%" height="70%">
+
+<br>
+
+### Task Output
+
+<br>
+
+<img src="docs/task output.png"  width="70%" height="70%">
+
+<br>
+
 
 # Instructions
 

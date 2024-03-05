@@ -26,8 +26,7 @@ def spark() -> DataFrame:
 @pytest.fixture
 def df_in(spark) -> DataFrame:
    
-   data = [("task1", "")]
-   return spark.createDataFrame(data, schema=sc.schema_template)
+      return spark.createDataFrame([], schema=sc.schema_template)
 
 @pytest.fixture
 def config() -> TaskConfig:

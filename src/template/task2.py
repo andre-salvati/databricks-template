@@ -14,25 +14,32 @@ class Task2(BaseTask):
     @print_durations
     def transf2(self, df):
 
-        #TODO Replace createDataFrame() by your transformation
         data = [("task2", "transf2")]
-        return self.spark.createDataFrame(data, schema=schema_template)
-
+        df_new = self.spark.createDataFrame(data, schema=schema_template)
+        
+        return df.union(df_new)
+    
     @print_durations
     def transf3(self, df):
-
-        #TODO Replace createDataFrame() by your transformation
+        
         data = [("task2", "transf3")]
-        return self.spark.createDataFrame(data, schema=schema_template)
+        df_new = self.spark.createDataFrame(data, schema=schema_template)
+        
+        return df.union(df_new)    
     
     def run(self):
 
-        #TODO Replace createDataFrame() by something like df = self.spark.read....
-        data = [("task1", "")]
-        df = self.spark.createDataFrame(data, schema=schema_template)
+        self.spark.sql("USE CATALOG template")
 
-        df_transf2 = self.transf2(df)
+        self.spark.sql("USE SCHEMA test")
+      
+        df_in = self.spark.read.table("table2")
 
-        self.transf3(df_transf2)
+        df_transf2 = self.transf2(df_in)
 
-        #TODO df_out.write...
+        df_out = self.transf3(df_transf2)
+
+        if self.config.get_value("debug"):
+            df_out.show()
+            
+        df_out.write.mode("overwrite").saveAsTable("table3")

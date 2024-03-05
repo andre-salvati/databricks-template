@@ -42,4 +42,5 @@ resources:
               zone_id: auto
               spot_bid_price_percent: 100
               ebs_volume_count: 0
-
+            policy_id: 0003CE600AB8DEDA
+            data_security_mode: SINGLE_USER
