@@ -1,7 +1,10 @@
 
-# Project Template for PySpark/Databricks with automation for CI/CD
+# Project Template for PySpark/Databricks with Python packaging and CI/CD automation
 
 This project template provides a structured approach to enhance your productivity when delivering ETL pipelines on Databricks. Feel free to customize it based on your project's specific nuances and the audience you are targeting.
+
+For a debate about the use of notebooks x Python packages, please refer to [this](https://dataengineeringcentral.substack.com/p/apple-pie-angry-people-other-news) article, [this](https://www.linkedin.com/feed/update/urn:li:activity:7171661784997715968/) Linkedin thread, and [this](https://www.linkedin.com/feed/update/urn:li:activity:7170904539380875264/) Linkedin thread.
+
 
 This project template demonstrates how to:
 
@@ -10,6 +13,7 @@ This project template demonstrates how to:
 - set up VS Code to execute local unit tests for your transformations.
 - utilize [pipenv//Pipfile](https://pipenv.pypa.io/) instead of pip/requirements.txt.
 - utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations.
+- utilize [argparse package](https://pypi.org/project/argparse/) to build a flexible command line interface to start your jobs.
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
 - utilize [chispa package](https://pypi.org/project/chispa/) to validate the outputted dataframes from your transformations.
 - utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and (the new!!!) [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.

@@ -14,6 +14,8 @@ class Task2(BaseTask):
     @print_durations
     def transf2(self, df):
 
+        #TODO code your transformations here... 
+
         data = [("task2", "transf2")]
         df_new = self.spark.createDataFrame(data, schema=schema_template)
         
@@ -21,7 +23,9 @@ class Task2(BaseTask):
     
     @print_durations
     def transf3(self, df):
-        
+
+        #TODO code your transformations here... 
+
         data = [("task2", "transf3")]
         df_new = self.spark.createDataFrame(data, schema=schema_template)
         
