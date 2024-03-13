@@ -11,9 +11,11 @@ def arg_parser():
 
     parser = argparse.ArgumentParser()
         
-    parser.add_argument("--env", choices=["dev", "prod"])
-    parser.add_argument("--input")
-    parser.add_argument("--output")  
+    parser.add_argument("--env", required=True, choices=["dev", "prod"])
+    parser.add_argument("--default_schema")
+    parser.add_argument("--default_catalog")
+    parser.add_argument("--input_bucket")
+    parser.add_argument("--output_bucket")
     parser.add_argument("--task", required=True, choices=["task1", "task2"])
     parser.add_argument("--skip", action='store_true')
     parser.add_argument("--debug", action='store_true')

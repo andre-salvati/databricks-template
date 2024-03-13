@@ -8,8 +8,10 @@ variables:
     default: "--debug"
   skip:
     default: "--skip"
-  input:
-    default: test
+  default_catalog:
+    default: dev
+  default_schema:
+    default: template  
 
 include:
   - conf/*.yml

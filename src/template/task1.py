@@ -25,14 +25,6 @@ class Task1(BaseTask):
 
         # prepare a simple input table
 
-        self.spark.sql("CREATE CATALOG IF NOT EXISTS template")
-
-        self.spark.sql("USE CATALOG template")
-
-        self.spark.sql("CREATE SCHEMA IF NOT EXISTS test")
-
-        self.spark.sql("USE SCHEMA test")
-
         df = self.spark.createDataFrame([], schema=schema_template)
 
         df.write.mode("overwrite").saveAsTable("table1")

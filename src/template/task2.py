@@ -32,10 +32,6 @@ class Task2(BaseTask):
         return df.union(df_new)    
     
     def run(self):
-
-        self.spark.sql("USE CATALOG template")
-
-        self.spark.sql("USE SCHEMA test")
       
         df_in = self.spark.read.table("table2")
 

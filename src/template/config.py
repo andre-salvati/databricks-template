@@ -3,27 +3,22 @@ import argparse
 class Config:
 
     params = dict()
-    args = None
 
     def __init__(self, args):
         
         print("args: " + str(args))
 
-        if args.output == None:
-            output = args.input
-        else:
-            output = args.output
-
-        self.args = args
-        self.params.update({"input" : "s3://" + args.env + "-dbtemplate123/"  + args.input + "/"})
-        self.params.update({"output" : "s3://" + args.env + "-dbtemplate123/"  + output + "/"})
+        self.params.update({"task" : args.task})
         self.params.update({"skip" : args.skip})
         self.params.update({"debug" : args.debug})
+        self.params.update({"env" : args.env})
+        self.params.update({"default_catalog" : args.default_catalog})
+        self.params.update({"default_schema" : args.default_schema})
 
         print("Setting task configs... ")
         for key, value in self.params.items():
             print(f"{key}: {value}")
-    
+
     def get_value(self, key):
         
         return self.params[key]

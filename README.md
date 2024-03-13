@@ -46,6 +46,14 @@ This project template demonstrates how to:
 
 <br>
 
+### CI/CD pipeline
+
+<br>
+
+<img src="docs/ci_cd.png"  width="70%" height="70%">
+
+<br>
+
 
 # Instructions
 
@@ -78,21 +86,15 @@ Configure [Github Actions repository secrets](https://docs.github.com/en/actions
 
 And now you can code the transformations for each task and run unit and integration tests.
 
-The below diagram illustrates the CI/CD pipeline for this project.
-
-<br>
-
-<img src="docs/ci_cd.png"  width="70%" height="70%">
-
-<br>
-
 # Task parameters
 
 <br>
 
 - **task** (required) - determines the current task to be executed.
 - **env** (required) - determines the AWS account where the job is running. 
-- **input** (required) - determines the bucket to be used as input.
-- **output** (optional) - determines the bucket to be used as output. If omitted, uses the value provided on **input** parameter.
 - **skip** (optional) - determines if the current task should be skipped.
 - **debug** (optional) - determines if the current task should go through debug conditional.
+- **input_bucket** (optional) - determines the bucket to be used as input.
+- **output_bucket** (optional) - determines the bucket to be used as output.
+- **default_catalog** (optional) - determines the default catalog to be used.
+- **default_schema** (optional) - determines the default schema to be used

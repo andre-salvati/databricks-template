@@ -13,7 +13,10 @@ resources:
           python_wheel_task:
             package_name: template
             entry_point: main
-            parameters: ["--task={{task.name}}","--env=${bundle.target}","--input=${var.input}","${var.debug}"]
+            parameters: ["--task={{task.name}}","--env=${bundle.target}",
+                        "--default_catalog=${var.default_catalog}",
+                        "--default_schema=${var.default_schema}",
+                        "${var.debug}"]
           libraries:
             - whl: ../dist/*.whl
      
@@ -25,7 +28,10 @@ resources:
           python_wheel_task:
             package_name: template
             entry_point: main
-            parameters: ["--task={{task.name}}","--env=${bundle.target}","--input=${var.input}","${var.debug}"]
+            parameters: ["--task={{task.name}}","--env=${bundle.target}",
+                        "--default_catalog=${var.default_catalog}",
+                        "--default_schema=${var.default_schema}",
+                        "${var.debug}"]
           libraries:
             - whl: ../dist/*.whl
 
