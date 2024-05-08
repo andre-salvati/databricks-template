@@ -82,7 +82,9 @@ You can also execute unit tests from your preferred IDE. Here's a screenshot fro
 
 <img src="docs/vscode.png"  width="30%" height="30%">
 
-### 3) deploy and execute on dev and prod workspaces. 
+### 3) deploy and execute on dev and prod workspaces.
+
+Update policy_id field on wf_template.yml file, you can find this value on Compute -> Policies -> Job Compute.
 
         databricks bundle deploy --target dev
         databricks bundle run default_python_job --target dev
