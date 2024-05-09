@@ -2,14 +2,33 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk import AccountClient
 import requests
 
-w = WorkspaceClient(
-  profile = "dev"    # as configured in .databrickscfg
-)
+host = None
+token = None
 
-print(w)
+def demoWorkspaceApi(w):
+    
+    for j in w.jobs.list():
+      print("Job: " + str(j.job_id))
 
-token = w.config.authenticate()
-host = w.config.host
+    for c in w.catalogs.list():
+      print("Catalog: " + c.name)
+      schemas = w.schemas.list(catalog_name=c.name)
+      for s in schemas:
+        print("  Schema: " + s.name)
+
+
+def demoAccountApi():
+
+  a = AccountClient(profile="account")
+
+  print(a)
+
+  for m in a.metastores.list():
+    print("Metastore: " + m.metastore_id)
+    metastore = m
+
+  return metastore
+
 
 def enable(system_tables, metastore):
 
@@ -25,42 +44,38 @@ def enable(system_tables, metastore):
     print(response.text)
  
 
-# Demo for Workspace API
+def enableSystemTables(metastore):
 
-for j in w.jobs.list():
-  print("Job: " + str(j.job_id))
+  enable("billing", metastore)
 
-for c in w.catalogs.list():
-  print("Catalog: " + c.name)
-  schemas = w.schemas.list(catalog_name=c.name)
-  for s in schemas:
-    print("  Schema: " + s.name)
+  enable("access", metastore)
 
-# Demo for Account API
+  enable("storage", metastore)
 
-a = AccountClient(profile="account")
+  enable("compute", metastore)
 
-print(a)
+  enable("marketplace", metastore)
 
-for m in a.metastores.list():
-  print("Metastore: " + m.metastore_id)
-  metastore = m
+  enable("lineage", metastore)
 
-# Enabling system tables
+  list = f"{host}/api/2.0/unity-catalog/metastores/a238eb20-95d3-4a62-91ea-629992514227/systemschemas"
+  response = requests.get(list, headers=token)
+  print(response.text)
 
-enable("billing", metastore)
+if __name__ == '__main__':
+  
+  workspace = WorkspaceClient(
+    profile = "dev"    # as configured in .databrickscfg
+  )
 
-enable("access", metastore)
+  print(workspace)
 
-enable("storage", metastore)
+  token = workspace.config.authenticate()
+  host = workspace.config.host
 
-enable("compute", metastore)
+  demoWorkspaceApi(workspace)
 
-enable("marketplace", metastore)
-
-enable("lineage", metastore)
-
-list = f"{host}/api/2.0/unity-catalog/metastores/a238eb20-95d3-4a62-91ea-629992514227/systemschemas"
-response = requests.get(list, headers=token)
-print(response.text)
-
+  metastore = demoAccountApi()
+  
+  enableSystemTables(metastore)
+  
