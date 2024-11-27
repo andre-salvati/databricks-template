@@ -6,7 +6,7 @@ resources:
       name: data_reporting_${bundle.target}
       timeout_seconds: 3600
 
-      
+
 
       tasks:
 
@@ -34,6 +34,34 @@ resources:
           libraries:
             - whl: ../dist/*.whl
 
+        - task_key: generate_orders
+          depends_on:
+            - task_key: extract_source1
+            - task_key: extract_source2
+          job_cluster_key: cluster-dev
+          max_retries: 0
+          python_wheel_task:
+            package_name: template
+            entry_point: main
+            parameters: ["--task={{task.name}}",
+                         "--env=${bundle.target}",
+                        "${var.debug}"]
+          libraries:
+            - whl: ../dist/*.whl
+
+        - task_key: generate_orders_agg
+          depends_on:
+            - task_key: generate_orders
+          job_cluster_key: cluster-dev
+          max_retries: 0
+          python_wheel_task:
+            package_name: template
+            entry_point: main
+            parameters: ["--task={{task.name}}",
+                         "--env=${bundle.target}",
+                        "${var.debug}"]
+          libraries:
+            - whl: ../dist/*.whl
 
       job_clusters:
         - job_cluster_key: cluster-dev
