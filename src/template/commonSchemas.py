@@ -1,5 +1,6 @@
-from pyspark.sql.types import StringType, StructField, StructType
+from pyspark.sql.types import *
 
-schema_template = StructType(
-    [StructField("task", StringType(), True), StructField("transformation", StringType(), True)]
-)
+schema_template = StructType([
+    StructField("task", StringType(), True),
+    StructField("transformation", StringType(), True)
+])

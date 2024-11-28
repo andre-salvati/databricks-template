@@ -10,4 +10,3 @@ dist/
 build/
 output/
 src/template.egg-info/**
-conf/workflow.yml

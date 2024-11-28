@@ -3,51 +3,50 @@ resources:
   jobs:
 
     default_python_job:
-      name: data_reporting_${bundle.target}
-      timeout_seconds: 3600
-
-      {% if environment == 'prod'%}
-      schedule:
-        quartz_cron_expression: "0 0 5 * * ?"
-        timezone_id: "UTC"
-
-      no_alert_for_skipped_runs: false
-      {% endif %}
-
+      name: wf_template_${bundle.target}
+      
       tasks:
 
-        - task_key: extract_source1
-          job_cluster_key: cluster-dev
+        - task_key: task1
+          job_cluster_key: cluster_dev
           max_retries: 0
           python_wheel_task:
             package_name: template
             entry_point: main
-            parameters: ["--task={{'{{task.name}}'}}",
-                         "--env=${bundle.target}",
-                         "${var.debug}"]
+            parameters: ["--task={{task.name}}","--env=${bundle.target}",
+                        "--default_catalog=${var.default_catalog}",
+                        "--default_schema=${var.default_schema}",
+                        "${var.debug}"]
           libraries:
             - whl: ../dist/*.whl
-
-        - task_key: extract_source2
-          job_cluster_key: cluster-dev
+     
+        - task_key: task2
+          depends_on:
+            - task_key: task1
+          job_cluster_key: cluster_dev
           max_retries: 0
           python_wheel_task:
             package_name: template
             entry_point: main
-            parameters: ["--task={{'{{task.name}}'}}",
-                         "--env=${bundle.target}",
+            parameters: ["--task={{task.name}}","--env=${bundle.target}",
+                        "--default_catalog=${var.default_catalog}",
+                        "--default_schema=${var.default_schema}",
                         "${var.debug}"]
           libraries:
             - whl: ../dist/*.whl
 
-
       job_clusters:
-        - job_cluster_key: cluster-dev
+        
+        - job_cluster_key: cluster_dev
           new_cluster:
-            spark_version: 15.3.x-scala2.12
-            node_type_id: Standard_D8as_v5
-            num_workers: 2
-            azure_attributes:
+            spark_version: 14.2.x-scala2.12
+            node_type_id: c5d.xlarge
+            num_workers: 1
+            aws_attributes:
               first_on_demand: 1
-              availability: SPOT_AZURE
+              availability: SPOT_WITH_FALLBACK
+              zone_id: auto
+              spot_bid_price_percent: 100
+              ebs_volume_count: 0
+            policy_id: 0013EAF5C94BAD3C
             data_security_mode: SINGLE_USER

@@ -16,7 +16,7 @@ This project template demonstrates how to:
 - utilize [argparse package](https://pypi.org/project/argparse/) to build a flexible command line interface to start your jobs.
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
 - utilize [chispa package](https://pypi.org/project/chispa/) to validate the outputted dataframes from your transformations.
-- utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and (the new!!!) [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
+- utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and (the new!!!) [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks. 
 - utilize [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage workspaces and accounts. This script enables your metastore system tables that have [relevant data about billing, usage, lineage, prices, and access](https://www.youtube.com/watch?v=LcRWHzk8Wm4).
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) instead of Hive as your data catalog and earn for free data lineage for your tables and columns and a simplified permission model for your data.
 - utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
@@ -77,7 +77,7 @@ Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.
         pipenv install packages
         pipenv shell
         pytest tests/
-
+        
 You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
 <img src="docs/vscode.png"  width="30%" height="30%">
@@ -94,7 +94,7 @@ Update policy_id field on wf_template.yml file, you can find this value on Compu
 
 ### 4) configure CI/CD automation
 
-Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) DATABRICKS_HOST and DATABRICKS_TOKEN.
+Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) DATABRICKS_HOST and DATABRICKS_TOKEN. 
 
 ### 5) enable system tables on Catalog Explorer
 
@@ -108,7 +108,7 @@ Configure [Github Actions repository secrets](https://docs.github.com/en/actions
 <br>
 
 - **task** (required) - determines the current task to be executed.
-- **env** (required) - determines the AWS account where the job is running.
+- **env** (required) - determines the AWS account where the job is running. 
 - **skip** (optional) - determines if the current task should be skipped.
 - **debug** (optional) - determines if the current task should go through debug conditional.
 - **default_catalog** (optional) - determines the default catalog to be used.
