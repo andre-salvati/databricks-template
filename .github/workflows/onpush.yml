@@ -26,23 +26,17 @@ jobs:
 
       - name: Install dependencies
         run: |
-          python -m pip install --upgrade pip
-          pip install pipenv
-          pipenv install packages
-        
+          make install
+
       - name: Install Databricks CLI
         run: |
           pipenv run curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
           pipenv run databricks --version
 
-      - name: Run unit tests
-        run: |
-          pipenv run pytest tests/
-
       - name: Package and Deployment
         run: |
-          pipenv run databricks bundle deploy --target dev
-          
+          make deploy-dev
+
       - name: Run
         run: |
-          pipenv run databricks bundle run default_python_job
+          make deploy-ci

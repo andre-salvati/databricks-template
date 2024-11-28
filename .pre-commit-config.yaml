@@ -1,0 +1,33 @@
+default_language_version:
+    # force all unspecified python hooks to run python3
+    python: python3
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+    -   id: check-yaml
+        exclude: '^conf/wf_template.yml$'
+    -   id: end-of-file-fixer
+    -   id: trailing-whitespace
+    -   id: no-commit-to-branch
+    -   id: mixed-line-ending
+    -   id: detect-private-key
+    -   id: check-added-large-files
+-   repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.0
+    hooks:
+    -   id: ruff
+        args:
+          - --ignore=E501
+          - --select=I001,F401,F403,F405
+          - --fix
+        files: ^src/
+    -   id: ruff-format
+        exclude: '^tests/template_test.py$'
+        args:
+          - --line-length=120
+-   repo: https://github.com/commitizen-tools/commitizen
+    rev: v4.0.0
+    hooks:
+    -   id: commitizen
+        stages: [commit-msg]

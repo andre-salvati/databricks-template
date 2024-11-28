@@ -11,10 +11,10 @@ variables:
   default_catalog:
     default: dev
   default_schema:
-    default: template  
+    default: template
 
 include:
-  - conf/*.yml
+  - conf/workflow.yml
 
 targets:
   # The 'dev' target, used for development purposes.
@@ -49,4 +49,4 @@ targets:
       # This runs as username@company.com in production. Alternatively,
       # a service principal could be used here using service_principal_name
       # (see Databricks documentation).
-      user_name: andre.f.salvati@gmail.com
+      user_name: username@company.com

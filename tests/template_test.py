@@ -1,20 +1,20 @@
 from argparse import Namespace
 
 import pytest
-from chispa.dataframe_comparer import *
 from pyspark.sql import *
-from pyspark.sql import functions as F
 from pyspark.sql.types import *
 
 from template.main import *
-from template import commonSchemas as sc
 from template.config import Config as TaskConfig
-from template.task1 import *
-from template.task2 import *
-from template.task1 import *
+from template.generate_orders import GenerateOrders
+from template.generate_orders_agg import GenerateOrdersAgg
+from template.commonSchemas import customer_schema, order_schema, order_item_schema
+
+from pyspark.testing import assertDataFrameEqual
 
 #from databricks.connect import DatabricksSession
 #from databricks.sdk.core import Config
+
 
 @pytest.fixture
 def spark() -> DataFrame:
@@ -24,27 +24,46 @@ def spark() -> DataFrame:
    return SparkSession.builder.appName('unit-tests').getOrCreate()
 
 @pytest.fixture
-def df_in(spark) -> DataFrame:
-   
-      return spark.createDataFrame([], schema=sc.schema_template)
-
-@pytest.fixture
 def config() -> TaskConfig:
 
-   return TaskConfig(Namespace(task='task1', env='local', default_catalog='dev', default_schema='template', skip=False, debug=True))
+   return TaskConfig(Namespace(task='extract_source1', env='local', default_catalog='dev', default_schema='template', skip=False, debug=True))
+
+@pytest.fixture
+def spark(config) -> TaskConfig:
+    return config.get_spark()
+
+
+@pytest.fixture
+def df_orders(spark) -> DataFrame:
+
+   orders_data = [("John Doe", 10, 1, 100.0, 1, "Item A", 2, 50.0),
+                        ("John Doe", 10, 1, 100.0, 2, "Item B", 1, 50.0),
+                        ("Jane Smith", 20, 2, 150.0, 1, "Item C", 3, 150.0),]
+   orders_schema = StructType(
+   [
+      StructField("name", StringType(), True),
+      StructField("id_customer", IntegerType(), True),
+      StructField("id_order", IntegerType(), True),
+      StructField("total", FloatType(), True),
+      StructField("seq", IntegerType(), True),
+      StructField("desc_item", StringType(), True),
+      StructField("qty", IntegerType(), True),
+      StructField("total_item", FloatType(), True),
+   ]
+   )
+   return spark.createDataFrame(orders_data, schema=orders_schema)
 
 def test_arg_parser():
 
    parser = arg_parser()
 
-   args = parser.parse_args(["--task=task1", "--env=dev","--default_catalog=dev", "--default_schema=template", "--skip", "--debug"])
+   args = parser.parse_args(["--task=extract_source1", "--env=dev", "--default_schema=template", "--skip", "--debug"])
 
-   assert args == Namespace(task='task1', env='dev', input_bucket=None, output_bucket=None, 
-                            default_catalog='dev', default_schema='template', skip=True, debug=True)
+   assert args == Namespace(task='extract_source1', env='dev', default_schema='template', skip=True, debug=True)
 
 @pytest.mark.parametrize("args, expected_output", [
-   (Namespace(task='task1', env='dev', skip=False, debug=True, default_schema='dev', default_catalog='template'),
-      {'task':'task1', 'env':'dev', 'skip':False, 'debug':True, 'default_schema':'dev', 'default_catalog':'template'}),
+   (Namespace(task='extract_source1', env='dev', skip=False, debug=True, default_schema='dev', default_catalog='template'),
+      {'task':'extract_source1', 'env':'dev', 'skip':False, 'debug':True, 'default_schema':'dev'}),
 ])
 def test_config(args, expected_output):
 
@@ -52,48 +71,44 @@ def test_config(args, expected_output):
 
    assert config.get_test_output() == expected_output
 
+def test_enrich_orders(spark, config, df_orders):
 
-def test_transf1(spark, config, df_in):
+   df_expected = df_orders
 
-   task = Task1(spark, config)
+   task = GenerateOrders(config)
 
-   df_out = task.transf1(df_in)
+   customer_data = [(10, "John Doe", "USA"), (20, "Jane Smith", "UK")]
+   df_customer = spark.createDataFrame(customer_data, schema=customer_schema)
 
-   assert df_out.count() == 1
+   order_data = [(1, 10, 100.0, "2023-01-01"), (2, 20, 150.0, "2023-01-02")]
+   df_order = spark.createDataFrame(order_data, schema=order_schema)
 
-   expected_data = [("task1", "transf1")]
+   order_item_data = [(1, 1, "Item A", 2, 50.0), (1, 2, "Item B", 1, 50.0), (2, 1, "Item C", 3, 150.0)]
+   df_order_item = spark.createDataFrame(order_item_data, schema=order_item_schema)
 
-   expected_df = spark.createDataFrame(expected_data, schema=sc.schema_template)
-   
-   assert_df_equality(df_out, expected_df, ignore_row_order=True, ignore_nullable=True)
+   df_out = task.enrich_order(df_customer, df_order, df_order_item)
 
+   assert df_out.count() == 3
 
-def test_transf2(spark, config, df_in):
+   assertDataFrameEqual(df_out, df_expected)
 
-   task = Task2(spark, config)
+def test_aggregate_orders(spark, config, df_orders):
 
-   df_out = task.transf2(df_in)
+   task = GenerateOrdersAgg(config)
 
-   assert df_out.count() == 1
+   df_out = task.aggregate_orders(df_orders)
 
-   expected_data = [("task2", "transf2")]
+   assert df_out.count() == 2
 
-   expected_df = spark.createDataFrame(expected_data, schema=sc.schema_template)
-   
-   assert_df_equality(df_out, expected_df, ignore_row_order=True, ignore_nullable=True)
+   expected_data = [("John Doe", 3, 100.0),
+                     ("Jane Smith", 3, 150.0),]
+   expected_schema = StructType(
+   [
+      StructField("name", StringType(), True),
+      StructField("total_qty", LongType(), True),
+      StructField("total_value", DoubleType(), True),
+   ]
+   )
+   df_expected = spark.createDataFrame(expected_data, schema=expected_schema)
 
-
-def test_transf3(spark, config, df_in):
-
-   task = Task2(spark, config)
-
-   df_out = task.transf3(df_in)
-
-   assert df_out.count() == 1
-
-   expected_data = [("task2", "transf3")]
-
-   expected_df = spark.createDataFrame(expected_data, schema=sc.schema_template)
-   
-   assert_df_equality(df_out, expected_df, ignore_row_order=True, ignore_nullable=True)
-
+   assertDataFrameEqual(df_out, df_expected)

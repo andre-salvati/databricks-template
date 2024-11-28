@@ -3,16 +3,10 @@ resources:
   jobs:
 
     default_python_job:
-      name: template_${bundle.target}
+      name: data_reporting_${bundle.target}
       timeout_seconds: 3600
 
-      {% if environment == 'prod'%}
-      schedule:
-        quartz_cron_expression: "0 0 5 * * ?"
-        timezone_id: "UTC"
 
-      no_alert_for_skipped_runs: false
-      {% endif %}
 
       tasks:
 
@@ -22,7 +16,7 @@ resources:
           python_wheel_task:
             package_name: template
             entry_point: main
-            parameters: ["--task={{'{{task.name}}'}}",
+            parameters: ["--task={{task.name}}",
                          "--env=${bundle.target}",
                          "${var.debug}"]
           libraries:
@@ -34,7 +28,7 @@ resources:
           python_wheel_task:
             package_name: template
             entry_point: main
-            parameters: ["--task={{'{{task.name}}'}}",
+            parameters: ["--task={{task.name}}",
                          "--env=${bundle.target}",
                         "${var.debug}"]
           libraries:
@@ -49,7 +43,7 @@ resources:
           python_wheel_task:
             package_name: template
             entry_point: main
-            parameters: ["--task={{'{{task.name}}'}}",
+            parameters: ["--task={{task.name}}",
                          "--env=${bundle.target}",
                         "${var.debug}"]
           libraries:
@@ -63,7 +57,7 @@ resources:
           python_wheel_task:
             package_name: template
             entry_point: main
-            parameters: ["--task={{'{{task.name}}'}}",
+            parameters: ["--task={{task.name}}",
                          "--env=${bundle.target}",
                         "${var.debug}"]
           libraries:
