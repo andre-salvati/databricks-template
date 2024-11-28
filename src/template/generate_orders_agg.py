@@ -16,7 +16,7 @@ class GenerateOrdersAgg(BaseTask):
         
         # TODO code your transformations here...
 
-        return (df_order.groupBy("name", "id_customer", "desc_item")
+        return (df_order.groupBy("name")
                     .agg(sum("qty").alias("total_qty"), sum("total_item").alias("total_value")))
     
     def run(self):

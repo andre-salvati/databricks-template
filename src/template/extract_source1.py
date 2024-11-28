@@ -1,6 +1,7 @@
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
 from .baseTask import BaseTask
+from .commonSchemas import customer_schema
 
 schema = "raw_source1"
 
@@ -13,14 +14,6 @@ class ExtractSource1(BaseTask):
         print("Extracting data from Source1 ...")
 
         self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {schema}")
-
-        customer_schema = StructType(
-            [
-                StructField("id", IntegerType(), True),
-                StructField("name", StringType(), True),
-                StructField("country", StringType(), True),
-            ]
-        )
 
         customer_data = [(10, "John Doe", "USA"), (20, "Jane Smith", "UK")]
 

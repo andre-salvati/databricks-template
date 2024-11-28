@@ -10,7 +10,7 @@ class GenerateOrders(BaseTask):
         super().__init__(config)
 
     @print_durations
-    def enrich_order_items(self, df_customer, df_order, df_order_item):
+    def enrich_order(self, df_customer, df_order, df_order_item):
         
         # TODO code your transformations here...
 
@@ -28,7 +28,7 @@ class GenerateOrders(BaseTask):
         df_order = self.spark.read.table("raw_source2.order")
         df_order_item = self.spark.read.table("raw_source2.order_item")
 
-        df_out = self.enrich_order_items(df_customer, df_order, df_order_item)
+        df_out = self.enrich_order(df_customer, df_order, df_order_item)
 
         if self.config.get_value("debug"):
             df_out.show()

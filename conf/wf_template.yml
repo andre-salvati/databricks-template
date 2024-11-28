@@ -3,7 +3,7 @@ resources:
   jobs:
 
     default_python_job:
-      name: data_reporting_${bundle.target}
+      name: template_${bundle.target}
       timeout_seconds: 3600
 
       {% if environment == 'prod'%}

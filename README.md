@@ -3,19 +3,16 @@
 
 This project template provides a structured approach to enhance your productivity when delivering ETL pipelines on Databricks. Feel free to customize it based on your project's specific nuances and the audience you are targeting.
 
-For a debate about the use of notebooks x Python packages, please refer to:
-- [this article](https://dataengineeringcentral.substack.com/p/apple-pie-angry-people-other-news)
-- [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7171661784997715968/)
-- [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7170904539380875264/)
-
-
 This project template demonstrates how to:
 
-- structure your PySpark code inside classes/packages
-- package your code and move in on different environments in your CI/CD pipeline.
-- configure your pipeline to run in dev and prod environments.
+- structure your PySpark code inside classes/packages.
+- package your code and move it on different environments on a CI/CD pipeline.
+- configure your workflow to run in different environments with different configurations with [jinja package](https://pypi.org/project/jinja2/)
+- use a [medallion architecure](https://www.databricks.com/glossary/medallion-architecture) pattern by improving the data quality as it goes trought more refinement.
+- use a Make file to automate repetitive tasks on local env.
+- lint and format the code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
 - set up VS Code to execute local unit tests for your transformations.
-- utilize [pipenv/Pipfile](https://pipenv.pypa.io/) instead of pip/requirements.txt.
+- utilize [pipenv/Pipfile](https://pipenv.pypa.io/) to prepare local and remote envs.
 - utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations.
 - utilize [argparse package](https://pypi.org/project/argparse/) to build a flexible command line interface to start your jobs.
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
@@ -25,6 +22,13 @@ This project template demonstrates how to:
 - utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
 - utilize [Databricks job clusters](https://docs.databricks.com/en/workflows/jobs/use-compute.html#use-databricks-compute-with-your-jobs) to reduce costs.
 - execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions) after a repo push.
+
+For a debate about the use of notebooks x Python packages, please refer to:
+- [this article](https://dataengineeringcentral.substack.com/p/apple-pie-angry-people-other-news)
+- [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7171661784997715968/)
+- [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7170904539380875264/)
+
+
 
 ### DAG
 
