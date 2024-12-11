@@ -1,5 +1,5 @@
 
-# Project Template for Spark/Databricks with Python packaging and CI/CD automation
+# Databricks template project with Asset Bundles, Python packaging and CI/CD automation
 
 This project template provides a structured approach to enhance your productivity when delivering ETL pipelines on Databricks. Feel free to customize it based on your project's specific nuances and the audience you are targeting.
 
