@@ -13,12 +13,12 @@ deploy-dev:
 	python ./scripts/generate_template_workflow.py dev
 	databricks bundle deploy --target dev
 
-deploy-ci:
-	pipenv run python ./scripts/generate_template_workflow.py ci
-	pipenv run databricks bundle deploy --target ci
+deploy-staging:
+	pipenv run python ./scripts/generate_template_workflow.py staging
+	pipenv run databricks bundle deploy --target staging
 
-run-ci:
-	pipenv run databricks bundle run --target ci
+run-staging:
+	pipenv run databricks bundle run --target staging
 
 deploy-prod:
 	pipenv run python ./scripts/generate_template_workflow.py prod
