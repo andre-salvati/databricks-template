@@ -11,11 +11,15 @@ pre-commit:
 
 deploy-dev:
 	python ./scripts/generate_template_workflow.py dev
-	databricks bundle run default_python_job --target dev
+	databricks bundle deploy --target dev
 
-deploy-run-ci:
-	pipenv run python ./scripts/generate_template_workflow.py stag
-	pipenv run databricks bundle deploy --target stag
+deploy-ci:
+	pipenv run python ./scripts/generate_template_workflow.py ci
+	pipenv run databricks bundle deploy --target ci
+
+run-ci:
+	pipenv run databricks bundle run --target ci
 
 deploy-prod:
+	pipenv run python ./scripts/generate_template_workflow.py prod
 	pipenv run databricks bundle deploy --target prod
