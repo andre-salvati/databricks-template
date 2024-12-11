@@ -33,14 +33,14 @@ jobs:
           pipenv run curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
           pipenv run databricks --version
 
-      - name: Package and Deployment
+      - name: Deploy on dev
         run: |
           make deploy-dev
 
-      - name: Run job
+      - name: Run dev
         run: |
           make run-dev
 
-      - name: Run
+      - name: Deploy on prod
         run: |
-          make deploy-ci
+          make deploy-prod
