@@ -4,6 +4,14 @@ install:
 	pipenv install packages
 	pipenv run pytest tests/
 	pipenv run pip list
+	pipenv shell
+
+install-ci:
+	python3 -m pip install --upgrade pip
+	pip install pipenv
+	pip install packages
+	pytest tests/
+	pip list
 
 pre-commit:
 	pre-commit autoupdate
