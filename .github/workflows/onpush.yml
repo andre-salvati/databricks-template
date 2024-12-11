@@ -26,7 +26,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          make install-ci
+          make install
 
       - name: Install Databricks CLI
         run: |
