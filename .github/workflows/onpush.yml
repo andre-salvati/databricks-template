@@ -12,7 +12,7 @@ jobs:
 
     runs-on: ubuntu-latest
     strategy:
-      max-parallel: 4
+      max-parallel: 1
 
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
@@ -33,10 +33,14 @@ jobs:
           pipenv run curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
           pipenv run databricks --version
 
-      - name: Package and Deployment
+      - name: Deploy on staging
         run: |
-          make deploy-dev
+          make deploy-staging
 
-      - name: Run
+      - name: Run on staging
         run: |
-          make deploy-ci
+          make run-staging
+
+      - name: Deploy on prod
+        run: |
+          make deploy-prod

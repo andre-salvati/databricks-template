@@ -75,7 +75,7 @@ class Config:
         ):
             print("Skipped with config file for 'dev' and 'ci' envs.")
             return True
-        elif self.params["env"] in ("stag", "prod") and self.in_table_for_skip(self.params["task"]):
+        elif self.params["env"] in ("staging", "prod") and self.in_table_for_skip(self.params["task"]):
             print("Skipped with config table for 'prod' env.")
             return True
 

@@ -1,7 +1,9 @@
 install:
+	python3 -m pip install --upgrade pip
+	pip install pipenv
 	pipenv install packages
 	pipenv run pytest tests/
-	pipenv shell
+	pipenv run pip list
 
 pre-commit:
 	pre-commit autoupdate
@@ -11,9 +13,13 @@ deploy-dev:
 	python ./scripts/generate_template_workflow.py dev
 	databricks bundle deploy --target dev
 
-run-dev:
-	databricks bundle run default_python_job --target dev
+deploy-staging:
+	pipenv run python ./scripts/generate_template_workflow.py staging
+	pipenv run databricks bundle deploy --target staging
 
-deploy-ci:
-	pipenv run python ./scripts/generate_template_workflow.py ci
-	pipenv run databricks bundle deploy --target ci
+run-staging:
+	pipenv run databricks bundle run default_python_job --target staging
+
+deploy-prod:
+	pipenv run python ./scripts/generate_template_workflow.py prod
+	pipenv run databricks bundle deploy --target prod
