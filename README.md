@@ -8,6 +8,7 @@ This project template demonstrates how to:
 - structure your PySpark code inside classes/packages.
 - package your code and move it on different environments (dev, staging, prod) on a CI/CD pipeline.
 - configure your workflow to run in different environments with different configurations with [jinja package](https://pypi.org/project/jinja2/)
+- configure your workflow to selectively run tasks, preventing collisions and interference between developers working in parallel.
 - use a [medallion architecure](https://www.databricks.com/glossary/medallion-architecture) pattern by improving the data quality as it goes trought more refinement.
 - use a Make file to automate repetitive tasks on local env.
 - lint and format the code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
