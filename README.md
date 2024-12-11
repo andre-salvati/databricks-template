@@ -6,7 +6,7 @@ This project template provides a structured approach to enhance your productivit
 This project template demonstrates how to:
 
 - structure your PySpark code inside classes/packages.
-- package your code and move it on different environments on a CI/CD pipeline.
+- package your code and move it on different environments (dev, staging, prod) on a CI/CD pipeline.
 - configure your workflow to run in different environments with different configurations with [jinja package](https://pypi.org/project/jinja2/)
 - use a [medallion architecure](https://www.databricks.com/glossary/medallion-architecture) pattern by improving the data quality as it goes trought more refinement.
 - use a Make file to automate repetitive tasks on local env.
@@ -75,12 +75,17 @@ For a debate about the use of notebooks x Python packages, please refer to:
 
 # Instructions
 
-### 1) install and configure Databricks CLI
+### 1) (optional) create a Databricks Workspace with Terraform
+
+Follow instructions [here](https://github.com/databricks/terraform-databricks-examples)
+
+
+### 2) install and configure Databricks CLI on your local machine
 
 Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html)
 
 
-### 2) build python env and execute unit tests
+### 3) build python env and execute unit tests on your local machine
 
         make install
 
@@ -88,14 +93,14 @@ You can also execute unit tests from your preferred IDE. Here's a screenshot fro
 
 <img src="docs/vscode.png"  width="30%" height="30%">
 
-### 3) deploy and execute on dev and prod workspaces.
+### 4) deploy and execute on dev workspace.
 
 Update "job_clusters" properties on wf_template.yml file. There are different properties for AWS and Azure.
 
         make deploy-dev
 
 
-### 4) configure CI/CD automation
+### 5) configure CI/CD automation
 
 Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) DATABRICKS_HOST and DATABRICKS_TOKEN.
 

@@ -10,7 +10,7 @@ from .generate_orders_agg import GenerateOrdersAgg
 def arg_parser():
     parser = argparse.ArgumentParser()
 
-    parser.add_argument("--env", required=True, choices=["dev", "ci", "prod"])
+    parser.add_argument("--env", required=True, choices=["dev", "staging", "prod"])
     parser.add_argument("--default_schema")
     parser.add_argument(
         "--task",
