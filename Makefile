@@ -9,7 +9,7 @@ install:
 install-ci:
 	python3 -m pip install --upgrade pip
 	pip install pipenv
-	pip install packages
+	pipenv install
 	pytest tests/
 	pip list
 
