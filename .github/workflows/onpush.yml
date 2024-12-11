@@ -37,6 +37,10 @@ jobs:
         run: |
           make deploy-dev
 
+      - name: Run job
+        run: |
+          make run-dev
+
       - name: Run
         run: |
           make deploy-ci

@@ -16,11 +16,12 @@ This project template demonstrates how to:
 - utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations.
 - utilize [argparse package](https://pypi.org/project/argparse/) to build a flexible command line interface to start your jobs.
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
-- utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and (the new!!!) [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
+- utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
 - utilize [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage workspaces and accounts. This script enables your metastore system tables that have [relevant data about billing, usage, lineage, prices, and access](https://www.youtube.com/watch?v=LcRWHzk8Wm4).
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) instead of Hive as your data catalog and earn for free data lineage for your tables and columns and a simplified permission model for your data.
 - utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
 - utilize [Databricks job clusters](https://docs.databricks.com/en/workflows/jobs/use-compute.html#use-databricks-compute-with-your-jobs) to reduce costs.
+- define clusters on AWS and Azure.
 - execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions) after a repo push.
 
 For a debate about the use of notebooks x Python packages, please refer to:
@@ -97,13 +98,6 @@ Update "job_clusters" properties on wf_template.yml file. There are different pr
 ### 4) configure CI/CD automation
 
 Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) DATABRICKS_HOST and DATABRICKS_TOKEN.
-
-### 5) enable system tables on Catalog Explorer
-
-        python sdk_system_tables.py
-
-
-... and now you can code the transformations for each task and run unit and integration tests.
 
 
 # Task parameters
