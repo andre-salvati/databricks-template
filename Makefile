@@ -18,7 +18,7 @@ deploy-staging:
 	pipenv run databricks bundle deploy --target staging
 
 run-staging:
-	pipenv run databricks bundle run --target staging
+	pipenv run databricks bundle run default_python_job --target staging
 
 deploy-prod:
 	pipenv run python ./scripts/generate_template_workflow.py prod
