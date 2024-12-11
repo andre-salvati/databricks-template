@@ -45,8 +45,8 @@ targets:
     workspace:
       profile: prod
       root_path: /Shared/.bundle/prod/${bundle.name}
-    run_as:
-      # This runs as username@company.com in production. Alternatively,
-      # a service principal could be used here using service_principal_name
-      # (see Databricks documentation).
-      user_name: user.two@domain.com
+    # run_as:
+    #   # This runs as username@company.com in production. Alternatively,
+    #   # a service principal could be used here using service_principal_name
+    #   # (see Databricks documentation).
+    #   user_name: user.two@domain.com
