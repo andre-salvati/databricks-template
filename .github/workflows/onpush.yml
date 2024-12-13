@@ -8,7 +8,7 @@ on:
       - 'v*' # this tag type is used for release pipelines
     paths-ignore:
       - 'README.md'
-      - 'docs/README.md'
+      - 'docs/**'
 
 jobs:
   ci-pipeline:
