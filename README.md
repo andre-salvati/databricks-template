@@ -28,7 +28,7 @@ This project template demonstrates how to:
 For a debate about the use of notebooks x Python packages, please refer to:
 - [this article](https://dataengineeringcentral.substack.com/p/apple-pie-angry-people-other-news)
 - [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7171661784997715968/)
-- [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7170904539380875264/)   xxxxxx
+- [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7170904539380875264/)
 
 
 
