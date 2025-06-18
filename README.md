@@ -70,7 +70,7 @@ For a debate about the use of notebooks x Python packages, please refer to:
 
 # Instructions
 
-### 1) (optional) Create a Databricks Workspace
+### 1) Create a Databricks Workspace
 
 option 1) utilize [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition).
 
