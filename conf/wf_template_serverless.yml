@@ -2,7 +2,7 @@
 resources:
   jobs:
 
-    serverless_job_no_cluster:
+    default_python_job:
       name: template_${bundle.target}
       timeout_seconds: 3600
 

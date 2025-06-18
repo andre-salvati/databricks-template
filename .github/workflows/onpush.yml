@@ -38,12 +38,12 @@ jobs:
 
       - name: Deploy on staging
         run: |
-          make deploy-staging
+          make deploy-serverless env=staging
 
       - name: Run on staging
         run: |
-          make run-staging
+          make run env=staging
 
       - name: Deploy on prod
         run: |
-          make deploy-prod
+          make deploy-serverless env=prod
