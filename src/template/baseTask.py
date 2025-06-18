@@ -5,7 +5,7 @@ class BaseTask:
         self.dbutils = config.get_dbutils()
 
         if config.get_value("env") != "local":
-            catalog = config.get_value("env")
+            catalog = config.get_value("default_catalog")
 
             print("Setting default catalog " + catalog)
 
