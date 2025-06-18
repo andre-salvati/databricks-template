@@ -5,7 +5,7 @@ This project template provides a structured approach to enhance productivity whe
 
 This project template demonstrates how to:
 
-- utilize [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy a solution.
+- utilize [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
 - structure PySpark code inside classes/packages.
 - package code and move it to different environments (dev, staging, prod) on a CI/CD pipeline.
 - in "dev" environment, use the catalog defined in config.ini to avoid concurrency issues between developers.
