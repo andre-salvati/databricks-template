@@ -1,0 +1,72 @@
+# The main job for default_python
+resources:
+  jobs:
+
+    serverless_job_no_cluster:
+      name: template_${bundle.target}
+      timeout_seconds: 3600
+
+      # A list of task execution environment specifications that can be referenced by tasks of this job.
+      deployment:
+        kind: BUNDLE
+      
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+            dependencies:
+              - ../dist/template-*.whl
+
+      {% if environment == 'prod'%}
+      schedule:
+        quartz_cron_expression: "0 0 5 * * ?"
+        timezone_id: "UTC"
+
+      {% endif %}
+
+      tasks:
+
+        - task_key: extract_source1
+          max_retries: 0
+          environment_key: default
+          python_wheel_task:
+            package_name: template
+            entry_point: main
+            parameters: ["--task={{'{{task.name}}'}}",
+                         "--env=${bundle.target}",
+                         "${var.debug}"]
+
+        - task_key: extract_source2
+          max_retries: 0
+          environment_key: default
+          python_wheel_task:
+            package_name: template
+            entry_point: main
+            parameters: ["--task={{'{{task.name}}'}}",
+                         "--env=${bundle.target}",
+                        "${var.debug}"]
+
+        - task_key: generate_orders
+          depends_on:
+            - task_key: extract_source1
+            - task_key: extract_source2
+          max_retries: 0
+          environment_key: default
+          python_wheel_task:
+            package_name: template
+            entry_point: main
+            parameters: ["--task={{'{{task.name}}'}}",
+                         "--env=${bundle.target}",
+                        "${var.debug}"]
+
+        - task_key: generate_orders_agg
+          depends_on:
+            - task_key: generate_orders
+          max_retries: 0
+          environment_key: default
+          python_wheel_task:
+            package_name: template
+            entry_point: main
+            parameters: ["--task={{'{{task.name}}'}}",
+                         "--env=${bundle.target}",
+                        "${var.debug}"]
