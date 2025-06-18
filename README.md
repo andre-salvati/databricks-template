@@ -5,8 +5,10 @@ This project template provides a structured approach to enhance productivity whe
 
 This project template demonstrates how to:
 
+- utilize [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy a solution.
 - structure PySpark code inside classes/packages.
 - package code and move it to different environments (dev, staging, prod) on a CI/CD pipeline.
+- in "dev" environment, use the catalog defined in config.ini to avoid concurrency issues between developers.
 - set up VS Code to execute local unit tests for transformations.
 - execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
 - configure the workflow to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/)
@@ -68,9 +70,11 @@ For a debate about the use of notebooks x Python packages, please refer to:
 
 # Instructions
 
-### 1) (optional) Create a Databricks Workspace with Terraform
+### 1) (optional) Create a Databricks Workspace
 
-Follow instructions [here](https://github.com/databricks/terraform-databricks-examples)
+option 1) utilize [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition).
+
+option 2) create a Premium workspace. Follow instructions [here](https://github.com/databricks/terraform-databricks-examples)
 
 
 ### 2) Install and configure Databricks CLI on your local machine
@@ -88,9 +92,21 @@ You can also execute unit tests from your preferred IDE. Here's a screenshot fro
 
 ### 4) Deploy and execute on the dev workspace.
 
-Update "job_clusters" properties on wf_template.yml file. There are different properties for AWS and Azure.
+option 1) for Databricks Free Edition use:
 
-        make deploy-dev
+        make deploy-serverless env=dev
+        make deploy-serverless env=staging
+        make deploy-serverless env=prod
+
+
+option 2) for Premium workspace:
+
+        Update "job_clusters" properties on wf_template.yml file. There are different properties for AWS and Azure.
+
+        make deploy-dev env=dev
+        make deploy-dev env=staging
+        make deploy-dev env=prod
+
 
 ### 5) configure CI/CD automation
 
