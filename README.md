@@ -32,6 +32,7 @@ For a debate about the use of notebooks x Python packages, please refer to:
 - [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7171661784997715968/)
 - [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7170904539380875264/)
 
+Please, [get in touch](https://www.linkedin.com/in/andresalvati/) if you want to use these concepts on your project.
 
 
 ### DAG
