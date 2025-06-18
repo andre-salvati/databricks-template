@@ -3,6 +3,8 @@
 
 This project template provides a structured approach to enhance productivity when delivering ETL pipelines on Databricks. Feel free to customize it based on your project's specific nuances and the audience you are targeting.
 
+Please, [get in touch](https://www.linkedin.com/in/andresalvati/) if you want to use these concepts on your project.
+
 This project template demonstrates how to:
 
 - utilize [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
@@ -31,8 +33,6 @@ For a debate about the use of notebooks x Python packages, please refer to:
 - [this article](https://dataengineeringcentral.substack.com/p/apple-pie-angry-people-other-news)
 - [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7171661784997715968/)
 - [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7170904539380875264/)
-
-Please, [get in touch](https://www.linkedin.com/in/andresalvati/) if you want to use these concepts on your project.
 
 
 ### DAG
