@@ -82,9 +82,16 @@ def test_arg_parser():
                 skip=False,
                 debug=True,
                 default_schema="dev",
-                default_catalog="template",
+                default_catalog="andre_f",
             ),
-            {"task": "extract_source1", "env": "dev", "skip": False, "debug": True, "default_schema": "dev"},
+            {
+                "task": "extract_source1",
+                "env": "dev",
+                "skip": False,
+                "debug": True,
+                "default_schema": "dev",
+                "default_catalog": "andre_f",
+            },
         ),
     ],
 )
