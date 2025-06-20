@@ -1,9 +1,9 @@
 
-# Databricks template project with Asset Bundles, Python packaging, and CI/CD automation
+# Template project with Databricks Asset Bundles, Python packaging, unit tests, and CI/CD automation
 
 This project template provides a structured approach to enhance productivity when delivering ETL pipelines on Databricks. Feel free to customize it based on your project's specific nuances and the audience you are targeting.
 
-Please, [get in touch](https://www.linkedin.com/in/andresalvati/) if you want to use these concepts on your project.
+Please, [get in touch](https://www.linkedin.com/in/andresalvati/) if you want my help to apply these concepts to your project.
 
 This project template demonstrates how to:
 
@@ -73,7 +73,7 @@ For a debate about the use of notebooks x Python packages, please refer to:
 
 ### 1) Create a Databricks Workspace
 
-option 1) utilize [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition).
+option 1) utilize a [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) workspace.
 
 option 2) create a Premium workspace. Follow instructions [here](https://github.com/databricks/terraform-databricks-examples)
 
@@ -104,9 +104,9 @@ option 2) for Premium workspace:
 
         Update "job_clusters" properties on wf_template.yml file. There are different properties for AWS and Azure.
 
-        make deploy-dev env=dev
-        make deploy-dev env=staging
-        make deploy-dev env=prod
+        make deploy env=dev
+        make deploy env=staging
+        make deploy env=prod
 
 
 ### 5) configure CI/CD automation
