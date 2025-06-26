@@ -3,18 +3,17 @@
 
 This project template provides a structured approach to enhance productivity when delivering ETL pipelines on Databricks. Feel free to customize it based on your project's specific nuances and the audience you are targeting.
 
-Please, [get in touch](https://www.linkedin.com/in/andresalvati/) if you want my help to apply these concepts to your project.
+Interested in bringing these concepts to life in your project? Let’s [connect](https://www.linkedin.com/in/andresalvati/)
 
 This project template demonstrates how to:
 
 - utilize [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
 - structure PySpark code inside classes/packages.
-- package code and move it to different environments (dev, staging, prod) on a CI/CD pipeline.
+- package code and deploy it to different environments (dev, staging, prod) using a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
 - in "dev" environment, use the catalog defined in config.ini to avoid concurrency issues between developers.
+- configure the workflow to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/).
+- configure the workflow to run tasks selectively.
 - set up VS Code to execute local unit tests for transformations.
-- execute a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
-- configure the workflow to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/)
-- configure the workflow to run tasks selectively, preventing collisions and interference between developers working in parallel.
 - use a [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
 - use a Make file to automate repetitive tasks.
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
@@ -29,11 +28,15 @@ This project template demonstrates how to:
 - utilize [Databricks job clusters](https://docs.databricks.com/en/workflows/jobs/use-compute.html#use-databricks-compute-with-your-jobs) to reduce costs.
 - define clusters on AWS and Azure.
 
-For a debate about the use of notebooks x Python packages, please refer to:
+For a debate on the use of notebooks vs. Python packages, please refer to:
 - [this article](https://dataengineeringcentral.substack.com/p/apple-pie-angry-people-other-news)
 - [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7171661784997715968/)
 - [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7170904539380875264/)
 
+Sessions on Databricks Asset Bundles, CI/CD, and Software Development Life Cycle at Data + AI Summit 2025:
+- [CI/CD for Databricks: Advanced Asset Bundles and GitHub Actions](https://www.youtube.com/watch?v=XumUXF1e6RI)
+- [Deploying Databricks Asset Bundles (DABs) at Scale](https://www.youtube.com/watch?v=mMwprgB-sIU)
+- [A Prescription for Success: Leveraging DABs for Faster Deployment and Better Patient Outcomes](https://www.youtube.com/watch?v=01JHTM2UP-U)
 
 ### DAG
 
