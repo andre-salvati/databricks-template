@@ -1,10 +1,5 @@
-import configparser
-import os
-
 import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
-
-import template
 
 
 class Config:
@@ -17,19 +12,9 @@ class Config:
         self.params.update({"skip": args.skip})
         self.params.update({"debug": args.debug})
         self.params.update({"env": args.env})
-        self.params.update({"default_schema": args.default_schema})
 
         if args.env == "dev":
-            config = configparser.ConfigParser()
-            config_path = os.path.join(os.path.dirname(template.__file__), "config.ini")
-            config.read(config_path)
-
-            try:
-                value = config.get("general", "user_catalog")
-            except configparser.NoOptionError:
-                value = "dev"
-
-            self.params.update({"default_catalog": value})
+            self.params.update({"default_catalog": args.user})
         else:
             self.params.update({"default_catalog": args.env})
 
@@ -95,18 +80,6 @@ class Config:
 
     def get_test_output(self):
         return self.params
-
-    # def in_config_for_run(self, dev, task):
-    #     config = configparser.ConfigParser()
-    #     config_path = os.path.join(os.path.dirname(template.__file__), "config.ini")
-    #     config.read(config_path)
-
-    #     try:
-    #         value = config.getboolean(dev, task)
-    #     except configparser.NoOptionError:
-    #         value = False
-
-    #     return value
 
     def in_table_for_skip(self, task):
         self.spark.sql(f"USE CATALOG {self.params['env']}")

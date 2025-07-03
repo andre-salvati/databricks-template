@@ -34,6 +34,7 @@ resources:
             entry_point: main
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
+                         "--user=${workspace.current_user.short_name}",
                          "${var.debug}"]
 
         - task_key: extract_source2
@@ -44,6 +45,7 @@ resources:
             entry_point: main
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
+                         "--user=${workspace.current_user.short_name}",
                         "${var.debug}"]
 
         - task_key: generate_orders
@@ -57,6 +59,7 @@ resources:
             entry_point: main
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
+                         "--user=${workspace.current_user.short_name}",
                         "${var.debug}"]
 
         - task_key: generate_orders_agg
@@ -69,4 +72,5 @@ resources:
             entry_point: main
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
+                         "--user=${workspace.current_user.short_name}",
                         "${var.debug}"]
