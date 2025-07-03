@@ -16,6 +16,10 @@ variables:
 include:
   - conf/workflow.yml
 
+
+# For simplicity, we use a single workspace profile across all targets.
+# Here is a good reference on how to structure your catalogs, workspaces, and groups:
+# https://youtu.be/CLBq4fBE2Ro
 targets:
   dev:
     mode: development
@@ -30,3 +34,7 @@ targets:
   prod:
     workspace:
       profile: dev
+      # For production deployments, we only have a single copy, so we override the workspace.root_path default of
+      # /Users/${workspace.current_user.userName}/.bundle/${bundle.target}/${bundle.name}
+      # to a path that is not specific to the current user.      
+      root_path: /Shared/.bundle/prod/${bundle.name}

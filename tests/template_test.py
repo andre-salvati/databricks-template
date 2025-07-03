@@ -67,9 +67,9 @@ def df_orders(spark) -> DataFrame:
 def test_arg_parser():
     parser = arg_parser()
 
-    args = parser.parse_args(["--task=extract_source1", "--env=dev", "--default_schema=template", "--skip", "--debug"])
+    args = parser.parse_args(["--task=extract_source1", "--user=andre_f_salvati", "--env=dev", "--skip", "--debug"])
 
-    assert args == Namespace(task="extract_source1", env="dev", default_schema="template", skip=True, debug=True)
+    assert args == Namespace(task="extract_source1", user="andre_f_salvati", env="dev", skip=True, debug=True)
 
 
 @pytest.mark.parametrize(
@@ -81,16 +81,14 @@ def test_arg_parser():
                 env="dev",
                 skip=False,
                 debug=True,
-                default_schema="dev",
-                default_catalog="andre_f",
+                user="andre_f_salvati",
             ),
             {
                 "task": "extract_source1",
                 "env": "dev",
                 "skip": False,
                 "debug": True,
-                "default_schema": "dev",
-                "default_catalog": "andre_f",
+                "default_catalog": "andre_f_salvati",
             },
         ),
     ],

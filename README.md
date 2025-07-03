@@ -123,6 +123,6 @@ Configure [Github Actions repository secrets](https://docs.github.com/en/actions
 
 - **task** (required) - determines the current task to be executed.
 - **env** (required) - determines the AWS account where the job is running. This parameter also defines the default catalog for the task.
-- **default_schema** (optional) - determines the default schema to be used.
+- **user** (required) - determines the name of the catalog when env is "dev".
 - **skip** (optional) - determines if the current task should be skipped.
 - **debug** (optional) - determines if the current task should go through debug conditional.
