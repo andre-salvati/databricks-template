@@ -4,7 +4,7 @@ install:
 	python3 -m pip install --upgrade pip
 	pip install pipenv
 	pipenv install packages
-	pipenv run pytest tests/
+	pipenv run pytest tests/ --cov=src --cov-report=xml:coverage_reports/coverage.xml --cov-report=html:coverage_reports/html
 	pipenv run pip list
 
 pre-commit:
