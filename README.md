@@ -121,6 +121,7 @@ Configure [Github Actions repository secrets](https://docs.github.com/en/actions
 
 <br>
 
+
 - **task** (required) - determines the current task to be executed.
 - **env** (required) - determines the AWS account where the job is running. This parameter also defines the default catalog for the task.
 - **user** (required) - determines the name of the catalog when env is "dev".
