@@ -20,5 +20,5 @@ deploy-serverless:
 	pipenv run databricks bundle deploy --target $(env)
 
 run:
-	pipenv run databricks bundle run template_job --target $(env)
+	pipenv run databricks bundle run integration_test_job --target $(env)
 
