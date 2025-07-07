@@ -11,12 +11,8 @@ class Config:
         self.params.update({"task": args.task})
         self.params.update({"skip": args.skip})
         self.params.update({"debug": args.debug})
+        self.params.update({"schema": args.schema})
         self.params.update({"env": args.env})
-
-        if args.env == "dev":
-            self.params.update({"default_catalog": args.user})
-        else:
-            self.params.update({"default_catalog": args.env})
 
         self.spark = SparkSession.builder.appName(args.task).getOrCreate()
 
@@ -41,6 +37,25 @@ class Config:
 
         except ModuleNotFoundError:
             self.dbutils = self._mock_dbutils(self.spark)
+
+        if self.params["env"] != "local":
+            # if running in Databricks, set default catalog and schema
+
+            if args.env == "dev":
+                catalog = args.user
+            else:
+                catalog = args.env
+
+            self.params.update({"catalog": catalog})
+
+            print("Setting default catalog: " + catalog)
+
+            self.spark.sql(f"CREATE CATALOG IF NOT EXISTS {catalog}")
+            self.spark.sql(f"USE CATALOG {catalog}")
+
+            print("Setting default schema: " + args.schema)
+
+            self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {args.schema}")
 
     def _mock_dbutils(self, spark):
         class DBUtils:
@@ -82,7 +97,6 @@ class Config:
         return self.params
 
     def in_table_for_skip(self, task):
-        self.spark.sql(f"USE CATALOG {self.params['env']}")
         self.spark.sql("CREATE SCHEMA IF NOT EXISTS system")
         schema = "task STRING, description STRING"
         self.spark.sql(f"CREATE TABLE IF NOT EXISTS system.config ({schema})")

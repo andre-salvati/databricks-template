@@ -3,8 +3,6 @@ from pyspark.sql.functions import sum
 
 from .baseTask import BaseTask
 
-schema = "report"
-
 
 class GenerateOrdersAgg(BaseTask):
     def __init__(self, config):
@@ -19,8 +17,6 @@ class GenerateOrdersAgg(BaseTask):
     def run(self):
         print("Generating Orders Aggregated ...")
 
-        self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {schema}")
-
         df_order = self.spark.read.table("curated.order_enriched")
 
         df_out = self.aggregate_orders(df_order)
@@ -28,4 +24,4 @@ class GenerateOrdersAgg(BaseTask):
         if self.config.get_value("debug"):
             df_out.show()
 
-        df_out.write.mode("overwrite").saveAsTable(f"{schema}.order_agg")
+        df_out.write.mode("overwrite").saveAsTable(f"{self.config.get_value('schema')}.order_agg")

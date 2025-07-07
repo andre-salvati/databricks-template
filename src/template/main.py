@@ -19,6 +19,7 @@ def arg_parser():
         required=True,
         choices=["extract_source1", "extract_source2", "generate_orders", "generate_orders_agg", "setup", "validate"],
     )
+    parser.add_argument("--schema")
     parser.add_argument("--skip", action="store_true")
     parser.add_argument("--debug", action="store_true")
 

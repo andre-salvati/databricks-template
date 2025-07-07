@@ -35,6 +35,7 @@ resources:
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
                          "--user=${workspace.current_user.short_name}",
+                         "--schema=raw",
                          "${var.debug}"]
 
         - task_key: extract_source2
@@ -46,6 +47,7 @@ resources:
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
                          "--user=${workspace.current_user.short_name}",
+                         "--schema=raw",
                         "${var.debug}"]
 
         - task_key: generate_orders
@@ -60,6 +62,7 @@ resources:
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
                          "--user=${workspace.current_user.short_name}",
+                         "--schema=curated", 
                         "${var.debug}"]
 
         - task_key: generate_orders_agg
@@ -73,6 +76,7 @@ resources:
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
                          "--user=${workspace.current_user.short_name}",
+                         "--schema=report",
                         "${var.debug}"]
 
 {% if environment == 'staging' or environment == 'dev'%}
@@ -99,6 +103,7 @@ resources:
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
                          "--user=${workspace.current_user.short_name}",
+                         "--schema=external_source",
                          "${var.debug}"]
 
         - task_key: run
@@ -118,6 +123,7 @@ resources:
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
                          "--user=${workspace.current_user.short_name}",
+                         "--schema=report",
                          "${var.debug}"]
 
 
