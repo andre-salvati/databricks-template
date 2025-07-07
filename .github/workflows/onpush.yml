@@ -33,16 +33,18 @@ jobs:
         run: |
           make install
 
-      - name: Install Databricks CLI
+      - name: Run pytest and coverage (unit tests)
         run: |
-          pipenv run curl -fsSL https://raw.githubusercontent.com/databricks/setup-cli/main/install.sh | sh
-          pipenv run databricks --version
+          make test
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@main
 
       - name: Deploy on staging
         run: |
           make deploy-serverless env=staging
 
-      - name: Run on staging
+      - name: Run on staging (integration tests)
         run: |
           make run env=staging
 
