@@ -5,18 +5,21 @@ from .extract_source1 import ExtractSource1
 from .extract_source2 import ExtractSource2
 from .generate_orders import GenerateOrders
 from .generate_orders_agg import GenerateOrdersAgg
+from .setup import Setup
+from .validate import Validate
 
 
 def arg_parser():
     parser = argparse.ArgumentParser()
 
+    parser.add_argument("--user")
     parser.add_argument("--env", required=True, choices=["dev", "staging", "prod"])
-    parser.add_argument("--default_schema")
     parser.add_argument(
         "--task",
         required=True,
-        choices=["extract_source1", "extract_source2", "generate_orders", "generate_orders_agg"],
+        choices=["extract_source1", "extract_source2", "generate_orders", "generate_orders_agg", "setup", "validate"],
     )
+    parser.add_argument("--schema")
     parser.add_argument("--skip", action="store_true")
     parser.add_argument("--debug", action="store_true")
 
@@ -37,6 +40,10 @@ def main():
             GenerateOrders(config).run()
         elif args.task == "generate_orders_agg":
             GenerateOrdersAgg(config).run()
+        elif args.task == "setup":
+            Setup(config).run()
+        elif args.task == "validate":
+            Validate(config).run()
 
 
 if __name__ == "__main__":

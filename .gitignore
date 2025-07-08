@@ -1,4 +1,3 @@
-.coveragerc
 .databricks/
 .vscode/
 .venv/
@@ -11,3 +10,6 @@ build/
 output/
 src/template.egg-info/**
 conf/workflow.yml
+.coverage
+.coverage.*
+coverage_reports/

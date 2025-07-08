@@ -2,7 +2,7 @@
 resources:
   jobs:
 
-    default_python_job:
+    template_job:
       name: template_${bundle.target}
       timeout_seconds: 3600
 
@@ -34,6 +34,8 @@ resources:
             entry_point: main
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
+                         "--user=${workspace.current_user.short_name}",
+                         "--schema=raw",
                          "${var.debug}"]
 
         - task_key: extract_source2
@@ -44,6 +46,8 @@ resources:
             entry_point: main
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
+                         "--user=${workspace.current_user.short_name}",
+                         "--schema=raw",
                         "${var.debug}"]
 
         - task_key: generate_orders
@@ -57,6 +61,8 @@ resources:
             entry_point: main
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
+                         "--user=${workspace.current_user.short_name}",
+                         "--schema=curated", 
                         "${var.debug}"]
 
         - task_key: generate_orders_agg
@@ -69,4 +75,56 @@ resources:
             entry_point: main
             parameters: ["--task={{'{{task.name}}'}}",
                          "--env=${bundle.target}",
+                         "--user=${workspace.current_user.short_name}",
+                         "--schema=report",
                         "${var.debug}"]
+
+{% if environment == 'staging' or environment == 'dev'%}
+
+    integration_test_job:
+      name: template_${bundle.target}_integration_test
+      timeout_seconds: 3600
+
+      environments:
+        - environment_key: default
+          spec:
+            client: "2"
+            dependencies:
+              - ../dist/template-*.whl
+
+      tasks:
+
+        - task_key: setup
+          max_retries: 0
+          environment_key: default
+          python_wheel_task:
+            package_name: template
+            entry_point: main
+            parameters: ["--task={{'{{task.name}}'}}",
+                         "--env=${bundle.target}",
+                         "--user=${workspace.current_user.short_name}",
+                         "--schema=external_source",
+                         "${var.debug}"]
+
+        - task_key: run
+          depends_on:
+            - task_key: setup
+          run_job_task:
+            job_id: ${resources.jobs.template_job.id}
+            
+        - task_key: validate
+          depends_on:
+            - task_key: run
+          max_retries: 0
+          environment_key: default
+          python_wheel_task:
+            package_name: template
+            entry_point: main
+            parameters: ["--task={{'{{task.name}}'}}",
+                         "--env=${bundle.target}",
+                         "--user=${workspace.current_user.short_name}",
+                         "--schema=report",
+                         "${var.debug}"]
+
+
+{% endif %}
