@@ -93,7 +93,7 @@ Follow the instructions [here](https://docs.databricks.com/en/dev-tools/cli/inst
 
 You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
-<img src="docs/vscode.png"  width="30%" height="30%">
+<img src="docs/vscode.png">
 
 ### 4) Deploy and execute on the dev workspace.
 
