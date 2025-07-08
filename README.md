@@ -42,7 +42,7 @@ Sessions on Databricks Asset Bundles, CI/CD, and Software Development Life Cycle
 
 <br>
 
-<img src="docs/dag.png"  width="70%" height="70%">
+<img src="docs/dag.png">
 
 <br>
 
@@ -50,7 +50,7 @@ Sessions on Databricks Asset Bundles, CI/CD, and Software Development Life Cycle
 
 <br>
 
-<img src="docs/task output.png"  width="70%" height="70%">
+<img src="docs/task output.png">
 
 <br>
 
@@ -58,7 +58,7 @@ Sessions on Databricks Asset Bundles, CI/CD, and Software Development Life Cycle
 
 <br>
 
-<img src="docs/data lineage.png"  width="70%" height="70%">
+<img src="docs/data lineage.png">
 
 <br>
 
@@ -67,7 +67,7 @@ Sessions on Databricks Asset Bundles, CI/CD, and Software Development Life Cycle
 
 <br>
 
-<img src="docs/ci_cd.png"  width="70%" height="70%">
+<img src="docs/ci_cd.png">
 
 <br>
 
