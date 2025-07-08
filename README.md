@@ -1,5 +1,5 @@
 
-# Template project with Databricks Asset Bundles, Python packaging, unit tests, and CI/CD automation
+# Template project with medallion architecture, Python packaging, unit tests, integration tests, CI/CD automation, and Databricks Asset Bundles.
 
 This project template provides a structured approach to enhance productivity when delivering ETL pipelines on Databricks. Feel free to customize it based on your project's specific nuances and the audience you are targeting.
 
@@ -7,18 +7,19 @@ Interested in bringing these concepts to life in your project? Let’s [connect]
 
 This project template demonstrates how to:
 
-- utilize [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
+- utilize serverless clusters on [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
 - structure PySpark code inside classes/packages.
+- structure unit tests for the data transformations and set up VS Code to run them on your local machine.
+- structure integration tests to be executed on different environments / catalogs.
 - package code and deploy it to different environments (dev, staging, prod) using a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
-- in "dev" environment, use the catalog defined in config.ini to avoid concurrency issues between developers.
+- isolate "dev" environments / catalogs to avoid concurrency issues between developers testing jobs.
 - configure the workflow to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/).
 - configure the workflow to run tasks selectively.
-- set up VS Code to execute local unit tests for transformations.
 - use a [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
 - use a Make file to automate repetitive tasks.
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
 - utilize [pipenv/Pipfile](https://pipenv.pypa.io/) to prepare local and remote envs.
-- utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations.
+- utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations and generate test coverage reports.
 - utilize [argparse package](https://pypi.org/project/argparse/) to build a flexible command line interface to start the jobs.
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
 - utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
@@ -88,7 +89,7 @@ Follow the instructions [here](https://docs.databricks.com/en/dev-tools/cli/inst
 
 ### 3) Build Python env and execute unit tests on your local machine
 
-        make install
+        make install & make test
 
 You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
@@ -125,5 +126,6 @@ Configure [Github Actions repository secrets](https://docs.github.com/en/actions
 - **task** (required) - determines the current task to be executed.
 - **env** (required) - determines the AWS account where the job is running. This parameter also defines the default catalog for the task.
 - **user** (required) - determines the name of the catalog when env is "dev".
+- **schema** (optional) - determines the default schema to read/store tables.
 - **skip** (optional) - determines if the current task should be skipped.
 - **debug** (optional) - determines if the current task should go through debug conditional.
