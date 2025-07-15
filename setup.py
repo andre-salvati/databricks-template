@@ -36,5 +36,6 @@ setup(
         "setuptools",
         "funcy",
         "databricks-sdk",
+        "databricks-labs-dqx",
     ],
 )

@@ -1,5 +1,5 @@
 
-# Template project with medallion architecture, Python packaging, unit tests, integration tests, CI/CD automation, and Databricks Asset Bundles.
+# Template project with medallion architecture, Python packaging, unit tests, integration tests, CI/CD automation, Databricks Asset Bundles, and DQX data quality framework.
 
 This project template provides a structured approach to enhance productivity when delivering ETL pipelines on Databricks. Feel free to customize it based on your project's specific nuances and the audience you are targeting.
 
@@ -11,7 +11,8 @@ This project template demonstrates how to:
 - structure PySpark code inside classes/packages.
 - structure unit tests for the data transformations and set up VS Code to run them on your local machine.
 - structure integration tests to be executed on different environments / catalogs.
-- package code and deploy it to different environments (dev, staging, prod) using a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
+- utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to define and enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation.
+- package and deploy code to different environments (dev, staging, prod) using a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
 - isolate "dev" environments / catalogs to avoid concurrency issues between developers testing jobs.
 - configure the workflow to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/).
 - configure the workflow to run tasks selectively.
@@ -25,7 +26,7 @@ This project template demonstrates how to:
 - utilize [Databricks CLI](https://docs.databricks.com/en/dev-tools/cli/index.html) and [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
 - utilize [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage workspaces and accounts. The sample script enables metastore system tables with [relevant data about billing, usage, lineage, prices, and access](https://www.youtube.com/watch?v=LcRWHzk8Wm4).
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) and get data lineage for your tables and columns and a simplified permission model for your data.
-- utilize [Databricks Workflows](https://docs.databricks.com/en/workflows/index.html) to execute a DAG and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
+- utilize [Databricks Lakeflow Jobs](https://docs.databricks.com/en/workflows/index.html) to execute a DAG and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
 - utilize [Databricks job clusters](https://docs.databricks.com/en/workflows/jobs/use-compute.html#use-databricks-compute-with-your-jobs) to reduce costs.
 - define clusters on AWS and Azure.
 
@@ -51,7 +52,7 @@ Sessions on Databricks Asset Bundles, CI/CD, and Software Development Life Cycle
 
 <br>
 
-<img src="docs/task output.png">
+<img src="docs/task_output.png">
 
 <br>
 
@@ -59,7 +60,7 @@ Sessions on Databricks Asset Bundles, CI/CD, and Software Development Life Cycle
 
 <br>
 
-<img src="docs/data lineage.png">
+<img src="docs/data_lineage.png">
 
 <br>
 

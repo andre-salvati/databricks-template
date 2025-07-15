@@ -1,4 +1,6 @@
 import pyspark.sql.functions as F
+from databricks.labs.dqx.engine import DQEngine
+from databricks.sdk import WorkspaceClient
 from pyspark.sql import SparkSession
 
 
@@ -56,6 +58,15 @@ class Config:
             print("Setting default schema: " + args.schema)
 
             self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {args.schema}")
+
+            ws = WorkspaceClient()
+
+        else:
+            from unittest.mock import MagicMock
+
+            ws = MagicMock(spec=WorkspaceClient, **{"current_user.me.return_value": None})
+
+        self.dq_engine = DQEngine(ws)
 
     def _mock_dbutils(self, spark):
         class DBUtils:

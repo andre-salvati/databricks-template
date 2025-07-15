@@ -43,6 +43,18 @@ def spark(config) -> TaskConfig:
 
 
 @pytest.fixture
+def df_orders_from_source(spark) -> DataFrame:
+    order_data = [
+        (1, 10, 100.0, "2023-01-01"),
+        (2, 20, 151.0, "2023-01-02"),
+        (None, 10, 100.0, "2023-01-01"),  # id is null
+        (3, 20, 150.0, "2023-01-02"),  # id is duplicated
+        (3, 20, 150.0, "2023-01-02"),  # id is duplicated
+    ]
+    return spark.createDataFrame(order_data, schema=order_schema)
+
+
+@pytest.fixture
 def df_orders(spark) -> DataFrame:
     orders_data = [
         ("John Doe", 10, 1, 100.0, 1, "Item A", 2, 50.0),
@@ -102,6 +114,17 @@ def test_config(args, expected_output):
     config = TaskConfig(args)
 
     assert config.get_test_output() == expected_output
+
+
+def test_validate_orders_from_source(spark, config, df_orders_from_source):
+    task = ExtractSource2(config)
+
+    df_out, df_out_invalid = task.validate_order(df_orders_from_source)
+    df_out.show()
+    df_out_invalid.show()
+
+    assert df_out_invalid.count() == 4
+    assert df_out.count() == 2
 
 
 def test_enrich_orders(spark, config, df_orders):
