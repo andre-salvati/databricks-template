@@ -19,7 +19,7 @@ class Validate(BaseTask):
 
         expected_data = [
             ("John Doe", 3, 100.0),
-            ("Jane Smith", 3, 150.0),
+            ("Jane Smith", 3, 151.0),
         ]
         expected_schema = StructType(
             [

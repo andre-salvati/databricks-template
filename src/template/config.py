@@ -1,4 +1,6 @@
 import pyspark.sql.functions as F
+from databricks.labs.dqx.engine import DQEngine
+from databricks.sdk import WorkspaceClient
 from pyspark.sql import SparkSession
 
 
@@ -16,29 +18,7 @@ class Config:
 
         self.spark = SparkSession.builder.appName(args.task).getOrCreate()
 
-        try:
-            from pyspark.dbutils import DBUtils
-
-            self.dbutils = DBUtils(self.spark)
-
-            # TODO cannot access context on serverless
-            # context_tags = self.dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags()
-            # print(context_tags)
-
-            # username = context_tags.get("user")
-
-            # if username.isDefined():
-            #     actual_value = username.get()
-            #     python_string = str(actual_value)
-            #     self.params.update({"workspace_user": python_string})
-            #     print("workspace user: " + python_string)
-            # else:
-            #     print("workspace user empty")
-
-        except ModuleNotFoundError:
-            self.dbutils = self._mock_dbutils(self.spark)
-
-        if self.params["env"] != "local":
+        if args.env != "local":
             # if running in Databricks, set default catalog and schema
 
             if args.env == "dev":
@@ -57,28 +37,17 @@ class Config:
 
             self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {args.schema}")
 
-    def _mock_dbutils(self, spark):
-        class DBUtils:
-            def __init__(self, spark):
-                self.fs = self.FileSystem()
+            ws = WorkspaceClient()
 
-            class FileSystem:
-                def mount(self, source, mount_point):
-                    print(f"Mounting {source} to {mount_point}")
+        else:
+            from unittest.mock import MagicMock
 
-                def unmount(self, mount_point):
-                    print(f"Unmounting {mount_point}")
+            ws = MagicMock(spec=WorkspaceClient, **{"current_user.me.return_value": None})
 
-                def mounts(self):
-                    return []
-
-        return DBUtils(spark)
+        self.dq_engine = DQEngine(ws)
 
     def get_spark(self):
         return self.spark
-
-    def get_dbutils(self):
-        return self.dbutils
 
     def get_value(self, key):
         return self.params[key]
