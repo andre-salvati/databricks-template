@@ -46,6 +46,7 @@ class ExtractSource2(BaseTask):
 
         df_order = self.spark.read.table("external_source.order")
         df_order, df_order_invalid = self.validate_order(df_order)
+        df_order_invalid.write.mode("overwrite").saveAsTable(f"{self.config.get_value('schema')}.order_quarantine")
 
         df_order_item = self.spark.read.table("external_source.order_item")
 

@@ -11,6 +11,7 @@ from template.generate_orders_agg import GenerateOrdersAgg
 from template.commonSchemas import customer_schema, order_schema, order_item_schema
 
 from pyspark.testing import assertDataFrameEqual
+from pyspark.sql.functions import explode
 
 # from databricks.connect import DatabricksSession
 # from databricks.sdk.core import Config
@@ -48,8 +49,8 @@ def df_orders_from_source(spark) -> DataFrame:
         (1, 10, 100.0, "2023-01-01"),
         (2, 20, 151.0, "2023-01-02"),
         (None, 10, 100.0, "2023-01-01"),  # id is null
-        (3, 20, 150.0, "2023-01-02"),  # id is duplicated
-        (3, 20, 150.0, "2023-01-02"),  # id is duplicated
+        (3, 20, 100.0, "2023-01-02"),  # id is duplicated
+        (3, 20, 100.0, "2023-01-02"),  # id is duplicated
     ]
     return spark.createDataFrame(order_data, schema=order_schema)
 
@@ -120,11 +121,33 @@ def test_validate_orders_from_source(spark, config, df_orders_from_source):
     task = ExtractSource2(config)
 
     df_out, df_out_invalid = task.validate_order(df_orders_from_source)
-    df_out.show()
-    df_out_invalid.show()
 
-    assert df_out_invalid.count() == 4
+    df_invalid_out = df_out_invalid.select("id", explode("_errors.name").alias("name")).union(
+        df_out_invalid.select("id", explode("_warnings.name").alias("name"))
+    )
+
     assert df_out.count() == 2
+    assert df_invalid_out.count() == 4
+
+    expected_data = [
+        (None, "id_is_null_or_empty"),
+        (2, "total_greater_than_limit"),
+        (3, "id_is_not_unique"),
+        (3, "id_is_not_unique"),
+    ]
+    expected_schema = StructType(
+        [
+            StructField("id", IntegerType(), True),
+            StructField("name", StringType(), True),
+        ]
+    )
+
+    df_expected = spark.createDataFrame(expected_data, schema=expected_schema)
+
+    df_invalid_out.show()
+    df_expected.show()
+
+    assertDataFrameEqual(df_invalid_out, df_expected)
 
 
 def test_enrich_orders(spark, config, df_orders):

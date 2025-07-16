@@ -18,29 +18,7 @@ class Config:
 
         self.spark = SparkSession.builder.appName(args.task).getOrCreate()
 
-        try:
-            from pyspark.dbutils import DBUtils
-
-            self.dbutils = DBUtils(self.spark)
-
-            # TODO cannot access context on serverless
-            # context_tags = self.dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags()
-            # print(context_tags)
-
-            # username = context_tags.get("user")
-
-            # if username.isDefined():
-            #     actual_value = username.get()
-            #     python_string = str(actual_value)
-            #     self.params.update({"workspace_user": python_string})
-            #     print("workspace user: " + python_string)
-            # else:
-            #     print("workspace user empty")
-
-        except ModuleNotFoundError:
-            self.dbutils = self._mock_dbutils(self.spark)
-
-        if self.params["env"] != "local":
+        if args.env != "local":
             # if running in Databricks, set default catalog and schema
 
             if args.env == "dev":
@@ -68,28 +46,8 @@ class Config:
 
         self.dq_engine = DQEngine(ws)
 
-    def _mock_dbutils(self, spark):
-        class DBUtils:
-            def __init__(self, spark):
-                self.fs = self.FileSystem()
-
-            class FileSystem:
-                def mount(self, source, mount_point):
-                    print(f"Mounting {source} to {mount_point}")
-
-                def unmount(self, mount_point):
-                    print(f"Unmounting {mount_point}")
-
-                def mounts(self):
-                    return []
-
-        return DBUtils(spark)
-
     def get_spark(self):
         return self.spark
-
-    def get_dbutils(self):
-        return self.dbutils
 
     def get_value(self, key):
         return self.params[key]
