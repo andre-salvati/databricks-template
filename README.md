@@ -19,9 +19,10 @@ Interested in bringing these principles in your own project?  Let’s [connect o
 
 - Databricks Free Edition (Serverless)
 - PySpark 3.4+
-- Unity Catalog
 - Databricks Asset Bundles
 - Databricks DQX
+- Databricks Jobs
+- Databricks Unity Catalog
 - Python 3.10+
 - GitHub Actions
 - Pytest
