@@ -1,11 +1,10 @@
-# databricks-template
-
-> A production-ready PySpark project template with medallion architecture, Python packaging, unit tests, integration tests, CI/CD automation, Databricks Asset Bundles, and DQX data quality framework.
 
 ![Databricks](https://img.shields.io/badge/platform-Databricks-orange?logo=databricks)
 ![PySpark](https://img.shields.io/badge/pyspark-3.4+-brightgreen?logo=apache-spark)
 ![CI/CD](https://img.shields.io/github/actions/workflow/status/andre-salvati/databricks-template/.github/workflows/onpush.yml)
 ![Stars](https://img.shields.io/github/stars/andre-salvati/databricks-template?style=social)
+
+# A production-ready PySpark project template with medallion architecture, Python packaging, unit tests, integration tests, CI/CD automation, Databricks Asset Bundles, and DQX data quality framework.
 
 ## 🚀 Overview
 
@@ -36,6 +35,7 @@ This project template demonstrates how to:
 - structure integration tests to be executed on different environments / catalogs.
 - utilize [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
 - utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to define and enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation.
+- utilize a [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
 
 <br>
 
@@ -43,7 +43,6 @@ This project template demonstrates how to:
 - isolate "dev" environments / catalogs to avoid concurrency issues between developers testing jobs.
 - configure the workflow to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/).
 - configure the workflow to run tasks selectively.
-- use [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
 
 <br>
 
