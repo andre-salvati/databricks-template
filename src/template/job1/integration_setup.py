@@ -1,5 +1,5 @@
-from .baseTask import BaseTask
-from .commonSchemas import customer_schema, order_item_schema, order_schema
+from ..baseTask import BaseTask
+from ..commonSchemas import customer_schema, order_item_schema, order_schema
 
 schema = "external_source"
 

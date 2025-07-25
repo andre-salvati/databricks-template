@@ -6,7 +6,7 @@ from databricks.labs.dqx.rule import (
     DQRowRule,
 )
 
-from .baseTask import BaseTask
+from ..baseTask import BaseTask
 
 
 class ExtractSource2(BaseTask):

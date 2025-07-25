@@ -1,6 +1,6 @@
 from funcy import print_durations
 
-from .baseTask import BaseTask
+from ..baseTask import BaseTask
 
 
 class GenerateOrders(BaseTask):

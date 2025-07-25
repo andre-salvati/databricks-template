@@ -1,12 +1,12 @@
 import argparse
 
 from .config import Config
-from .extract_source1 import ExtractSource1
-from .extract_source2 import ExtractSource2
-from .generate_orders import GenerateOrders
-from .generate_orders_agg import GenerateOrdersAgg
-from .setup import Setup
-from .validate import Validate
+from .job1.extract_source1 import ExtractSource1
+from .job1.extract_source2 import ExtractSource2
+from .job1.generate_orders import GenerateOrders
+from .job1.generate_orders_agg import GenerateOrdersAgg
+from .job1.integration_setup import Setup
+from .job1.integration_validate import Validate
 
 
 def arg_parser():
