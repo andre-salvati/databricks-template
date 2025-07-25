@@ -6,8 +6,8 @@ from pyspark.sql.types import *
 
 from template.main import *
 from template.config import Config as TaskConfig
-from template.generate_orders import GenerateOrders
-from template.generate_orders_agg import GenerateOrdersAgg
+from template.job1.generate_orders import GenerateOrders
+from template.job1.generate_orders_agg import GenerateOrdersAgg
 from template.commonSchemas import customer_schema, order_schema, order_item_schema
 
 from pyspark.testing import assertDataFrameEqual

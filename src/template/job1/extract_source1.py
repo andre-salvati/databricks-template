@@ -1,4 +1,4 @@
-from .baseTask import BaseTask
+from ..baseTask import BaseTask
 
 
 class ExtractSource1(BaseTask):

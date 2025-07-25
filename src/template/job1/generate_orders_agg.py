@@ -1,7 +1,7 @@
 from funcy import print_durations
 from pyspark.sql.functions import sum
 
-from .baseTask import BaseTask
+from ..baseTask import BaseTask
 
 
 class GenerateOrdersAgg(BaseTask):

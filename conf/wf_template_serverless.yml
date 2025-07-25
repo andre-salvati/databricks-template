@@ -2,7 +2,7 @@
 resources:
   jobs:
 
-    template_job:
+    job1:
       name: template_${bundle.target}
       timeout_seconds: 3600
 
@@ -110,7 +110,7 @@ resources:
           depends_on:
             - task_key: setup
           run_job_task:
-            job_id: ${resources.jobs.template_job.id}
+            job_id: ${resources.jobs.job1.id}
             
         - task_key: validate
           depends_on:

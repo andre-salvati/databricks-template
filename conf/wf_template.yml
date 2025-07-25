@@ -2,7 +2,7 @@
 resources:
   jobs:
 
-    default_python_job:
+    job1:
       name: template_${bundle.target}
       timeout_seconds: 3600
 
