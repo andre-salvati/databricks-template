@@ -64,8 +64,8 @@ This project template demonstrates how to:
 
 ## 🧠 Resources
 
-For a debate on the use of notebooks vs. Python packages, please refer to:
-- [this article](https://dataengineeringcentral.substack.com/p/apple-pie-angry-people-other-news)
+For a debate on the use of notebooks vs. Python packaging, please refer to:
+- [The Rise of The Notebook Engineer](https://dataengineeringcentral.substack.com/p/the-rise-of-the-notebook-engineer)
 - [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7171661784997715968/)
 - [this Linkedin thread](https://www.linkedin.com/feed/update/urn:li:activity:7170904539380875264/)
 
