@@ -18,11 +18,12 @@ Interested in bringing these principles in your own project?  Let’s [connect o
 ## 🧪 Technologies Used
 
 - Databricks Free Edition (Serverless)
-- PySpark 3.4+
+- Databricks Runtime 17.3 LTS
+- PySpark 4.0
+- Python 3.12+
 - Unity Catalog
 - Databricks Asset Bundles
 - Databricks DQX
-- Python 3.10+
 - GitHub Actions
 - Pytest
 
