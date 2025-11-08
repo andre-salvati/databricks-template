@@ -15,7 +15,7 @@ You’re encouraged to adapt the structure and tooling to suit your project’s 
 
 Interested in bringing these principles in your own project?  Let’s [connect on Linkedin](https://www.linkedin.com/in/andresalvati/).
 
-## 🧪 Technologies Used
+## 🧪 Technologies
 
 - Databricks Free Edition (Serverless)
 - Databricks Runtime 17.3 LTS
