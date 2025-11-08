@@ -1,3 +1,4 @@
+notes/
 .databricks/
 .vscode/
 .venv/
@@ -8,8 +9,10 @@ __pycache__/
 dist/
 build/
 output/
-src/template.egg-info/**
-conf/workflow.yml
+coverage_reports/
+.claude/
+src/template.egg-info/
+resources/workflow.yml
 .coverage
 .coverage.*
-coverage_reports/
+CLAUDE.md

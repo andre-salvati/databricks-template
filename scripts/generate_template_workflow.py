@@ -17,15 +17,15 @@ environment = sys.argv[1]
 file_loader = FileSystemLoader(".")
 env = Environment(loader=file_loader)
 if serverless:
-    template = env.get_template("/conf/wf_template_serverless.yml")
+    template = env.get_template("/resources/wf_template_serverless.yml")
 else:
-    template = env.get_template("/conf/wf_template.yml")
+    template = env.get_template("/resources/wf_template.yml")
 
 # Render the template with the environment variable
 output = template.render(environment=environment)
 
 # Save the rendered YAML to a file
-output_file = "./conf/workflow.yml"
+output_file = "./resources/workflow.yml"
 with open(output_file, "w") as f:
     f.write(output)
 
