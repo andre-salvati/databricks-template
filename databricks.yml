@@ -3,6 +3,12 @@
 bundle:
   name: default_python
 
+artifacts:
+  default:
+    type: whl
+    build: uv build --wheel
+    path: .
+
 variables:
   debug:
     default: "--debug"

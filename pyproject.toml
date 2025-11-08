@@ -6,11 +6,10 @@ authors = [
     {name = "user@company.com"}
 ]
 readme = "README.md"
-requires-python = "==3.12"
+requires-python = ">=3.12"
 dependencies = [
     "funcy==2.0",
-    "databricks-sdk==0.57.0",
-    "databricks-labs-dqx==0.7.0",
+    "databricks-labs-dqx==0.9.3",
 ]
 
 [project.optional-dependencies]
@@ -52,7 +51,7 @@ addopts = "--cov=. --cov-report=term --cov-report=xml:coverage_reports/coverage.
 
 [tool.ruff]
 line-length = 120
-target-version = "py310"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I"]
