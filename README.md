@@ -48,7 +48,7 @@ This project template demonstrates how to:
 
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
 - use a Make file to automate repetitive tasks.
-- utilize [pipenv/Pipfile](https://pipenv.pypa.io/) to prepare local and remote envs.
+- utilize [uv](https://docs.astral.sh/uv/) as a project/package manager.
 - utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations and generate test coverage reports.
 - utilize [argparse package](https://pypi.org/project/argparse/) to build a flexible command line interface to start the jobs.
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
@@ -133,7 +133,7 @@ Follow the instructions [here](https://docs.databricks.com/en/dev-tools/cli/inst
 
 ### 3) Build Python env and execute unit tests on your local machine
 
-        make install & make test
+        make sync & make test
 
 You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
