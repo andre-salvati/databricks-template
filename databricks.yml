@@ -3,6 +3,12 @@
 bundle:
   name: default_python
 
+artifacts:
+  default:
+    type: whl
+    build: uv build --wheel
+    path: .
+
 variables:
   debug:
     default: "--debug"
@@ -14,7 +20,7 @@ variables:
     default: template
 
 include:
-  - conf/workflow.yml
+  - resources/workflow.yml
 
 
 # For simplicity, we use a single workspace profile across all targets.

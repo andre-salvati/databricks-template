@@ -1,10 +1,11 @@
+# databricks-template
+
+> A production-ready PySpark project template with medallion architecture, Python packaging, unit tests, integration tests, CI/CD automation, Databricks Asset Bundles, and DQX data quality framework.
 
 ![Databricks](https://img.shields.io/badge/platform-Databricks-orange?logo=databricks)
-![PySpark](https://img.shields.io/badge/pyspark-3.4+-brightgreen?logo=apache-spark)
+![PySpark](https://img.shields.io/badge/pyspark-4.0+-brightgreen?logo=apache-spark)
 ![CI/CD](https://img.shields.io/github/actions/workflow/status/andre-salvati/databricks-template/.github/workflows/onpush.yml)
 ![Stars](https://img.shields.io/github/stars/andre-salvati/databricks-template?style=social)
-
-# A production-ready PySpark project template with medallion architecture, Python packaging, unit tests, integration tests, CI/CD automation, Databricks Asset Bundles, and DQX data quality framework.
 
 ## 🚀 Overview
 
@@ -17,12 +18,12 @@ Interested in bringing these principles in your own project?  Let’s [connect o
 ## 🧪 Technologies Used
 
 - Databricks Free Edition (Serverless)
-- PySpark 3.4+
+- Databricks Runtime 17.3 LTS
+- PySpark 4.0
+- Python 3.12+
+- Unity Catalog
 - Databricks Asset Bundles
 - Databricks DQX
-- Databricks Jobs
-- Databricks Unity Catalog
-- Python 3.10+
 - GitHub Actions
 - Pytest
 
@@ -33,28 +34,22 @@ This project template demonstrates how to:
 - structure PySpark code inside classes/packages.
 - structure unit tests for the data transformations and set up VSCode to run them on your local machine.
 - structure integration tests to be executed on different environments / catalogs.
-- utilize [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
-- utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to define and enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation.
-- utilize a [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
-
-<br>
-
 - package and deploy code to different environments (dev, staging, prod) using a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
 - isolate "dev" environments / catalogs to avoid concurrency issues between developers testing jobs.
+- utilize [uv](https://docs.astral.sh/uv/) as a project/package manager.
 - configure the workflow to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/).
 - configure the workflow to run tasks selectively.
-
-<br>
-
+- use [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
 - use a Make file to automate repetitive tasks.
-- utilize [pipenv/Pipfile](https://pipenv.pypa.io/) to prepare local and remote envs.
 - utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations and generate test coverage reports.
 - utilize [argparse package](https://pypi.org/project/argparse/) to build a flexible command line interface to start the jobs.
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
 
 <br>
 
+- utilize [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
+- utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to define and enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation.
 - utilize [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage workspaces and accounts. The sample script enables metastore system tables with [relevant data about billing, usage, lineage, prices, and access](https://www.youtube.com/watch?v=LcRWHzk8Wm4).
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) and get data lineage for your tables and columns and a simplified permission model for your data.
 - utilize [Databricks Lakeflow Jobs](https://docs.databricks.com/en/workflows/index.html) to execute a DAG and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
@@ -108,7 +103,6 @@ Sessions on Databricks Asset Bundles, CI/CD, and Software Development Life Cycle
 <br>
 
 
-
 ## CI/CD pipeline
 
 <br>
@@ -134,7 +128,7 @@ Follow the instructions [here](https://docs.databricks.com/en/dev-tools/cli/inst
 
 ### 3) Build Python env and execute unit tests on your local machine
 
-        make install & make test
+        make sync & make test
 
 You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 

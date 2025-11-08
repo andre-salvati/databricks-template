@@ -2,14 +2,10 @@ default_language_version:
     python: python3
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.12.3
+    rev: v0.14.4
     hooks:
     -   id: ruff
         args:
-          - --ignore=E501
-          - --select=I001,F401,F403,F405
           - --fix
         files: ^src/
     -   id: ruff-format
-        args:
-          - --line-length=120

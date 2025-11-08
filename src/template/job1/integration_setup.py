@@ -14,9 +14,9 @@ class Setup(BaseTask):
         # clean all schemas
 
         self.spark.sql(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
-        self.spark.sql(f"DROP SCHEMA IF EXISTS raw CASCADE")
-        self.spark.sql(f"DROP SCHEMA IF EXISTS curated CASCADE")
-        self.spark.sql(f"DROP SCHEMA IF EXISTS report CASCADE")
+        self.spark.sql("DROP SCHEMA IF EXISTS raw CASCADE")
+        self.spark.sql("DROP SCHEMA IF EXISTS curated CASCADE")
+        self.spark.sql("DROP SCHEMA IF EXISTS report CASCADE")
 
         self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {schema}")
 
