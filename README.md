@@ -3,7 +3,7 @@
 > A production-ready PySpark project template with medallion architecture, Python packaging, unit tests, integration tests, CI/CD automation, Databricks Asset Bundles, and DQX data quality framework.
 
 ![Databricks](https://img.shields.io/badge/platform-Databricks-orange?logo=databricks)
-![PySpark](https://img.shields.io/badge/pyspark-3.4+-brightgreen?logo=apache-spark)
+![PySpark](https://img.shields.io/badge/pyspark-4.0+-brightgreen?logo=apache-spark)
 ![CI/CD](https://img.shields.io/github/actions/workflow/status/andre-salvati/databricks-template/.github/workflows/onpush.yml)
 ![Stars](https://img.shields.io/github/stars/andre-salvati/databricks-template?style=social)
 
