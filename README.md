@@ -59,6 +59,8 @@ This project template demonstrates how to:
 
 ## 🧠 Resources
 
+- [Goodbye Pip and Poetry. Why UV Might Be All You Need](https://codecut.ai/why-uv-might-all-you-need/)
+
 For a debate on the use of notebooks vs. Python packaging, please refer to:
 - [The Rise of The Notebook Engineer](https://dataengineeringcentral.substack.com/p/the-rise-of-the-notebook-engineer)
 - [Please don’t make me use Databricks notebooks](https://medium.com/@seade03/please-dont-make-me-use-databricks-notebooks-3d07a4a332ae)
