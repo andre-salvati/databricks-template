@@ -33,35 +33,26 @@ This project template demonstrates how to:
 
 - structure PySpark code inside classes/packages.
 - structure unit tests for the data transformations and set up VSCode to run them on your local machine.
-- structure unit tests for the data transformations and set up VSCode to run them on your local machine.
 - structure integration tests to be executed on different environments / catalogs.
-- utilize [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
-- utilize [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
-- utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to define and enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation.
-
-<br>
-
 - package and deploy code to different environments (dev, staging, prod) using a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
 - isolate "dev" environments / catalogs to avoid concurrency issues between developers testing jobs.
+- utilize [uv](https://docs.astral.sh/uv/) as a project/package manager.
 - configure the workflow to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/).
 - configure the workflow to run tasks selectively.
 - use [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
-
-<br>
-
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
 - use a Make file to automate repetitive tasks.
-- utilize [uv](https://docs.astral.sh/uv/) as a project/package manager.
 - utilize [pytest package](https://pypi.org/project/pytest/) to run unit tests on transformations and generate test coverage reports.
 - utilize [argparse package](https://pypi.org/project/argparse/) to build a flexible command line interface to start the jobs.
 - utilize [funcy package](https://pypi.org/project/funcy/) to log the execution time of each transformation.
 
 <br>
 
+- utilize [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
+- utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to define and enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation.
 - utilize [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage workspaces and accounts. The sample script enables metastore system tables with [relevant data about billing, usage, lineage, prices, and access](https://www.youtube.com/watch?v=LcRWHzk8Wm4).
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) and get data lineage for your tables and columns and a simplified permission model for your data.
 - utilize [Databricks Lakeflow Jobs](https://docs.databricks.com/en/workflows/index.html) to execute a DAG and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
-- **utilize serverless clusters on Databricks Free Edition to deploy your pipelines.**
 - **utilize serverless clusters on Databricks Free Edition to deploy your pipelines.**
 - utilize [Databricks job clusters](https://docs.databricks.com/en/workflows/jobs/use-compute.html#use-databricks-compute-with-your-jobs) to reduce costs.
 - define Databricks clusters on AWS and Azure.
