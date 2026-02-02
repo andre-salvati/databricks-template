@@ -6,7 +6,7 @@ authors = [
     {name = "user@company.com"}
 ]
 readme = "README.md"
-requires-python = "==3.12"
+requires-python = "==3.12.*"
 dependencies = [
     "funcy==2.0",
     "databricks-labs-dqx==0.12.0",
