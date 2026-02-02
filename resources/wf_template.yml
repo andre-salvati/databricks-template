@@ -72,7 +72,7 @@ resources:
       job_clusters:
         # - job_cluster_key: cluster-dev-azure
         #   new_cluster:
-        #     spark_version: 15.3.x-scala2.12
+        #     spark_version: 18.0.x-scala2.13
         #     node_type_id: Standard_D8as_v5
         #     num_workers: 1
         #     azure_attributes:
@@ -82,7 +82,7 @@ resources:
 
         - job_cluster_key: cluster-dev-aws
           new_cluster:
-            spark_version: 14.2.x-scala2.12
+            spark_version: 18.0.x-scala2.13
             node_type_id: c5d.xlarge
             num_workers: 1
             aws_attributes:
