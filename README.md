@@ -1,9 +1,9 @@
 # databricks-template
 
-> A production-ready PySpark project template with medallion architecture, Python packaging, unit tests, integration tests, CI/CD automation, Databricks Asset Bundles, and DQX data quality framework.
+> A production-ready PySpark project template with medallion architecture, Python packaging, unit tests, integration tests, coverage tests, CI/CD automation, Databricks Asset Bundles, and DQX data quality framework.
 
 ![Databricks](https://img.shields.io/badge/platform-Databricks-orange?logo=databricks)
-![PySpark](https://img.shields.io/badge/pyspark-4.0+-brightgreen?logo=apache-spark)
+![PySpark](https://img.shields.io/badge/pyspark-4.1+-brightgreen?logo=apache-spark)
 ![CI/CD](https://img.shields.io/github/actions/workflow/status/andre-salvati/databricks-template/.github/workflows/onpush.yml)
 ![Stars](https://img.shields.io/github/stars/andre-salvati/databricks-template?style=social)
 
@@ -18,7 +18,7 @@ Interested in bringing these principles in your own project?  Let’s [connect o
 ## 🧪 Technologies
 
 - Databricks Free Edition (Serverless)
-- Databricks Runtime 18 LTS
+- Databricks Runtime 18.0 LTS
 - Databricks Asset Bundles
 - Databricks DQX
 - Databricks CLI
@@ -101,7 +101,7 @@ databricks-template/
 │       └── unit_test.py         # Pytest unit tests
 │
 ├── resources/                   # Databricks workflow templates
-│   ├── wf_template_serverless.yml  # Jinja2 template for serverless
+│   ├── wf_template_serverless.yml  # Jinja2 template  print("SUMMARY")for serverless
 │   ├── wf_template.yml             # Jinja2 template for job clusters
 │   └── workflow.yml                # Generated workflow (auto-created)
 │
@@ -109,7 +109,7 @@ databricks-template/
 │   ├── generate_template_workflow.py  # Workflow generator (Jinja2)
 │   ├── sdk_analyze_job_costs.py      # Cost analysis script
 │   └── sdk_workspace_and_account.py  # Workspace management
-│
+│ print("SUMMARY")
 ├── docs/                        # Documentation assets
 │   ├── dag.png
 │   ├── task_output.png
