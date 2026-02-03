@@ -172,32 +172,27 @@ databricks-template/
 
 ## Instructions
 
-### 1) Create a Databricks Workspace - utilize a [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) workspace.
+1) Create a workspace. Use a [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) workspace.
 
 
-### 2) Install and configure Databricks CLI on your local machine - Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html)
+2) Install and configure Databricks CLI on your local machine. Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html). Check the current version on databricks.yaml.
 
 
-### 3) Build Python env and execute unit tests on your local machine
+3) Build Python env and execute unit tests on your local machine
 
         make sync & make test
 
-You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
-<img src="docs/vscode.png">
-
-### 4) Deploy and execute on the dev workspace.
-
-option 1) for Databricks Free Edition use:
+4) Deploy and execute on the dev workspace.
 
         make deploy-serverless env=dev
-        make deploy-serverless env=staging
-        make deploy-serverless env=prod
 
 
-### 5) configure CI/CD automation
+5) configure CI/CD automation. Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST and DATABRICKS_TOKEN).
 
-Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) DATABRICKS_HOST and DATABRICKS_TOKEN.
+6) You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
+
+- <img src="docs/vscode.png">
 
 
 ## Task parameters
