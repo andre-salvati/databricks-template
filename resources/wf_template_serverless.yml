@@ -6,6 +6,12 @@ resources:
       name: template_${bundle.target}
       timeout_seconds: 3600
 
+      # Git metadata tags for traceability
+      tags:
+        git_branch: "{{ branch }}"
+        deployed_by: "{{ developer }}"
+        {% if pr_number %}pr_number: "{{ pr_number }}"{% endif %}
+
       # A list of task execution environment specifications that can be referenced by tasks of this job.
       deployment:
         kind: BUNDLE
@@ -84,6 +90,12 @@ resources:
     integration_test_job:
       name: template_${bundle.target}_integration_test
       timeout_seconds: 3600
+
+      # Git metadata tags for traceability
+      tags:
+        git_branch: "{{ branch }}"
+        deployed_by: "{{ developer }}"
+        {% if pr_number %}pr_number: "{{ pr_number }}"{% endif %}
 
       environments:
         - environment_key: default

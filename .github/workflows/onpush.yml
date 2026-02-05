@@ -47,7 +47,16 @@ jobs:
 
       - name: Deploy on staging
         run: |
-          make deploy-serverless env=staging
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          DEVELOPER="${{ github.actor }}"
+
+          uv run python ./scripts/generate_template_workflow.py staging --serverless \
+            --branch "$BRANCH_NAME" \
+            --developer "$DEVELOPER" \
+            $(if [ -n "$PR_NUMBER" ]; then echo "--pr-number $PR_NUMBER"; fi)
+
+          uv run databricks bundle deploy --target staging
 
       - name: Run on staging (integration tests)
         run: |
@@ -55,4 +64,13 @@ jobs:
 
       - name: Deploy on prod
         run: |
-          make deploy-serverless env=prod
+          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
+          PR_NUMBER="${{ github.event.pull_request.number }}"
+          DEVELOPER="${{ github.actor }}"
+
+          uv run python ./scripts/generate_template_workflow.py prod --serverless \
+            --branch "$BRANCH_NAME" \
+            --developer "$DEVELOPER" \
+            $(if [ -n "$PR_NUMBER" ]; then echo "--pr-number $PR_NUMBER"; fi)
+
+          uv run databricks bundle deploy --target prod

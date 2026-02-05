@@ -101,14 +101,14 @@ databricks-template/
 │       └── unit_test.py         # Pytest unit tests
 │
 ├── resources/                   # Databricks workflow templates
-│   ├── wf_template_serverless.yml  # Jinja2 template  print("SUMMARY")for serverless
+│   ├── wf_template_serverless.yml  # Jinja2 template for serverless
 │   ├── wf_template.yml             # Jinja2 template for job clusters
 │   └── workflow.yml                # Generated workflow (auto-created)
 │
 ├── scripts/                     # Helper scripts
 │   ├── generate_template_workflow.py  # Workflow generator (Jinja2)
 │   ├── sdk_analyze_job_costs.py      # Cost analysis script
-│   └── sdk_workspace_and_account.py  # Workspace management
+│   └── sdk_workspace_and_account.py  # Workspace and account management
 │ print("SUMMARY")
 ├── docs/                        # Documentation assets
 │   ├── dag.png
