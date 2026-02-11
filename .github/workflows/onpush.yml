@@ -53,7 +53,7 @@ jobs:
       - name: Deploy on staging
         run: |
           uv run python ./scripts/generate_template_workflow.py staging \
-          --branch "$BRANCH"
+          --branch "$BRANCH" \
           --developer "$DEVELOPER"
 
           uv run databricks bundle deploy --target staging
