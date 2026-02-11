@@ -52,10 +52,7 @@ jobs:
 
       - name: Deploy on staging
         run:
-          uv run python ./scripts/generate_template_workflow.py staging --serverless \
-            --branch "$BRANCH_NAME" \
-            --developer "$DEVELOPER"
-
+          uv run python ./scripts/generate_template_workflow.py staging
           uv run databricks bundle deploy --target staging
 
       - name: Run on staging (integration tests)
@@ -64,8 +61,5 @@ jobs:
 
       - name: Deploy on prod
         run:
-          uv run python ./scripts/generate_template_workflow.py prod --serverless \
-            --branch "$BRANCH_NAME" \
-            --developer "$DEVELOPER"
-
+          uv run python ./scripts/generate_template_workflow.py prod
           uv run databricks bundle deploy --target prod
