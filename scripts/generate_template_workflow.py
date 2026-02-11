@@ -34,8 +34,8 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python generate_template_workflow.py dev 
-  python generate_template_workflow.py staging
+  python generate_template_workflow.py dev
+  python generate_template_workflow.py staging --branch main --developer john
         """,
     )
 

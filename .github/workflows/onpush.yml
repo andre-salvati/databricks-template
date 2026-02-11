@@ -67,5 +67,5 @@ jobs:
            uv run python ./scripts/generate_template_workflow.py prod \
             --branch "$BRANCH" \
             --developer "$DEVELOPER"
-
+            
           uv run databricks bundle deploy --target prod
