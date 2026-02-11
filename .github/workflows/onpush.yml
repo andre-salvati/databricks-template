@@ -20,9 +20,14 @@ jobs:
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN:  ${{ secrets.DATABRICKS_TOKEN }}
+      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+      DEVELOPER: ${{ github.actor }}
 
     steps:
       - uses: actions/checkout@v1
+
+      - name: Dump GitHub context
+        run: echo '${{ toJson(github) }}'
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -46,15 +51,10 @@ jobs:
         uses: databricks/setup-cli@main
 
       - name: Deploy on staging
-        run: |
-          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          DEVELOPER="${{ github.actor }}"
-
+        run:
           uv run python ./scripts/generate_template_workflow.py staging --serverless \
             --branch "$BRANCH_NAME" \
-            --developer "$DEVELOPER" \
-            $(if [ -n "$PR_NUMBER" ]; then echo "--pr-number $PR_NUMBER"; fi)
+            --developer "$DEVELOPER"
 
           uv run databricks bundle deploy --target staging
 
@@ -63,14 +63,9 @@ jobs:
           make run env=staging
 
       - name: Deploy on prod
-        run: |
-          BRANCH_NAME="${{ github.head_ref || github.ref_name }}"
-          PR_NUMBER="${{ github.event.pull_request.number }}"
-          DEVELOPER="${{ github.actor }}"
-
+        run:
           uv run python ./scripts/generate_template_workflow.py prod --serverless \
             --branch "$BRANCH_NAME" \
-            --developer "$DEVELOPER" \
-            $(if [ -n "$PR_NUMBER" ]; then echo "--pr-number $PR_NUMBER"; fi)
+            --developer "$DEVELOPER"
 
           uv run databricks bundle deploy --target prod

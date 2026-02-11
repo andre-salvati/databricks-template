@@ -33,15 +33,17 @@ Interested in bringing these principles in your own project?  Let’s [connect o
 
 This project template demonstrates how to:
 
-- structure PySpark code inside classes/packages.
-- run unit tests on transformations with [pytest package](https://pypi.org/project/pytest/) - set up VSCode to run unit tests on your local machine.
-- structure integration tests to be executed on different environments / catalogs.
+- structure PySpark code inside classes/packages, instead of notebooks.
+- package and deploy code to different environments (dev, staging, prod). 
+- use a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
+- run unit tests on transformations with [pytest package](https://pypi.org/project/pytest/). Set up VSCode to run unit tests on your local machine.
+- run integration tests setting the input data and validating the output data.
+- isolate "dev" environments / catalogs to avoid concurrency issues between developer tests.
+- show developer name and branch as job tags to track issues.
 - utilize [coverage package](https://pypi.org/project/coverage/) to generate test coverage reports.
-- package and deploy code to different environments (dev, staging, prod) using a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
-- isolate "dev" environments / catalogs to avoid concurrency issues between developers testing jobs.
 - utilize [uv](https://docs.astral.sh/uv/) as a project/package manager.
-- configure the workflow to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/).
-- configure the workflow to run tasks selectively.
+- configure job to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/).
+- configure job to run tasks selectively.
 - use [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
 - use a Make file to automate repetitive tasks.
@@ -52,9 +54,9 @@ This project template demonstrates how to:
 - utilize [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
 - utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to define and enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation, and filter bad data on quarantine tables.
 - utilize [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage workspaces and accounts and analyse costs. Refer to 'scripts' folder for some examples. 
-- utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) and get data lineage for your tables and columns and a simplified permission model for your data.
+- utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) and get data lineage for your tables and columns.
 - utilize [Databricks Lakeflow Jobs](https://docs.databricks.com/en/workflows/index.html) to execute a DAG and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
-- utilize serverless job clusters on [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition  ) to deploy your pipelines.
+- utilize serverless job clusters on [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
 
 ## 🧠 Resources
 
@@ -78,17 +80,17 @@ Other:
 ```
 databricks-template/
 │
-├── .github/                     # CI/CD automation
+├── .github/                       # CI/CD automation
 │   └── workflows/
-│       └── onpush.yml           # GitHub Actions pipeline
+│       └── onpush.yml             # GitHub Actions pipeline
 │
-├── src/                         # Main source code
-│   └── template/                # Python package
-│       ├── main.py              # Entry point with CLI (argparse)
-│       ├── config.py            # Configuration management
-│       ├── baseTask.py          # Base class for all tasks
-│       ├── commonSchemas.py     # Shared PySpark schemas
-│       └── job1/                # Job-specific tasks
+├── src/                           # Main source code
+│   └── template/                  # Python package
+│       ├── main.py                # Entry point with CLI (argparse)
+│       ├── config.py              # Configuration management
+│       ├── baseTask.py            # Base class for all tasks
+│       ├── commonSchemas.py       # Shared PySpark schemas
+│       └── job1/                  # Job-specific tasks
 │           ├── extract_source1.py
 │           ├── extract_source2.py
 │           ├── generate_orders.py
@@ -96,21 +98,21 @@ databricks-template/
 │           ├── integration_setup.py
 │           └── integration_validate.py
 │
-├── tests/                       # Unit tests
+├── tests/                          # Unit tests
 │   └── job1/
-│       └── unit_test.py         # Pytest unit tests
+│       └── unit_test.py            # Pytest unit tests
 │
-├── resources/                   # Databricks workflow templates
+├── resources/                      # Databricks workflow templates
 │   ├── wf_template_serverless.yml  # Jinja2 template for serverless
 │   ├── wf_template.yml             # Jinja2 template for job clusters
 │   └── workflow.yml                # Generated workflow (auto-created)
 │
-├── scripts/                     # Helper scripts
+├── scripts/                           # Helper scripts
 │   ├── generate_template_workflow.py  # Workflow generator (Jinja2)
-│   ├── sdk_analyze_job_costs.py      # Cost analysis script
-│   └── sdk_workspace_and_account.py  # Workspace and account management
-│ print("SUMMARY")
-├── docs/                        # Documentation assets
+│   ├── sdk_analyze_job_costs.py       # Cost analysis script
+│   └── sdk_workspace_and_account.py   # Workspace and account management
+│
+├── docs/                           # Documentation assets
 │   ├── dag.png
 │   ├── task_output.png
 │   ├── data_lineage.png
@@ -126,6 +128,14 @@ databricks-template/
 ├── .pre-commit-config.yaml      # Pre-commit hooks (ruff)
 └── README.md                    # This file
 ```
+
+## CI/CD pipeline
+
+<br>
+
+<img src="docs/ci_cd.png">
+
+<br>
 
 ## Jobs
 
@@ -161,24 +171,15 @@ databricks-template/
 <br>
 
 
-## CI/CD pipeline
-
-<br>
-
-<img src="docs/ci_cd.png">
-
-<br>
-
-
 ## Instructions
 
 1) Create a workspace. Use a [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) workspace.
 
 
-2) Install and configure Databricks CLI on your local machine. Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html). Check the current version on databricks.yaml.
+2) Install and configure Databricks CLI on your local machine. Check the current version on databricks.yaml. Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html). 
 
 
-3) Build Python env and execute unit tests on your local machine
+3) Build Python env and execute unit tests on your local machine.
 
         make sync & make test
 
