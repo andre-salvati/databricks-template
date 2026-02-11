@@ -51,10 +51,9 @@ jobs:
         uses: databricks/setup-cli@main
 
       - name: Deploy on staging
-        run:
-          uv run python ./scripts/generate_template_workflow.py
-          staging
-          --branch "$BRANCH" \
+        run: |
+          uv run python ./scripts/generate_template_workflow.py staging \
+          --branch "$BRANCH"
           --developer "$DEVELOPER"
 
           uv run databricks bundle deploy --target staging
@@ -64,9 +63,8 @@ jobs:
           make run env=staging
 
       - name: Deploy on prod
-        run:
-          uv run python ./scripts/generate_template_workflow.py 
-          prod
+        run: |
+          uv run python ./scripts/generate_template_workflow.py prod \
           --branch "$BRANCH" \
           --developer "$DEVELOPER"
 
