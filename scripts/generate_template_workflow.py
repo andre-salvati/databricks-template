@@ -4,28 +4,28 @@ import argparse
 from jinja2 import Environment, FileSystemLoader
 
 
-def get_git_branch():
-    """Get current git branch name, fallback to 'unknown' if not available."""
-    try:
-        branch = (
-            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL)
-            .decode("utf-8")
-            .strip()
-        )
-        return branch
-    except Exception:
-        return "unknown"
+# def get_git_branch():
+#     """Get current git branch name, fallback to 'unknown' if not available."""
+#     try:
+#         branch = (
+#             subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL)
+#             .decode("utf-8")
+#             .strip()
+#         )
+#         return branch
+#     except Exception:
+#         return "unknown"
 
 
-def get_git_user():
-    """Get git user name, fallback to 'unknown' if not available."""
-    try:
-        user = (
-            subprocess.check_output(["git", "config", "user.name"], stderr=subprocess.DEVNULL).decode("utf-8").strip()
-        )
-        return user
-    except Exception:
-        return "unknown"
+# def get_git_user():
+#     """Get git user name, fallback to 'unknown' if not available."""
+#     try:
+#         user = (
+#             subprocess.check_output(["git", "config", "user.name"], stderr=subprocess.DEVNULL).decode("utf-8").strip()
+#         )
+#         return user
+#     except Exception:
+#         return "unknown"
 
 
 def main():
@@ -40,12 +40,14 @@ Examples:
     )
 
     parser.add_argument("environment", help="Target environment (dev, staging, prod)")
+    parser.add_argument("--branch", help="Git branch name (auto-detected if not provided)")
+    parser.add_argument("--developer", help="Developer/deployer name (auto-detected if not provided)")
 
     args = parser.parse_args()
 
     # Auto-detect git metadata
-    branch = get_git_branch()
-    developer = get_git_user()
+    branch = args.branch
+    developer = args.developer
 
     print(f"Environment: {args.environment}")
     print(f"Git branch: {branch}")
