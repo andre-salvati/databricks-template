@@ -4,28 +4,28 @@ import argparse
 from jinja2 import Environment, FileSystemLoader
 
 
-# def get_git_branch():
-#     """Get current git branch name, fallback to 'unknown' if not available."""
-#     try:
-#         branch = (
-#             subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL)
-#             .decode("utf-8")
-#             .strip()
-#         )
-#         return branch
-#     except Exception:
-#         return "unknown"
+def get_git_branch():
+    """Get current git branch name, fallback to 'unknown' if not available."""
+    try:
+        branch = (
+            subprocess.check_output(["git", "rev-parse", "--abbrev-ref", "HEAD"], stderr=subprocess.DEVNULL)
+            .decode("utf-8")
+            .strip()
+        )
+        return branch
+    except Exception:
+        return "unknown"
 
 
-# def get_git_user():
-#     """Get git user name, fallback to 'unknown' if not available."""
-#     try:
-#         user = (
-#             subprocess.check_output(["git", "config", "user.name"], stderr=subprocess.DEVNULL).decode("utf-8").strip()
-#         )
-#         return user
-#     except Exception:
-#         return "unknown"
+def get_git_user():
+    """Get git user name, fallback to 'unknown' if not available."""
+    try:
+        user = (
+            subprocess.check_output(["git", "config", "user.name"], stderr=subprocess.DEVNULL).decode("utf-8").strip()
+        )
+        return user
+    except Exception:
+        return "unknown"
 
 
 def main():
@@ -45,9 +45,9 @@ Examples:
 
     args = parser.parse_args()
 
-    # Auto-detect git metadata
-    branch = args.branch
-    developer = args.developer
+    # Auto-detect git metadata in local environments, use provided values in CI
+    branch = args.branch if args.branch else get_git_branch()
+    developer = args.developer if args.developer else get_git_user()
 
     print(f"Environment: {args.environment}")
     print(f"Git branch: {branch}")

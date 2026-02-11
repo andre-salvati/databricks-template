@@ -20,7 +20,7 @@ jobs:
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN:  ${{ secrets.DATABRICKS_TOKEN }}
-      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
+      BRANCH: ${{ github.head_ref || github.ref_name }}
       DEVELOPER: ${{ github.actor }}
 
     steps:
@@ -53,7 +53,7 @@ jobs:
       - name: Deploy on staging
         run:
           uv run python ./scripts/generate_template_workflow.py staging \
-            --branch "$BRANCH_NAME" \
+            --branch "$BRANCH" \
             --developer "$DEVELOPER"
 
           uv run databricks bundle deploy --target staging
@@ -65,7 +65,7 @@ jobs:
       - name: Deploy on prod
         run:
            uv run python ./scripts/generate_template_workflow.py prod \
-            --branch "$BRANCH_NAME" \
-            --developer "$DEVELOPER" \
+            --branch "$BRANCH" \
+            --developer "$DEVELOPER"
 
           uv run databricks bundle deploy --target prod
