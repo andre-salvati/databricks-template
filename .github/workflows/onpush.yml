@@ -20,8 +20,6 @@ jobs:
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
       DATABRICKS_TOKEN:  ${{ secrets.DATABRICKS_TOKEN }}
-      BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
-      DEVELOPER: ${{ github.actor }}
 
     steps:
       - uses: actions/checkout@v1
@@ -53,6 +51,7 @@ jobs:
       - name: Deploy on staging
         run:
           uv run python ./scripts/generate_template_workflow.py staging
+
           uv run databricks bundle deploy --target staging
 
       - name: Run on staging (integration tests)
@@ -62,4 +61,5 @@ jobs:
       - name: Deploy on prod
         run:
           uv run python ./scripts/generate_template_workflow.py prod
+          
           uv run databricks bundle deploy --target prod
