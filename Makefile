@@ -10,8 +10,8 @@ pre-commit:
 	pre-commit autoupdate
 	pre-commit run --all-files
 
-deploy-serverless:
-	uv run python ./scripts/generate_template_workflow.py $(env) --serverless
+deploy:
+	uv run python ./scripts/generate_template_workflow.py $(env)
 	uv run databricks bundle deploy --target $(env)
 
 run:

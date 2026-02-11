@@ -34,24 +34,20 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  python generate_template_workflow.py dev --serverless
-  python generate_template_workflow.py staging --serverless --branch main --developer john
+  python generate_template_workflow.py dev 
+  python generate_template_workflow.py staging
         """,
     )
 
     parser.add_argument("environment", help="Target environment (dev, staging, prod)")
-    parser.add_argument("--serverless", action="store_true", help="Use serverless workflow template")
-    parser.add_argument("--branch", help="Git branch name (auto-detected if not provided)")
-    parser.add_argument("--developer", help="Developer/deployer name (auto-detected if not provided)")
 
     args = parser.parse_args()
 
-    # Get or auto-detect git metadata
-    branch = args.branch if args.branch else get_git_branch()
-    developer = args.developer if args.developer else get_git_user()
+    # Auto-detect git metadata
+    branch = get_git_branch()
+    developer = get_git_user()
 
     print(f"Environment: {args.environment}")
-    print(f"Serverless mode: {args.serverless}")
     print(f"Git branch: {branch}")
     print(f"Developer: {developer}")
 
@@ -59,10 +55,7 @@ Examples:
     file_loader = FileSystemLoader(".")
     env = Environment(loader=file_loader)
 
-    if args.serverless:
-        template = env.get_template("/resources/wf_template_serverless.yml")
-    else:
-        template = env.get_template("/resources/wf_template.yml")
+    template = env.get_template("/resources/wf_template_serverless.yml")
 
     # Render the template with all variables
     output = template.render(environment=args.environment, branch=branch, developer=developer)

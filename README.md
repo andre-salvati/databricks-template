@@ -186,7 +186,7 @@ databricks-template/
 
 4) Deploy and execute on the dev workspace.
 
-        make deploy-serverless env=dev
+        make deploy env=dev
 
 
 5) configure CI/CD automation. Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST and DATABRICKS_TOKEN).
