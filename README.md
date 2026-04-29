@@ -42,7 +42,6 @@ This project template demonstrates how to:
 - show developer name and branch as job tags to track issues.
 - utilize [coverage package](https://pypi.org/project/coverage/) to generate test coverage reports.
 - utilize [uv](https://docs.astral.sh/uv/) as a project/package manager.
-- configure job to run in different environments with different parameters with [jinja package](https://pypi.org/project/jinja2/).
 - configure job to run tasks selectively.
 - use [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
@@ -52,6 +51,7 @@ This project template demonstrates how to:
 <br>
 
 - utilize [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
+- configure jobs to run across multiple environments by generating environment-specific job definitions using the [Databricks SDK](https://docs.databricks.com/aws/en/dev-tools/sdk-python#create-a-job-that-uses-serverless-compute).
 - utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to define and enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation, and filter bad data on quarantine tables.
 - utilize [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage workspaces and accounts and analyse costs. Refer to 'scripts' folder for some examples. 
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) and get data lineage for your tables and columns.
@@ -179,9 +179,9 @@ databricks-template/
 2) Install and configure Databricks CLI on your local machine. Check the current version on databricks.yaml. Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html). 
 
 
-3) Build Python env and execute unit tests on your local machine.
+3) Build Python env, execute unit tests on your local machine and create service principal for staging and prod envs.
 
-        make sync & make test
+        make sync & make test & make create-sp
 
 
 4) Deploy and execute on the dev workspace.

@@ -1,6 +1,7 @@
 import argparse
 
 import yaml
+from databricks.sdk import WorkspaceClient
 from databricks.bundles.jobs import (
     CronSchedule,
     Job,
@@ -11,6 +12,17 @@ from databricks.bundles.jobs import (
     PythonWheelTask,
 )
 from databricks.bundles.jobs._models.environment import Environment
+
+
+SP_DISPLAY_NAME = "template-sp"
+
+
+def _get_service_principal_id(display_name: str) -> int:
+    workspace = WorkspaceClient(profile="dev")
+    for sp in workspace.service_principals.list():
+        if sp.display_name == display_name:
+            return sp.application_id
+    raise ValueError(f"Service principal '{display_name}' not found in workspace.")
 
 
 def _wheel_task(schema: str) -> PythonWheelTask:
@@ -91,6 +103,9 @@ def _build_job1(environment: str) -> dict:
 
     d = job.as_dict()
     d["deployment"] = {"kind": "BUNDLE"}
+    if environment in ("staging", "prod"):
+        sp_id = _get_service_principal_id(SP_DISPLAY_NAME)
+        d["run_as"] = {"service_principal_name": sp_id}
     return d
 
 
@@ -130,6 +145,11 @@ def _build_integration_test_job() -> dict:
 def main():
     parser = argparse.ArgumentParser(description="Generate Databricks workflow YAML")
     parser.add_argument("environment", help="Target environment (dev, staging, prod)")
+    parser.add_argument(
+        "--service-principal-id",
+        default=None,
+        help="Application ID of the service principal to set as the job run-as identity",
+    )
     args = parser.parse_args()
 
     jobs: dict = {"job1": _build_job1(args.environment)}
@@ -138,7 +158,7 @@ def main():
 
     output = {"resources": {"jobs": jobs}}
 
-    output_file = "./resources/workflow.yml"
+    output_file = "./resources/jobs.yml"
     with open(output_file, "w") as f:
         yaml.dump(output, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
 

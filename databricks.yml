@@ -21,7 +21,7 @@ variables:
     default: template
 
 include:
-  - resources/workflow.yml
+  - resources/jobs.yml
 
 
 # For simplicity, we use a single workspace profile across all targets.

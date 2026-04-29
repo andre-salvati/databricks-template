@@ -67,7 +67,7 @@ def analyze_job_costs(workspace: WorkspaceClient, target_date: str):
     """
 
     try:
-        print("Querying system.billing.usage table...\n")
+        print("Querying system.billing.usage table..., warehouse_id: str\n")
         result = workspace.statement_execution.execute_statement(
             warehouse_id=get_warehouse_id(workspace),
             statement=query,
@@ -83,10 +83,6 @@ def analyze_job_costs(workspace: WorkspaceClient, target_date: str):
             if state in [StatementState.SUCCEEDED, StatementState.FAILED, StatementState.CANCELED]:
                 break
             time.sleep(1)
-
-        # print(result.result)
-        # print("-----")
-        # print(result.result.data_array)
 
         # Process and display results
         if result.result and result.result.data_array:

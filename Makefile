@@ -10,8 +10,11 @@ pre-commit:
 	pre-commit autoupdate
 	pre-commit run --all-files
 
+create-sp:
+	uv run python ./scripts/sdk_create_sp.py template-sp
+
 deploy:
-	uv run python ./scripts/generate_template_workflow.py $(env)
+	uv run python ./scripts/sdk_generate_template_job.py $(env)
 	uv run databricks bundle deploy --target $(env)
 
 run:
