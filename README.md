@@ -1,6 +1,6 @@
 # databricks-template
 
-> A production-ready PySpark project template with medallion architecture, Python packaging, unit tests, integration tests, coverage tests, CI/CD automation, Databricks Asset Bundles, and DQX data quality framework.
+> A production-ready PySpark project template with medallion architecture, Python packaging, unit tests, integration tests, coverage tests, CI/CD automation, Declarative Automation Bundles, and DQX data quality framework.
 
 ![Databricks](https://img.shields.io/badge/platform-Databricks-orange?logo=databricks)
 ![PySpark](https://img.shields.io/badge/pyspark-4.1+-brightgreen?logo=apache-spark)
@@ -9,7 +9,7 @@
 
 ## 🚀 Overview
 
-This project template is designed to boost productivity and promote maintainability when developing ETL pipelines on Databricks. It aims to bring software engineering best practices—such as modular architecture, automated testing, and CI/CD—into the world of data engineering. By combining a clean project structure with robust development and deployment workflows, this template helps teams move faster with confidence.
+This project template is designed to boost productivity and promote maintainability when developing ETL pipelines on Databricks. It aims to bring software engineering best practices—such as modular architecture, automated unit and integration testing, and CI/CD—into the world of data engineering. By combining a clean project structure with robust development and deployment jobs, this template helps teams move faster with confidence.
 
 You’re encouraged to adapt the structure and tooling to suit your project’s specific needs and environment.
 
@@ -19,13 +19,13 @@ Interested in bringing these principles in your own project?  Let’s [connect o
 
 - Databricks Free Edition (Serverless)
 - Databricks Runtime 18.0 LTS
-- Databricks Asset Bundles
-- Databricks DQX
+- Databricks Unity Catalog
+- Databricks Declarative Automation Bundles (former Asset Bundles)
 - Databricks CLI
 - Databricks Python SDK
+- Databricks DQX
 - PySpark 4.1
 - Python 3.12+
-- Unity Catalog
 - GitHub Actions
 - Pytest
 
@@ -50,7 +50,7 @@ This project template demonstrates how to:
 
 <br>
 
-- utilize [Databricks Asset Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
+- utilize [Databricks Declarative Automation Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
 - configure jobs to run across multiple environments by generating environment-specific job definitions using the [Databricks SDK](https://docs.databricks.com/aws/en/dev-tools/sdk-python#create-a-job-that-uses-serverless-compute).
 - utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to define and enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation, and filter bad data on quarantine tables.
 - utilize [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage workspaces and accounts and analyse costs. Refer to 'scripts' folder for some examples. 
@@ -67,7 +67,7 @@ For a debate on the use of notebooks vs. Python packaging, please refer to:
 - [this Linkedin thread by Ryan Chynoweth](https://www.linkedin.com/posts/ryan-chynoweth_using-databricks-notebooks-for-production-activity-7170868557621186561-eo3P)
 - [this Linkedin thread by Jaco van Gelder](https://www.linkedin.com/posts/jwvangelder_my-honest-opinion-on-notebooks-vs-python-activity-7385955500007534592-xwHa/)
 
-Sessions on Databricks Asset Bundles, CI/CD, and Software Development Life Cycle at Data + AI Summit 2025:
+Sessions on Databricks Declarative Automation Bundles, CI/CD, and Software Development Life Cycle at Data + AI Summit 2025:
 - [CI/CD for Databricks: Advanced Asset Bundles and GitHub Actions](https://www.youtube.com/watch?v=XumUXF1e6RI)
 - [Deploying Databricks Asset Bundles (DABs) at Scale](https://www.youtube.com/watch?v=mMwprgB-sIU)
 - [A Prescription for Success: Leveraging DABs for Faster Deployment and Better Patient Outcomes](https://www.youtube.com/watch?v=01JHTM2UP-U)
@@ -103,9 +103,7 @@ databricks-template/
 │       └── unit_test.py            # Pytest unit tests
 │
 ├── resources/                      # Databricks workflow templates
-│   ├── wf_template_serverless.yml  # Jinja2 template for serverless
-│   ├── wf_template.yml             # Jinja2 template for job clusters
-│   └── workflow.yml                # Generated workflow (auto-created)
+│   └── jobs.yml                    # Generated job definition (auto-created)
 │
 ├── scripts/                           # Helper scripts
 │   ├── generate_template_workflow.py  # Workflow generator (Jinja2)
@@ -122,7 +120,7 @@ databricks-template/
 ├── dist/                        # Build artifacts (Python wheel)
 ├── coverage_reports/            # Test coverage reports
 │
-├── databricks.yml               # Databricks Asset Bundle config
+├── databricks.yml               # Declarative Automation Bundle config
 ├── pyproject.toml               # Python project configuration (uv)
 ├── Makefile                     # Build automation
 ├── .pre-commit-config.yaml      # Pre-commit hooks (ruff)

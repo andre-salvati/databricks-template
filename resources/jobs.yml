@@ -1,13 +1,13 @@
 resources:
   jobs:
-    job1:
+    job5:
       environments:
       - environment_key: default
         spec:
           client: '5'
           dependencies:
           - ../dist/template-*.whl
-      name: template_${bundle.target}
+      name: job5_${bundle.target}
       tags:
         git_branch: ${bundle.git.branch}
         git_origin_url: ${bundle.git.origin_url}
@@ -68,16 +68,14 @@ resources:
       timeout_seconds: 3600
       deployment:
         kind: BUNDLE
-      run_as:
-        service_principal_name: 663b9cd2-5069-4f04-a0c8-08018f81daa5
-    integration_test_job:
+    job5_integration_test:
       environments:
       - environment_key: default
         spec:
           client: '5'
           dependencies:
           - ../dist/template-*.whl
-      name: template_${bundle.target}_integration_test
+      name: job5_${bundle.target}_integration_test
       tags:
         git_branch: ${bundle.git.branch}
         git_origin_url: ${bundle.git.origin_url}
@@ -97,7 +95,7 @@ resources:
       - depends_on:
         - task_key: setup
         run_job_task:
-          job_id: ${resources.jobs.job1.id}
+          job_id: ${resources.jobs.job5.id}
         task_key: run
       - depends_on:
         - task_key: run
@@ -114,3 +112,5 @@ resources:
           - ${var.debug}
         task_key: validate
       timeout_seconds: 3600
+      deployment:
+        kind: BUNDLE

@@ -93,7 +93,7 @@ def _build_job1(environment: str) -> dict:
         schedule = CronSchedule(quartz_cron_expression="0 0 5 * * ?", timezone_id="UTC")
 
     job = Job(
-        name="template_${bundle.target}",
+        name="job5_${bundle.target}",
         timeout_seconds=3600,
         tags=_tags(),
         environments=_environments(),
@@ -103,13 +103,14 @@ def _build_job1(environment: str) -> dict:
 
     d = job.as_dict()
     d["deployment"] = {"kind": "BUNDLE"}
-    if environment in ("staging", "prod"):
-        sp_id = _get_service_principal_id(SP_DISPLAY_NAME)
-        d["run_as"] = {"service_principal_name": sp_id}
+    # if environment in ("staging", "prod"):
+    #     sp_id = _get_service_principal_id(SP_DISPLAY_NAME)
+    #     d["run_as"] = {"service_principal_name": sp_id}
+    #     #d["permissions"] = [{"service_principal_name": sp_id, "level": "CAN_MANAGE"}]
     return d
 
 
-def _build_integration_test_job() -> dict:
+def _build_job1_integration_test(environment: str) -> dict:
     tasks = [
         Task(
             task_key="setup",
@@ -120,7 +121,7 @@ def _build_integration_test_job() -> dict:
         Task(
             task_key="run",
             depends_on=[TaskDependency(task_key="setup")],
-            run_job_task=RunJobTask(job_id="${resources.jobs.job1.id}"),
+            run_job_task=RunJobTask(job_id="${resources.jobs.job5.id}"),
         ),
         Task(
             task_key="validate",
@@ -132,18 +133,24 @@ def _build_integration_test_job() -> dict:
     ]
 
     job = Job(
-        name="template_${bundle.target}_integration_test",
+        name="job5_${bundle.target}_integration_test",
         timeout_seconds=3600,
         tags=_tags(),
         environments=_environments(),
         tasks=tasks,
     )
 
-    return job.as_dict()
+    d = job.as_dict()
+    d["deployment"] = {"kind": "BUNDLE"}
+    # if environment in ("staging", "prod"):
+    #     sp_id = _get_service_principal_id(SP_DISPLAY_NAME)
+    #     d["run_as"] = {"service_principal_name": sp_id}
+    #     #d["permissions"] = [{"service_principal_name": sp_id, "level": "CAN_MANAGE"}]
+    return d
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Generate Databricks workflow YAML")
+    parser = argparse.ArgumentParser(description="Generate Databricks Jobs YAML")
     parser.add_argument("environment", help="Target environment (dev, staging, prod)")
     parser.add_argument(
         "--service-principal-id",
@@ -152,9 +159,9 @@ def main():
     )
     args = parser.parse_args()
 
-    jobs: dict = {"job1": _build_job1(args.environment)}
+    jobs: dict = {"job5": _build_job1(args.environment)}
     if args.environment in ("dev", "staging"):
-        jobs["integration_test_job"] = _build_integration_test_job()
+        jobs["job5_integration_test"] = _build_job1_integration_test(args.environment)
 
     output = {"resources": {"jobs": jobs}}
 

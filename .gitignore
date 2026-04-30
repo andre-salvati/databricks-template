@@ -12,4 +12,4 @@ CLAUDE.md
 *.pyc
 *.lock
 .coverage*
-resources/workflow.yml
+resources/jobs.yml

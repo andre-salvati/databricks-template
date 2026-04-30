@@ -1,4 +1,3 @@
-# This is a Databricks asset bundle definition for default_python.
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
   name: default_python
@@ -32,16 +31,24 @@ targets:
     mode: development
     default: true
     workspace:
-      profile: dev
+      profile: dev      
 
   staging:
     workspace:
-      profile: dev
+      profile: staging
+      root_path: /Workspace/Users/e9839ada-817e-4fc7-abb1-2554cce3fcd8/.bundle/staging/${bundle.name}
+    permissions:
+      - service_principal_name: e9839ada-817e-4fc7-abb1-2554cce3fcd8
+        level: CAN_MANAGE
+    run_as:
+        service_principal_name: e9839ada-817e-4fc7-abb1-2554cce3fcd8    
 
   prod:
     workspace:
-      profile: dev
-      # For production deployments, we only have a single copy, so we override the workspace.root_path default of
-      # /Users/${workspace.current_user.userName}/.bundle/${bundle.target}/${bundle.name}
-      # to a path that is not specific to the current user.      
-      root_path: /Shared/.bundle/prod/${bundle.name}
+      profile: prod
+      root_path: /Workspace/Users/e9839ada-817e-4fc7-abb1-2554cce3fcd8/.bundle/prod/${bundle.name}
+    permissions:
+      - service_principal_name: e9839ada-817e-4fc7-abb1-2554cce3fcd8
+        level: CAN_MANAGE
+    run_as:
+        service_principal_name: e9839ada-817e-4fc7-abb1-2554cce3fcd8    

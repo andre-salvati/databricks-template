@@ -22,8 +22,23 @@ def get_warehouse_id(workspace: WorkspaceClient) -> str:
 def grant_permissions(workspace: WorkspaceClient, display_name: str):
     current_user = workspace.current_user.me().user_name
     statements = [
-        f"GRANT USE ON SERVICE PRINCIPAL `{display_name}` TO `{current_user}`",
-        f"GRANT CREATE CATALOG ON METASTORE TO `{display_name}`",
+        f"GRANT CREATE CATALOG ON Metastore TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT BROWSE ON CATALOG staging TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT USE CATALOG ON CATALOG staging TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT CREATE SCHEMA ON CATALOG staging TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT USE SCHEMA ON SCHEMA staging.system TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT SELECT ON SCHEMA staging.system TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT USE SCHEMA ON SCHEMA staging.raw TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT MANAGE ON SCHEMA staging.raw TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT USE SCHEMA ON SCHEMA staging.curated TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT MANAGE ON SCHEMA staging.curated TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT USE SCHEMA ON SCHEMA staging.refined TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT MANAGE ON SCHEMA staging.refined TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT BROWSE ON CATALOG prod TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT USE CATALOG ON CATALOG prod TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT USE SCHEMA ON SCHEMA prod.system TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT CREATE TABLE ON SCHEMA prod.system TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
+        f"GRANT SELECT ON SCHEMA prod.system TO `e9839ada-817e-4fc7-abb1-2554cce3fcd8`",
     ]
     warehouse_id = get_warehouse_id(workspace)
     for sql in statements:
