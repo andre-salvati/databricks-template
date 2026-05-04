@@ -15,6 +15,7 @@ from databricks.bundles.jobs._models.environment import Environment
 
 
 SP_DISPLAY_NAME = "template-sp"
+JOB_NAME = "job1"
 
 
 def _get_service_principal_id(display_name: str) -> int:
@@ -55,7 +56,7 @@ def _tags() -> dict[str, str]:
     }
 
 
-def _build_job1(environment: str) -> dict:
+def _build_job(environment: str) -> dict:
     tasks = [
         Task(
             task_key="extract_source1",
@@ -93,7 +94,7 @@ def _build_job1(environment: str) -> dict:
         schedule = CronSchedule(quartz_cron_expression="0 0 5 * * ?", timezone_id="UTC")
 
     job = Job(
-        name="job5_${bundle.target}",
+        name=f"{JOB_NAME}" + "_${bundle.target}",
         timeout_seconds=3600,
         tags=_tags(),
         environments=_environments(),
@@ -110,7 +111,7 @@ def _build_job1(environment: str) -> dict:
     return d
 
 
-def _build_job1_integration_test(environment: str) -> dict:
+def _build_job_integration_test(environment: str) -> dict:
     tasks = [
         Task(
             task_key="setup",
@@ -121,7 +122,7 @@ def _build_job1_integration_test(environment: str) -> dict:
         Task(
             task_key="run",
             depends_on=[TaskDependency(task_key="setup")],
-            run_job_task=RunJobTask(job_id="${resources.jobs.job5.id}"),
+            run_job_task=RunJobTask(job_id="${resources.jobs." + JOB_NAME + ".id}"),
         ),
         Task(
             task_key="validate",
@@ -133,7 +134,7 @@ def _build_job1_integration_test(environment: str) -> dict:
     ]
 
     job = Job(
-        name="job5_${bundle.target}_integration_test",
+        name=f"{JOB_NAME}" + "_${bundle.target}_integration_test",
         timeout_seconds=3600,
         tags=_tags(),
         environments=_environments(),
@@ -159,9 +160,9 @@ def main():
     )
     args = parser.parse_args()
 
-    jobs: dict = {"job5": _build_job1(args.environment)}
+    jobs: dict = {JOB_NAME: _build_job(args.environment)}
     if args.environment in ("dev", "staging"):
-        jobs["job5_integration_test"] = _build_job1_integration_test(args.environment)
+        jobs[f"{JOB_NAME}_integration_test"] = _build_job_integration_test(args.environment)
 
     output = {"resources": {"jobs": jobs}}
 

@@ -2,6 +2,7 @@
 bundle:
   name: default_python
   databricks_cli_version: ">=0.298.0"
+  engine: direct
 
 artifacts:
   default:
@@ -10,6 +11,14 @@ artifacts:
     path: .
 
 variables:
+  catalog_name:
+    default: dev
+  uc_managed_storage_root:
+    default: s3://databricks-template-afs/dev
+  service_principal_id:
+    default: "e9839ada-817e-4fc7-abb1-2554cce3fcd8"
+ 
+ 
   debug:
     default: "--debug"
   skip:
@@ -31,24 +40,77 @@ targets:
     mode: development
     default: true
     workspace:
-      profile: dev      
+      profile: dev
+    variables:
+      catalog_name: dev
+      uc_managed_storage_root: s3://databricks-template-afs/dev
 
   staging:
     workspace:
       profile: staging
-      root_path: /Workspace/Users/e9839ada-817e-4fc7-abb1-2554cce3fcd8/.bundle/staging/${bundle.name}
+      root_path: /Workspace/Users/${var.service_principal_id}/.bundle/staging/${bundle.name}
+    variables:
+      catalog_name: staging
+      uc_managed_storage_root: s3://databricks-template-afs/staging
     permissions:
-      - service_principal_name: e9839ada-817e-4fc7-abb1-2554cce3fcd8
+      - service_principal_name: ${var.service_principal_id}
         level: CAN_MANAGE
     run_as:
-        service_principal_name: e9839ada-817e-4fc7-abb1-2554cce3fcd8    
+        service_principal_name: ${var.service_principal_id}
 
   prod:
     workspace:
       profile: prod
-      root_path: /Workspace/Users/e9839ada-817e-4fc7-abb1-2554cce3fcd8/.bundle/prod/${bundle.name}
+      root_path: /Workspace/Users/${var.service_principal_id}/.bundle/prod/${bundle.name}
+    variables:
+      catalog_name: prod
+      uc_managed_storage_root: s3://databricks-template-afs/prod
     permissions:
-      - service_principal_name: e9839ada-817e-4fc7-abb1-2554cce3fcd8
+      - service_principal_name: ${var.service_principal_id}
         level: CAN_MANAGE
     run_as:
-        service_principal_name: e9839ada-817e-4fc7-abb1-2554cce3fcd8    
+        service_principal_name: ${var.service_principal_id}
+
+resources:
+  catalogs:
+    app_catalog:
+      name: ${var.catalog_name}
+      storage_root: ${var.uc_managed_storage_root}
+      grants:
+        - principal: andre.f.salvati@gmail.com
+          privileges:
+            - ALL_PRIVILEGES
+
+  schemas:
+
+    external_source:
+      name: external_source
+      catalog_name: ${resources.catalogs.app_catalog.name}
+      grants:
+        - principal: andre.f.salvati@gmail.com
+          privileges:
+            - ALL_PRIVILEGES 
+
+    raw:
+      name: raw
+      catalog_name: ${resources.catalogs.app_catalog.name}
+      grants:
+        - principal: andre.f.salvati@gmail.com
+          privileges:
+            - ALL_PRIVILEGES 
+
+    curated:
+      name: curated
+      catalog_name: ${resources.catalogs.app_catalog.name}
+      grants:
+        - principal: andre.f.salvati@gmail.com
+          privileges:
+            - ALL_PRIVILEGES
+
+    report:
+      name: report
+      catalog_name: ${resources.catalogs.app_catalog.name}
+      grants:
+        - principal: andre.f.salvati@gmail.com
+          privileges:
+            - ALL_PRIVILEGES
