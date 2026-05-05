@@ -8,6 +8,15 @@ from .job1.generate_orders_agg import GenerateOrdersAgg
 from .job1.integration_setup import Setup
 from .job1.integration_validate import Validate
 
+TASKS = {
+    "extract_source1": ExtractSource1,
+    "extract_source2": ExtractSource2,
+    "generate_orders": GenerateOrders,
+    "generate_orders_agg": GenerateOrdersAgg,
+    "setup": Setup,
+    "validate": Validate,
+}
+
 
 def arg_parser():
     parser = argparse.ArgumentParser()
@@ -32,18 +41,7 @@ def main():
     config = Config(args)
 
     if not config.skip_task():
-        if args.task == "extract_source1":
-            ExtractSource1(config).run()
-        elif args.task == "extract_source2":
-            ExtractSource2(config).run()
-        elif args.task == "generate_orders":
-            GenerateOrders(config).run()
-        elif args.task == "generate_orders_agg":
-            GenerateOrdersAgg(config).run()
-        elif args.task == "setup":
-            Setup(config).run()
-        elif args.task == "validate":
-            Validate(config).run()
+        TASKS[args.task](config).run()
 
 
 if __name__ == "__main__":

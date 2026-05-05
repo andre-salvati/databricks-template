@@ -4,9 +4,7 @@ import requests
 
 
 def demoWorkspaceApi():
-    workspace = WorkspaceClient(
-        profile="dev"  # as configured in .databrickscfg
-    )
+    workspace = WorkspaceClient(profile="dev")  # as configured in .databrickscfg
 
     for j in workspace.jobs.list():
         print("Job: " + str(j.job_id))

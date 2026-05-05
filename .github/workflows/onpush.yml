@@ -19,10 +19,9 @@ jobs:
 
     env:
       DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_TOKEN:  ${{ secrets.DATABRICKS_TOKEN }}
-      BRANCH: ${{ github.head_ref || github.ref_name }}
-      DEVELOPER: ${{ github.actor }}
-
+      DATABRICKS_CLIENT_ID:  ${{ secrets.DATABRICKS_CLIENT_ID }}
+      DATABRICKS_CLIENT_SECRET:  ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+  
     steps:
       - uses: actions/checkout@v1
 
@@ -51,21 +50,10 @@ jobs:
         uses: databricks/setup-cli@main
 
       - name: Deploy on staging
-        run: |
-          uv run python ./scripts/generate_template_workflow.py staging \
-          --branch "$BRANCH" \
-          --developer "$DEVELOPER"
-
-          uv run databricks bundle deploy --target staging
+        run: make deploy env=staging
 
       - name: Run on staging (integration tests)
-        run: |
-          make run env=staging
+        run: make run env=staging
 
       - name: Deploy on prod
-        run: |
-          uv run python ./scripts/generate_template_workflow.py prod \
-          --branch "$BRANCH" \
-          --developer "$DEVELOPER"
-
-          uv run databricks bundle deploy --target prod
+        run: make deploy env=prod
