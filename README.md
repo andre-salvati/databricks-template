@@ -53,6 +53,7 @@ This project template demonstrates how to:
 - utilize [Databricks Declarative Automation Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to package/deploy/run a Python wheel package on Databricks.
 - configure jobs to run across multiple environments by generating environment-specific job definitions using the [Databricks SDK](https://docs.databricks.com/aws/en/dev-tools/sdk-python#create-a-job-that-uses-serverless-compute).
 - utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to define and enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation, and filter bad data on quarantine tables.
+- utilize [service principals](https://docs.databricks.com/aws/en/admin/users-groups/service-principals) to run production code
 - utilize [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage workspaces and accounts and analyse costs. Refer to 'scripts' folder for some examples. 
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) and get data lineage for your tables and columns.
 - utilize [Databricks Lakeflow Jobs](https://docs.databricks.com/en/workflows/index.html) to execute a DAG and [task parameters](https://docs.databricks.com/en/workflows/jobs/parameter-value-references.html) to share context information between tasks (see [Task Parameters section](#task-parameters)). Yes, you don't need Airflow to manage your DAGs here!!!
@@ -186,7 +187,7 @@ databricks-template/
 
         make sync & make test
         
-4) Create an external location in Databricks and update the "storage-root" parameter in the Makefile. This step will create the catalogs, schemas, service principal, and the required grants. For more details, see: Overview of external locations[https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage#external-locations] Then run:
+4) Create an external location in Databricks and update the "storage-root" parameter in the Makefile. This step will create the catalogs, schemas, service principal, and the required grants. For more details, see: [Overview of external locations](https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage#external-locations). Then run:
 
         make init
 
