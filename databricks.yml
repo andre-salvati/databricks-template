@@ -89,7 +89,7 @@ resources:
       grants:
         - principal: andre.f.salvati@gmail.com
           privileges:
-            - ALL_PRIVILEGES 
+            - ALL_PRIVILEGES
 
     raw:
       name: raw

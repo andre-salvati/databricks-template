@@ -94,7 +94,7 @@ def _build_job(environment: str) -> dict:
         schedule = CronSchedule(quartz_cron_expression="0 0 5 * * ?", timezone_id="UTC")
 
     job = Job(
-        name=f"{JOB_NAME}" + "_${bundle.target}",
+        name=f"{JOB_NAME}_${{bundle.target}}",
         timeout_seconds=3600,
         tags=_tags(),
         environments=_environments(),
@@ -122,7 +122,7 @@ def _build_job_integration_test(environment: str) -> dict:
         Task(
             task_key="run",
             depends_on=[TaskDependency(task_key="setup")],
-            run_job_task=RunJobTask(job_id="${resources.jobs." + JOB_NAME + ".id}"),
+            run_job_task=RunJobTask(job_id=f"${{{f'resources.jobs.{JOB_NAME}.id'}}}"),
         ),
         Task(
             task_key="validate",
@@ -134,7 +134,7 @@ def _build_job_integration_test(environment: str) -> dict:
     ]
 
     job = Job(
-        name=f"{JOB_NAME}" + "_${bundle.target}_integration_test",
+        name=f"{JOB_NAME}_${{bundle.target}}_integration_test",
         timeout_seconds=3600,
         tags=_tags(),
         environments=_environments(),
