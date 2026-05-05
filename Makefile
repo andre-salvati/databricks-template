@@ -18,5 +18,5 @@ deploy:
 	uv run databricks bundle deploy --target $(env)
 
 run:
-	uv run databricks bundle run job1_staging_integration_test --target $(env)
+	uv run databricks bundle run job1_integration_test --target $(env)
 
