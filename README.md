@@ -90,25 +90,28 @@ databricks-template/
 │       ├── config.py              # Configuration management
 │       ├── baseTask.py            # Base class for all tasks
 │       ├── commonSchemas.py       # Shared PySpark schemas
-│       └── job1/                  # Job-specific tasks
-│           ├── extract_source1.py
-│           ├── extract_source2.py
-│           ├── generate_orders.py
-│           ├── generate_orders_agg.py
-│           ├── integration_setup.py
-│           └── integration_validate.py
+│       ├── job1/                  # Job-specific tasks
+│       │   ├── extract_source1.py
+│       │   ├── extract_source2.py
+│       │   ├── generate_orders.py
+│       │   ├── generate_orders_agg.py
+│       │   ├── integration_setup.py
+│       │   └── integration_validate.py
+│       └── job2/                  # Additional job tasks
 │
 ├── tests/                          # Unit tests
-│   └── job1/
-│       └── unit_test.py            # Pytest unit tests
+│   ├── job1/
+│   │   └── unit_test.py            # Pytest unit tests
+│   └── job2/
 │
 ├── resources/                      # Databricks workflow templates
 │   └── jobs.yml                    # Generated job definition (auto-created)
 │
-├── scripts/                           # Helper scripts
-│   ├── generate_template_workflow.py  # Workflow generator (Jinja2)
-│   ├── sdk_analyze_job_costs.py       # Cost analysis script
-│   └── sdk_workspace_and_account.py   # Workspace and account management
+├── scripts/                              # Helper scripts
+│   ├── sdk_generate_template_job.py      # Job definition generator (Databricks SDK)
+│   ├── sdk_init.py                       # Workspace initialization
+│   ├── sdk_analyze_job_costs.py          # Cost analysis script
+│   └── sdk_workspace_and_account.py      # Workspace and account management
 │
 ├── docs/                           # Documentation assets
 │   ├── dag.png
@@ -171,25 +174,45 @@ databricks-template/
 
 ## Instructions
 
+
 1) Create a workspace. Use a [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) workspace.
 
 
 2) Install and configure Databricks CLI on your local machine. Check the current version on databricks.yaml. Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html). 
 
 
-3) Build Python env, execute unit tests on your local machine and create service principal for staging and prod envs.
+3) Build Python env, execute unit tests on your local machine.
 
-        make sync & make test & make create-sp
+        make sync & make test
+        
+4) Create an external location in Databricks and update the "storage-root" parameter in the Makefile. This step will create the catalogs, schemas, service principal, and the required grants. For more details, see: Overview of external locations[https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage#external-locations] Then run:
 
+        make init
 
-4) Deploy and execute on the dev workspace.
+5) Generate a secret for the service principal. In Databricks, go to: Workspace -> Settings -> Identity and access -> Service principals -> Secrets. Generate a new secret for your service principal and update the corresponding profiles in your .databrickscfg file. Your configuration should look similar to this:
+
+        [dev]
+        host             = https://xxxx.cloud.databricks.com/
+        token            = bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
+                        
+        [staging]
+        host          = https://xxxx.cloud.databricks.com/
+        client_id     = yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+        client_secret = aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+        [prod]
+        host          = https://xxxx.cloud.databricks.com/
+        client_id     = yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
+        client_secret = aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+6) Deploy and execute on the dev workspace.
 
         make deploy env=dev
 
 
-5) configure CI/CD automation. Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST and DATABRICKS_TOKEN).
+7) Configure CI/CD automation. Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST, DATABRICKS_PRINCIPAL_ID, DATABRICKS_SECRET).
 
-6) You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
+8) You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
 - <img src="docs/vscode.png">
 

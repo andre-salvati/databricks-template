@@ -10,8 +10,8 @@ pre-commit:
 	pre-commit autoupdate
 	pre-commit run --all-files
 
-create-sp:
-	uv run python ./scripts/sdk_create_sp.py template-sp
+init:
+	uv run python ./scripts/sdk_init_workspace.py --storage-root s3://your-s3-bucket
 
 deploy:
 	uv run python ./scripts/sdk_generate_template_job.py $(env)
