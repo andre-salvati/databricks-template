@@ -20,7 +20,7 @@ Interested in bringing these principles in your own project?  Let’s [connect o
 - Databricks Free Edition (Serverless)
 - Databricks Runtime 18.0 LTS
 - Databricks Unity Catalog
-- Databricks Declarative Automation Bundles (former Asset Bundles)
+- Databricks Declarative Automation Bundles (former Databricks Asset Bundles)
 - Databricks CLI
 - Databricks Python SDK
 - Databricks DQX
@@ -187,7 +187,7 @@ databricks-template/
 
         make sync & make test
         
-4) Create an external location in Databricks and update the "storage-root" parameter in the Makefile. This step will create the catalogs, schemas, service principal, and the required grants. For more details, see: [Overview of external locations](https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage#external-locations). Then run:
+4) Create an external location in Databricks and update the "storage-root" parameter in the Makefile. This step will create the catalogs, schemas, service principal, and the required grants. For more details, see [Overview of external locations](https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage#external-locations). Then run:
 
         make init
 
