@@ -183,7 +183,7 @@ databricks-template/
 2) Install and configure Databricks CLI on your local machine. Check the current version on databricks.yaml. Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html). 
 
 
-3) Build Python env, execute unit tests on your local machine.
+3) Build Python env and execute unit tests on your local machine.
 
         make sync & make test
         
@@ -212,7 +212,7 @@ databricks-template/
         make deploy env=dev
 
 
-7) Configure CI/CD automation. Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST, DATABRICKS_PRINCIPAL_ID, DATABRICKS_SECRET).
+7) Configure CI/CD automation with the service principal ID and Secret. Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST, DATABRICKS_PRINCIPAL_ID, DATABRICKS_SECRET).
 
 8) You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
@@ -230,3 +230,14 @@ databricks-template/
 - **schema** (optional) - determines the default schema to read/store tables.
 - **skip** (optional) - determines if the current task should be skipped.
 - **debug** (optional) - determines if the current task should go through debug conditional.
+
+
+## Star History
+
+<a href="https://www.star-history.com/?repos=andre-salvati%2Fdatabricks-template&type=date&legend=top-left">
+ <picture>
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=andre-salvati/databricks-template&type=date&theme=dark&legend=top-left" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=andre-salvati/databricks-template&type=date&legend=top-left" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=andre-salvati/databricks-template&type=date&legend=top-left" />
+ </picture>
+</a>
