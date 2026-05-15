@@ -35,6 +35,7 @@ Interested in bringing these principles in your own project?  Let’s [connect o
 
 This project template demonstrates how to:
 
+- use agentic development (with Databricks AI Dev Kit and Claude Code) in data projects.
 - structure PySpark code inside classes/packages, instead of notebooks.
 - package and deploy code to different environments (dev, staging, prod). 
 - use a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
@@ -63,7 +64,11 @@ This project template demonstrates how to:
 
 ## 🧠 Resources
 
-For a debate on the use of notebooks vs. Python packaging, please refer to:
+Agentic development:
+- [Mastering Claude Code in 30 minutes](https://www.youtube.com/watch?v=6eBSHbLKuN0)
+- [Introducing Databricks AI Dev Kit - Skills, MCP server, Builder App](https://www.youtube.com/watch?v=HFSIKrG8bRg)
+
+Debates on the use of notebooks vs. Python packaging:
 - [The Rise of The Notebook Engineer](https://dataengineeringcentral.substack.com/p/the-rise-of-the-notebook-engineer)
 - [Please don’t make me use Databricks notebooks](https://medium.com/@seade03/please-dont-make-me-use-databricks-notebooks-3d07a4a332ae)
 - [this Linkedin thread by Daniel Beach](https://www.linkedin.com/posts/daniel-beach-6ab8b4132_dataengineering-databricks-activity-7171661784997715968-OpRW)
@@ -75,11 +80,10 @@ Sessions on Databricks Declarative Automation Bundles, CI/CD, and Software Devel
 - [Deploying Databricks Asset Bundles (DABs) at Scale](https://www.youtube.com/watch?v=mMwprgB-sIU)
 - [A Prescription for Success: Leveraging DABs for Faster Deployment and Better Patient Outcomes](https://www.youtube.com/watch?v=01JHTM2UP-U)
 
-Other:
+Other resources:
 - [Goodbye Pip and Poetry. Why UV Might Be All You Need](https://codecut.ai/why-uv-might-all-you-need/)
 - [The Spark Revolution You Didn’t See Coming: How Apache Spark 4.0 in Databricks Just Changed Everything](https://medium.com/@matiasmaquieira96/the-spark-revolution-you-didnt-see-coming-how-apache-spark-4-0-2a6422144f67)
-- [Mastering Claude Code in 30 minutes](https://www.youtube.com/watch?v=6eBSHbLKuN0)
-- [Introducing Databricks AI Dev Kit - Skills, MCP server, Builder App](https://www.youtube.com/watch?v=HFSIKrG8bRg)
+
 
 
 ## 📁 Folder Structure
