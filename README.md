@@ -24,6 +24,8 @@ Interested in bringing these principles in your own project?  Let’s [connect o
 - Databricks CLI
 - Databricks Python SDK
 - Databricks DQX
+- Databricks AI Dev Kit
+- Claude Code
 - PySpark 4.1
 - Python 3.12+
 - GitHub Actions
@@ -33,6 +35,7 @@ Interested in bringing these principles in your own project?  Let’s [connect o
 
 This project template demonstrates how to:
 
+- use agentic development (with Databricks AI Dev Kit and Claude Code) in data projects.
 - structure PySpark code inside classes/packages, instead of notebooks.
 - package and deploy code to different environments (dev, staging, prod). 
 - use a CI/CD pipeline with [Github Actions](https://docs.github.com/en/actions).
@@ -61,7 +64,11 @@ This project template demonstrates how to:
 
 ## 🧠 Resources
 
-For a debate on the use of notebooks vs. Python packaging, please refer to:
+Agentic development:
+- [Mastering Claude Code in 30 minutes](https://www.youtube.com/watch?v=6eBSHbLKuN0)
+- [Introducing Databricks AI Dev Kit - Skills, MCP server, Builder App](https://www.youtube.com/watch?v=HFSIKrG8bRg)
+
+Debates on the use of notebooks vs. Python packaging:
 - [The Rise of The Notebook Engineer](https://dataengineeringcentral.substack.com/p/the-rise-of-the-notebook-engineer)
 - [Please don’t make me use Databricks notebooks](https://medium.com/@seade03/please-dont-make-me-use-databricks-notebooks-3d07a4a332ae)
 - [this Linkedin thread by Daniel Beach](https://www.linkedin.com/posts/daniel-beach-6ab8b4132_dataengineering-databricks-activity-7171661784997715968-OpRW)
@@ -73,9 +80,11 @@ Sessions on Databricks Declarative Automation Bundles, CI/CD, and Software Devel
 - [Deploying Databricks Asset Bundles (DABs) at Scale](https://www.youtube.com/watch?v=mMwprgB-sIU)
 - [A Prescription for Success: Leveraging DABs for Faster Deployment and Better Patient Outcomes](https://www.youtube.com/watch?v=01JHTM2UP-U)
 
-Other:
+Other resources:
 - [Goodbye Pip and Poetry. Why UV Might Be All You Need](https://codecut.ai/why-uv-might-all-you-need/)
 - [The Spark Revolution You Didn’t See Coming: How Apache Spark 4.0 in Databricks Just Changed Everything](https://medium.com/@matiasmaquieira96/the-spark-revolution-you-didnt-see-coming-how-apache-spark-4-0-2a6422144f67)
+
+
 
 ## 📁 Folder Structure
 
@@ -177,21 +186,23 @@ databricks-template/
 ## Instructions
 
 
-1) Create a workspace. Use a [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) workspace.
+1) (Optional) Install [Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit) and [Claude Code](https://code.claude.com/docs/en/vs-code).
+
+2) Create a workspace. Use a [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) workspace.
 
 
-2) Install and configure Databricks CLI on your local machine. Check the current version on databricks.yaml. Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html). 
+3) Install and configure Databricks CLI on your local machine. Check the current version on databricks.yaml. Follow instructions [here](https://docs.databricks.com/en/dev-tools/cli/install.html). 
 
 
-3) Build Python env and execute unit tests on your local machine.
+4) Build Python env and execute unit tests on your local machine.
 
         make sync & make test
         
-4) Create an external location in Databricks and update the "storage-root" parameter in the Makefile. This step will create the catalogs, schemas, service principal, and the required grants. For more details, see [Overview of external locations](https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage#external-locations). Then run:
+5) Create an external location in Databricks and update the "storage-root" parameter in the Makefile. This step will create the catalogs, schemas, service principal, and the required grants. For more details, see [Overview of external locations](https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage#external-locations). Then run:
 
         make init
 
-5) Generate a secret for the service principal. In Databricks, go to: Workspace -> Settings -> Identity and access -> Service principals -> Secrets. Generate a new secret for your service principal and update the corresponding profiles in your .databrickscfg file. Your configuration should look similar to this:
+6) Generate a secret for the service principal. In Databricks, go to: Workspace -> Settings -> Identity and access -> Service principals -> Secrets. Generate a new secret for your service principal and update the corresponding profiles in your .databrickscfg file. Your configuration should look similar to this:
 
         [dev]
         host             = https://xxxx.cloud.databricks.com/
@@ -207,14 +218,14 @@ databricks-template/
         client_id     = yyyyyyyy-yyyy-yyyy-yyyy-yyyyyyyyyyyy
         client_secret = aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
 
-6) Deploy and execute on the dev workspace.
+7) Deploy and execute on the dev workspace.
 
         make deploy env=dev
 
 
-7) Configure CI/CD automation with the service principal ID and Secret. Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST, DATABRICKS_PRINCIPAL_ID, DATABRICKS_SECRET).
+8) Configure CI/CD automation with the service principal ID and Secret. Configure [Github Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST, DATABRICKS_PRINCIPAL_ID, DATABRICKS_SECRET).
 
-8) You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
+9) (Optional) You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
 - <img src="docs/vscode.png">
 
