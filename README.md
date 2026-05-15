@@ -65,6 +65,7 @@ This project template demonstrates how to:
 ## 🧠 Resources
 
 Agentic development:
+- [Claude Code: 5 Essentials for Data Engineering](https://www.youtube.com/watch?v=YnIWW88l0mc)
 - [Mastering Claude Code in 30 minutes](https://www.youtube.com/watch?v=6eBSHbLKuN0)
 - [Introducing Databricks AI Dev Kit - Skills, MCP server, Builder App](https://www.youtube.com/watch?v=HFSIKrG8bRg)
 
