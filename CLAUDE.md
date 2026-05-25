@@ -1,82 +1,146 @@
 # CLAUDE.md
 
-Guidance for Claude Code when working in this repository. This is a PySpark medallion-architecture template for Databricks, packaged as a wheel and deployed via Databricks Asset Bundles (DABs).
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Project shape
+## Project Overview
 
-- **`src/template/`** — the Python package built into the wheel.
-  - `main.py` — argparse entry point (`template.main:main`). Dispatches to one task per invocation.
-  - `config.py` — runtime config: catalog/schema setup, logging, DQX engine, skip-table logic.
-  - `baseTask.py` — `BaseTask` with `config`, `spark`, `logger` attributes for every task.
-  - `commonSchemas.py` — shared PySpark `StructType` definitions.
-  - `job1/` — one file per task class (`extract_source1`, `extract_source2`, `generate_orders`, `generate_orders_agg`, `integration_setup`, `integration_validate`, `health_check`).
-- **`scripts/`** — Databricks SDK / bundle automation. Run via `make` targets, not directly.
-- **`resources/jobs.yml`** — **generated** from `scripts/sdk_generate_template_job.py`. Do not edit by hand; it is overwritten on every `make deploy`.
-- **`tests/job1/unit_test.py`** — pytest suite (5 tests). Runs locally without a Databricks workspace via `env=local` (mocks `WorkspaceClient`).
-- **`databricks.yml`** — bundle config: targets `dev`, `staging`, `prod`. Prod uses `mode: production`.
+A production-ready PySpark/Databricks ETL pipeline template using medallion architecture, Python packaging, unit + integration tests, Databricks Declarative Automation Bundles (DABs), and DQX data quality framework. Code is structured as a Python wheel package (not notebooks) deployed to Databricks serverless.
 
-## Catalog / schema model (load-bearing)
+## Tooling: Databricks AI Dev Kit + MCP
 
-- **Environment isolation is at the *catalog* level, not the schema level.** Same medallion schemas exist in every catalog.
-- `dev_{sanitized_user}` — per-developer sandbox; created lazily by `Config.__init__`. Username is `WorkspaceClient().current_user.me().user_name.split("@")[0]` with non-alphanumerics replaced by `_` (e.g. `andre.f.salvati` → `andre_f_salvati`).
-- `staging`, `prod` — shared; provisioned by `make init` (`sdk_init_workspace.py`). Runtime jobs in these envs must NOT have `CREATE CATALOG` privilege.
-- Medallion schemas (`MEDALLION_SCHEMAS` in `config.py`): `external_source`, `raw`, `curated`, `report`, `ops`.
-  - `ops` is the internal config schema (skip table, health check table). Named `ops` instead of `system` because Unity Catalog reserves `system`.
+This project is developed with the [Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit) installed at the user level (`~/.ai-dev-kit/`). It provides:
 
-Each task's input/output tables are **hardcoded** in the task module (e.g. `raw.customer` → `curated.order_enriched`). The medallion layer is a semantic contract, not a runtime parameter — this is the dbt `ref()` pattern. Don't parameterize the layer; if a task genuinely needs a configurable target, that's a different task.
+- **Databricks MCP server** (`mcp__databricks__*` tools) — wired globally in `~/.claude.json`, authenticates via the `DEFAULT` profile in `~/.databrickscfg`.
+- **Databricks skills** (`databricks-bundles`, `databricks-jobs`, `databricks-python-sdk`, `databricks-config`, `databricks-unity-catalog`, etc.) — invoke via the Skill tool when the task matches.
 
-## CLI surface
+### When to use what
+
+- **Workspace/UC/Jobs/Pipelines/Apps/Serving operations** → prefer `mcp__databricks__*` tools over `databricks` CLI shell-outs or hand-rolled SDK scripts. Examples: `manage_jobs`, `manage_job_runs`, `manage_uc_objects`, `execute_sql`, `manage_serving_endpoint`, `manage_workspace_files`.
+- **Bundle work** (editing `databricks.yml`, `resources/*.yml`, deploy/run) → invoke the `databricks-bundles` skill. Note this project generates `resources/jobs.yml` via `scripts/sdk_generate_template_job.py`; do not hand-edit it.
+- **Adding/modifying jobs** → invoke `databricks-jobs` skill for guidance, but route changes through `scripts/sdk_generate_template_job.py` + `make deploy` (see "Adding a New Job" below).
+- **Switching workspaces / checking auth** → invoke `databricks-config` skill.
+- **SDK code inside `src/template/`** → invoke `databricks-python-sdk` skill.
+
+### Conventions
+
+- Use the `DEFAULT` profile unless told otherwise. To check or switch, use the `databricks-config` skill.
+- Do **not** install the Dev Kit into this repo or commit MCP config — it's a user-level tool. `.claude/` is currently untracked.
+- If MCP tools are unavailable in a session, fall back to the `databricks` CLI or `databricks-sdk` directly, but flag it to the user.
+
+## Commands
+
+```bash
+make sync              # Install all dependencies via uv
+make test              # Run pytest with coverage
+make pre-commit        # Update and run pre-commit hooks (ruff lint/format)
+make init              # One-time workspace bootstrap (SP, catalogs, schemas, grants). Edit S3 path first.
+make deploy env=dev    # Generate jobs.yml + deploy bundle to target env (dev/staging/prod)
+make run env=dev       # Run integration test job on a target env (dev or staging)
+```
+
+Run a single test file:
+```bash
+uv run pytest tests/job1/unit_test.py
+```
+
+Run a single test by name:
+```bash
+uv run pytest tests/job1/unit_test.py::test_enrich_orders
+```
+
+## Architecture
+
+### Execution Flow
+
+`main.py` parses CLI args → instantiates `Config` → dispatches to a task class via `TASKS` dict → calls `.run()`.
+
+Each Databricks job task maps to one class. The `--task` arg value must match a key in `TASKS`. Job definitions are **generated** (not hand-authored) by `scripts/sdk_generate_template_job.py` into `resources/jobs.yml`, which is then consumed by the bundle. Never edit `resources/jobs.yml` directly.
+
+### CLI surface
 
 The wheel entry point is intentionally minimal:
 
-- `--task` *(required)* — task key (`extract_source1` etc.). In jobs, `{{task.name}}` fills this.
+- `--task` *(required)* — task key. In jobs, `{{task.name}}` fills this.
 - `--env` *(required)* — `dev` / `staging` / `prod` (or `local` for tests).
-- `--skip` *(optional flag)* — short-circuit this run.
+- `--skip` *(optional flag)* — short-circuit this run (paired with the `ops.config` skip table).
 
-Anything else should be an **environment variable**, not a CLI arg. Current env vars:
+Anything else should be an **environment variable**, not a CLI arg. See "Runtime environment variables" below.
 
-- `TEMPLATE_LOG_LEVEL` — `DEBUG`/`INFO`/`WARNING`. Defaults `INFO`. Overridable per-run from the Databricks Jobs UI.
-- `TEMPLATE_QUARANTINE_FAIL_RATIO` — hard-fail `extract_source2` if quarantine ratio exceeds this. Defaults `1.0` (disabled).
-- `TEMPLATE_ALERT_EMAILS` — CI overrides prod failure-email recipients (comma-separated).
-- `TEMPLATE_SP_APP_ID` — CI bypass for the SCIM lookup of the service principal.
+### Key Classes
+
+- **`Config`** ([src/template/config.py](src/template/config.py)) — runtime config: catalog/schema setup, logging, DQX engine, skip-table logic. When `env=local` (unit tests), it mocks the `WorkspaceClient` so tests run without Databricks connectivity.
+- **`BaseTask`** ([src/template/baseTask.py](src/template/baseTask.py)) — base class giving every task `self.spark`, `self.config`, and `self.logger`.
+- **Task classes** (e.g. `ExtractSource1`, `GenerateOrders`, `HealthCheck`) — subclass `BaseTask`, implement `run()`. Transformation logic lives in dedicated methods (e.g. `enrich_order`) so unit tests can call them directly without Spark tables.
+
+### Catalog / schema model (load-bearing)
+
+**Environment isolation is at the *catalog* level, not the schema level.** Same medallion schemas exist in every catalog.
+
+- `dev_{sanitized_user}` — per-developer sandbox; created lazily by `Config.__init__`. Username is `WorkspaceClient().current_user.me().user_name.split("@")[0]` with non-alphanumerics replaced by `_` (e.g. `andre.f.salvati` → `andre_f_salvati`).
+- `staging`, `prod` — shared; provisioned upfront by `make init`. Runtime jobs in these envs must NOT have `CREATE CATALOG` privilege.
+
+Medallion schemas (`MEDALLION_SCHEMAS` in `config.py`):
+
+| Schema | Content |
+|---|---|
+| `external_source` | Raw input data (seeded by integration test `setup` task) |
+| `raw` | Bronze — direct copies from sources |
+| `curated` | Silver — joined/enriched tables |
+| `report` | Gold — aggregated tables |
+| `ops` | Internal — skip table, health-check table. Named `ops` instead of `system` because Unity Catalog reserves `system`. |
+
+Each task's input/output tables are **hardcoded** in the task module (e.g. `raw.customer` → `curated.order_enriched`). The medallion layer is a semantic contract, not a runtime parameter — this is the dbt `ref()` pattern. Don't parameterize the layer; if a task genuinely needs a configurable target, that's a different task.
+
+### Runtime environment variables
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `TEMPLATE_LOG_LEVEL` | `DEBUG`/`INFO`/`WARNING`. Overridable per-run from the Databricks Jobs UI for prod incident response. | `INFO` |
+| `TEMPLATE_QUARANTINE_FAIL_RATIO` | Hard-fail `extract_source2` if quarantine ratio exceeds this. Set to e.g. `0.1` on prod to enforce. | `1.0` (disabled) |
+| `TEMPLATE_ALERT_EMAILS` | Comma-separated recipients for prod `JobEmailNotifications`. CI overrides via secret. | `data-platform-oncall@example.com` |
+| `TEMPLATE_SP_APP_ID` | CI bypass for the SCIM lookup of the service principal. | resolved from `SP_DISPLAY_NAME` |
+
+### Data Quality (DQX)
+
+`ExtractSource2` demonstrates the DQX pattern: define rules as `DQRowRule`/`DQForEachColRule`/`DQDatasetRule`, call `dq_engine.apply_checks_and_split()`, write invalid rows to a `_quarantine` table. The `TEMPLATE_QUARANTINE_FAIL_RATIO` env var hard-fails the task when too many rows are quarantined (silent quarantine bloat is the main DQX failure mode in prod).
+
+### Testing Pattern
+
+Unit tests use `env=local` which bypasses Databricks catalog setup and mocks `WorkspaceClient`. Test transformation methods directly (e.g., `task.enrich_order(df1, df2, df3)`) using in-memory DataFrames. Integration tests use the `setup` → `run` → `validate` job sequence triggered via `make run env=dev`.
+
+### CI/CD (GitHub Actions)
+
+On every push: install deps → unit tests → bundle validate → deploy to staging → run integration tests → (only on `main`) deploy to prod. Requires `DATABRICKS_HOST`, `DATABRICKS_CLIENT_ID`, `DATABRICKS_CLIENT_SECRET`, `TEMPLATE_ALERT_EMAILS` repo secrets. CLI and action versions are pinned (no `@main`).
+
+### Production guardrails
+
+- `databricks.yml` prod target has `mode: production` → DABs refuses to deploy if deployer != run-as identity (the SP). A developer's local `make deploy env=prod` will fail by design.
+- CI deploys to prod only when `github.ref == 'refs/heads/main'`.
+- `run_as` and `permissions` on every staging/prod job are pinned to the service principal's `application_id` (numeric), wired by `_get_service_principal_id` in `sdk_generate_template_job.py`.
+- Prod-only features in `_build_job`: cron schedule, `JobEmailNotifications`, and a `health_check` task running before any extract.
+- The wheel filename in `JobEnvironment.dependencies` is pinned to `_project_version()` (reads `pyproject.toml`) so a forgotten rebuild can't silently deploy an old wheel.
+
+### Adding a New Job
+
+1. Create task classes under `src/template/<jobN>/`, inheriting `BaseTask`.
+2. Register them in the `TASKS` dict in `main.py` — `--task` choices are auto-derived from `sorted(TASKS.keys())`.
+3. Add task construction logic to `scripts/sdk_generate_template_job.py` (use `_wheel_task()` with no args; `--task` is filled by `{{task.name}}`).
+4. Run `make deploy env=dev` to regenerate `resources/jobs.yml` and deploy.
 
 ## Constraints (things that broke us)
 
 - **Do not call `DataFrame.cache()` / `.persist()`.** Databricks serverless rejects these with `[NOT_SUPPORTED_WITH_SERVERLESS] PERSIST TABLE is not supported`. The double-scan cost is acceptable.
 - **Do not use `assert` for runtime checks.** Python `-O` strips them. Use `if cond: raise RuntimeError(...)`.
 - **Do not use `print()`.** Use `self.logger.info(...)` so output is structured and visible in the Databricks driver log. The logger handler is installed in `config.py:_configure_logging` (`template` logger, `propagate = False` to avoid py4j teardown noise).
-- **Do not pass `${workspace.current_user.short_name}` as `--user`.** Identity comes from `WorkspaceClient` at runtime (with sanitization). If you re-add the CLI arg, you reintroduce a deploy-time/runtime mismatch.
-- **`run_as` field on a job dict takes `application_id` (int), not `display_name`** — the key is named `service_principal_name` for legacy reasons, but the value is the numeric app ID. See `_get_service_principal_id` in `sdk_generate_template_job.py`.
-- **All writes must use `.option("overwriteSchema", "false")`** on medallion tables. Schema drift is a failure signal, not something to silently absorb. The only exception is `ops._health` (intentional, `overwriteSchema=true` is fine there).
-
-## Common workflows
-
-| Task | Command | Notes |
-|---|---|---|
-| Sync deps | `make sync` | uv-driven |
-| Run unit tests | `make test` | All tests use `env=local`; mocks `WorkspaceClient`. |
-| Deploy to dev | `make deploy env=dev` | Regenerates `resources/jobs.yml`, builds wheel, uploads bundle. |
-| Run integration tests | `make run env=dev` | Triggers `job1_dev_integration_test` on Databricks: `setup → run (job1_dev) → validate`. |
-| Lint/format | pre-commit (auto) | ruff + ruff-format; runs on commit. |
-| Bootstrap workspace (one-time) | `make init` | Edit the S3 path in the Makefile first. Creates SP, catalogs, schemas, grants. |
-
-## Production deploy is gated
-
-- `databricks.yml` prod target has `mode: production` → DABs refuses to deploy if deployer != run-as identity (the SP). A developer's local `make deploy env=prod` will fail by design.
-- CI (`.github/workflows/onpush.yml`) deploys to prod only when `github.ref == 'refs/heads/main'`.
-- Prod-only features in `_build_job`: cron schedule, `JobEmailNotifications`, the `health_check` task running before any extract.
-
-## When editing `sdk_generate_template_job.py`
-
-- It generates `resources/jobs.yml`. Read the actual generated YAML after changes to sanity-check.
-- `_wheel_task()` parameters list should stay minimal (`--task`, `--env`). Don't re-add `--user`, `--debug`, `--schema`.
-- `_tags()` includes `environment`, `cost_center`, `team` for `system.billing.usage` attribution.
-- The wheel filename is pinned to `_project_version()` (reads `pyproject.toml`). If you change the version, the same script run regenerates the YAML correctly.
+- **Do not pass `${workspace.current_user.short_name}` as a `--user` arg.** Identity comes from `WorkspaceClient` at runtime with sanitization. If you re-add the CLI arg, you reintroduce a deploy-time/runtime mismatch.
+- **`run_as` field on a job dict takes `application_id` (int), not `display_name`** — the dict key is named `service_principal_name` for legacy reasons, but the value is the numeric app ID.
+- **All writes must use `.option("overwriteSchema", "false")`** on medallion tables. Schema drift is a failure signal, not something to silently absorb. The only exception is `ops._health` (intentional; `overwriteSchema=true` is fine there).
 
 ## Don't
 
-- Don't reintroduce `--user`, `--debug`, or `--schema` CLI args. They were removed deliberately; see the PR history for the design discussion.
+- Don't reintroduce `--user`, `--debug`, or `--schema` CLI args. They were removed deliberately — see PR #21.
 - Don't add `funcy` (or any decorator-based timing utility) to the dependencies. Use the structured logger.
 - Don't add `CREATE CATALOG` calls outside the `args.env == "dev"` branch in `config.py`. Staging/prod jobs run without that privilege.
 - Don't commit `resources/jobs.yml` (gitignored — regenerated on every deploy).
 - Don't commit `.databricks-resources.json` (gitignored — local provisioning state, diverges per developer).
+- Don't hand-edit `resources/jobs.yml` — it's overwritten on every deploy. Change `scripts/sdk_generate_template_job.py` instead.
