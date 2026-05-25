@@ -239,6 +239,7 @@ The wheel entry point exposes a small, focused CLI. Most behavior is driven by `
 - **`--task`** *(required)* — task to execute (`extract_source1`, `extract_source2`, `generate_orders`, `generate_orders_agg`, `setup`, `validate`, `health_check`). In jobs, this is auto-filled from `{{task.name}}`.
 - **`--env`** *(required)* — deployment target (`dev`, `staging`, `prod`). Drives catalog selection (`dev_{user}` vs `staging` vs `prod`), retry counts, schedule, alerts, and whether the workspace SDK is real or mocked. In jobs, auto-filled from `${bundle.target}`.
 - **`--skip`** *(optional)* — short-circuit the current task. Useful when paired with the `ops.config` skip table for tactical pipeline freezes.
+- **`--run-id`** *(optional, observability-only)* — Databricks job run ID. Auto-filled from `{{job.run_id}}`; stamped onto every log line via a `logging.Filter` so production logs are correlatable after ingest into Splunk/Datadog/CloudWatch.
 
 ### What is *not* a CLI parameter (and why)
 

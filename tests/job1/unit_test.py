@@ -80,7 +80,7 @@ def test_arg_parser():
 
     args = parser.parse_args(["--task=extract_source1", "--env=dev", "--skip"])
 
-    assert args == Namespace(task="extract_source1", env="dev", skip=True)
+    assert args == Namespace(task="extract_source1", env="dev", skip=True, run_id=None)
 
 
 @pytest.mark.parametrize(

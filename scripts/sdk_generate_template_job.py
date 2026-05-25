@@ -55,6 +55,7 @@ def _wheel_task() -> PythonWheelTask:
         parameters=[
             "--task={{task.name}}",
             "--env=${bundle.target}",
+            "--run-id={{job.run_id}}",
         ],
     )
 

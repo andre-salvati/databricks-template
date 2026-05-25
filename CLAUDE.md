@@ -63,6 +63,7 @@ The wheel entry point is intentionally minimal:
 - `--task` *(required)* — task key. In jobs, `{{task.name}}` fills this.
 - `--env` *(required)* — `dev` / `staging` / `prod` (or `local` for tests).
 - `--skip` *(optional flag)* — short-circuit this run (paired with the `ops.config` skip table).
+- `--run-id` *(optional, observability-only)* — filled by Databricks via `{{job.run_id}}`. Stamped onto every log line via a `logging.Filter` so logs are correlatable after ingest. Defaults to `-` when absent (e.g. local tests).
 
 Anything else should be an **environment variable**, not a CLI arg. See "Runtime environment variables" below.
 

@@ -7,7 +7,7 @@ from databricks.labs.dqx.engine import DQEngine
 from databricks.sdk import WorkspaceClient
 from pyspark.sql import SparkSession
 
-_LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s :: %(message)s"
+_LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s [run=%(run_id)s] :: %(message)s"
 
 # Schema used internally by the template for runtime config (e.g. tasks to skip).
 # Renamed from "system" to avoid colliding with Unity Catalog's reserved `system` catalog.
@@ -19,14 +19,27 @@ INTERNAL_SCHEMA = "ops"
 MEDALLION_SCHEMAS = ["external_source", "raw", "curated", "report", INTERNAL_SCHEMA]
 
 
-def _configure_logging(level: int) -> None:
+class _RunIdFilter(logging.Filter):
+    # Stamps every log record with the Databricks job run_id so logs can be
+    # correlated to a specific run after they're ingested into Splunk/Datadog/etc.
+    def __init__(self, run_id: str):
+        super().__init__()
+        self.run_id = run_id
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        record.run_id = self.run_id
+        return True
+
+
+def _configure_logging(level: int, run_id: str) -> None:
     # Attach the handler to our "template" logger only — not the root logger —
     # so framework loggers (py4j, etc.) don't try to emit through our handler
     # during interpreter teardown when stdout has already been closed.
     logger = logging.getLogger("template")
-    if not any(isinstance(h, logging.StreamHandler) for h in logger.handlers):
+    if not logger.handlers:
         handler = logging.StreamHandler()
         handler.setFormatter(logging.Formatter(_LOG_FORMAT))
+        handler.addFilter(_RunIdFilter(run_id))
         logger.addHandler(handler)
     logger.setLevel(level)
     logger.propagate = False
@@ -44,14 +57,12 @@ class Config:
         # Override at runtime via TEMPLATE_LOG_LEVEL env var (e.g. set DEBUG from the
         # Jobs UI "Run with different parameters" dialog when investigating prod incidents).
         log_level = os.environ.get("TEMPLATE_LOG_LEVEL", "INFO").upper()
-        _configure_logging(getattr(logging, log_level, logging.INFO))
+        # run_id comes from --run-id={{job.run_id}}. Not exposed as an env var on serverless,
+        # so it has to be threaded through as a CLI param. Falls back to "-" for local tests.
+        run_id = getattr(args, "run_id", None) or "-"
+        _configure_logging(getattr(logging, log_level, logging.INFO), run_id)
         self.logger = logging.getLogger("template")
-        self.logger.info(
-            "config init task=%s env=%s job_run_id=%s",
-            args.task,
-            args.env,
-            os.environ.get("DATABRICKS_JOB_RUN_ID", "-"),
-        )
+        self.logger.info("config init task=%s env=%s", args.task, args.env)
 
         self.spark = SparkSession.builder.appName(args.task).getOrCreate()
 
