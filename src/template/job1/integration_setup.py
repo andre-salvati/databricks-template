@@ -1,7 +1,7 @@
 from ..baseTask import BaseTask
 from ..commonSchemas import customer_schema, order_item_schema, order_schema
 
-schema = "external_source"
+SCHEMA = "external_source"
 
 
 class Setup(BaseTask):
@@ -9,22 +9,20 @@ class Setup(BaseTask):
         super().__init__(config)
 
     def run(self):
-        print("Setup for integration tests ...")
+        self.logger.info("setup for integration tests")
 
-        # clean all schemas
-
-        self.spark.sql(f"DROP SCHEMA IF EXISTS {schema} CASCADE")
-        self.spark.sql("DROP SCHEMA IF EXISTS raw CASCADE")
-        self.spark.sql("DROP SCHEMA IF EXISTS curated CASCADE")
-        self.spark.sql("DROP SCHEMA IF EXISTS report CASCADE")
-
-        self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {schema}")
+        # Destructive DDL: qualify with the catalog so it's unmistakably scoped to the
+        # current env's catalog, never the workspace default.
+        catalog = self.config.get_value("catalog")
+        for s in (SCHEMA, "raw", "curated", "report"):
+            self.spark.sql(f"DROP SCHEMA IF EXISTS {catalog}.{s} CASCADE")
+        self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{SCHEMA}")
 
         # customer
 
         customer_data = [(10, "John Doe", "USA"), (20, "Jane Smith", "UK")]
         df_customer = self.spark.createDataFrame(customer_data, schema=customer_schema)
-        df_customer.write.saveAsTable(f"{schema}.customer")
+        df_customer.write.saveAsTable(f"{catalog}.{SCHEMA}.customer")
 
         # order
 
@@ -36,8 +34,8 @@ class Setup(BaseTask):
             (3, 20, 150.0, "2023-01-02"),
         ]  # id is duplicated
         df_order = self.spark.createDataFrame(order_data, schema=order_schema)
-        df_order.write.saveAsTable(f"{schema}.order")
+        df_order.write.saveAsTable(f"{catalog}.{SCHEMA}.order")
 
         order_item_data = [(1, 1, "Item A", 2, 50.0), (1, 2, "Item B", 1, 50.0), (2, 1, "Item C", 3, 151.0)]
         df_order_item = self.spark.createDataFrame(order_item_data, schema=order_item_schema)
-        df_order_item.write.saveAsTable(f"{schema}.order_item")
+        df_order_item.write.saveAsTable(f"{catalog}.{SCHEMA}.order_item")

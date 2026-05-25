@@ -3,12 +3,11 @@ name = "template"
 version = "0.0.1"
 description = "wheel file based on template/src"
 authors = [
-    {name = "user@company.com"}
+    {name = "Andre Salvati"}
 ]
 readme = "README.md"
 requires-python = "==3.12.*"
 dependencies = [
-    "funcy==2.0",
     "databricks-labs-dqx==0.12.0", 
 ]
 

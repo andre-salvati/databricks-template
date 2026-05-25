@@ -8,8 +8,8 @@ dist/
 build/
 coverage_reports/
 src/template.egg-info/
-CLAUDE.md
 *.pyc
 *.lock
 .coverage*
 resources/jobs.yml
+.databricks-resources.json

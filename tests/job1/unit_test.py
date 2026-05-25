@@ -31,9 +31,7 @@ def config() -> TaskConfig:
             task="extract_source1",
             env="local",
             default_catalog="dev",
-            schema="raw",
             skip=False,
-            debug=True,
         )
     )
 
@@ -80,13 +78,9 @@ def df_orders(spark) -> DataFrame:
 def test_arg_parser():
     parser = arg_parser()
 
-    args = parser.parse_args(
-        ["--task=extract_source1", "--user=andre_f_salvati", "--schema=raw", "--env=dev", "--skip", "--debug"]
-    )
+    args = parser.parse_args(["--task=extract_source1", "--env=dev", "--skip"])
 
-    assert args == Namespace(
-        task="extract_source1", user="andre_f_salvati", schema="raw", env="dev", skip=True, debug=True
-    )
+    assert args == Namespace(task="extract_source1", env="dev", skip=True)
 
 
 @pytest.mark.parametrize(
@@ -97,16 +91,11 @@ def test_arg_parser():
                 task="extract_source1",
                 env="local",
                 skip=False,
-                debug=True,
-                schema="raw",
-                user="andre_f_salvati",
             ),
             {
                 "task": "extract_source1",
                 "env": "local",
-                "schema": "raw",
                 "skip": False,
-                "debug": True,
             },
         ),
     ],

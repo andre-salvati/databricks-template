@@ -13,15 +13,10 @@ artifacts:
 variables:
   catalog_name:
     default: dev
- 
-  debug:
-    default: "--debug"
   skip:
     default: "--skip"
   default_catalog:
     default: dev
-  default_schema:
-    default: template
 
 include:
   - resources/jobs.yml
@@ -30,33 +25,32 @@ include:
 # For simplicity, we use a single workspace profile across all targets.
 # Here is a good reference on how to structure your catalogs, workspaces, and groups:
 # https://youtu.be/CLBq4fBE2Ro
+#
+# `run_as` and `permissions` for staging/prod jobs are pinned to the service principal
+# at the *job* level by scripts/sdk_generate_template_job.py, so they're intentionally
+# omitted from the targets below.
 targets:
   dev:
     mode: development
     default: true
     workspace:
       profile: dev
- 
+
   staging:
     workspace:
       profile: staging
       root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/staging/${bundle.name}
     variables:
       catalog_name: staging
-    permissions:
-      - service_principal_name: ${workspace.current_user.userName}
-        level: CAN_MANAGE
-    run_as:
-        service_principal_name: ${workspace.current_user.userName}
 
   prod:
+    # mode: production enforces that the deployer is the run-as identity (the SP)
+    # and that no two deployments collide on the same workspace path. This makes
+    # `make deploy env=prod` fail locally for any user other than the SP — which
+    # is exactly what we want; only CI should be able to push to prod.
+    mode: production
     workspace:
       profile: prod
-      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/prod/${bundle.name}
+      root_path: /Workspace/Shared/.bundle/prod/${bundle.name}
     variables:
       catalog_name: prod
-    permissions:
-      - service_principal_name: ${workspace.current_user.userName}
-        level: CAN_MANAGE
-    run_as:
-        service_principal_name: ${workspace.current_user.userName}

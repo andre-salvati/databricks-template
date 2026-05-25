@@ -1,3 +1,5 @@
+import os
+
 from databricks.labs.dqx import check_funcs
 from databricks.labs.dqx.rule import (
     Criticality,
@@ -7,6 +9,11 @@ from databricks.labs.dqx.rule import (
 )
 
 from ..baseTask import BaseTask
+
+# Fail the task if more than this fraction of rows hit ERROR-level DQX rules.
+# Default 1.0 (effectively disabled) preserves the demo's ability to ingest seeded
+# bad data; set TEMPLATE_QUARANTINE_FAIL_RATIO=0.1 (or similar) on the prod job to enforce.
+_QUARANTINE_FAIL_RATIO = float(os.environ.get("TEMPLATE_QUARANTINE_FAIL_RATIO", "1.0"))
 
 
 class ExtractSource2(BaseTask):
@@ -42,18 +49,30 @@ class ExtractSource2(BaseTask):
         return (df_valid, df_invalid)
 
     def run(self):
-        print("Extracting data from Source2 ...")
+        self.logger.info("extracting data from Source2")
 
         df_order = self.spark.read.table("external_source.order")
         df_order, df_order_invalid = self.validate_order(df_order)
-        df_order_invalid.write.mode("overwrite").saveAsTable(f"{self.config.get_value('schema')}.order_quarantine")
+
+        # Persist quarantine first so it survives a downstream failure.
+        (
+            df_order_invalid.write.mode("overwrite")
+            .option("overwriteSchema", "false")
+            .saveAsTable("raw.order_quarantine")
+        )
+
+        valid_count = df_order.count()
+        invalid_count = df_order_invalid.count()
+        total = valid_count + invalid_count
+        ratio = (invalid_count / total) if total else 0.0
+        self.logger.info("dq summary valid=%d invalid=%d ratio=%.3f", valid_count, invalid_count, ratio)
+
+        # Hard-fail if too many rows are quarantined — silent quarantine bloat is the
+        # main failure mode of DQX in production. Disabled by default (ratio=1.0).
+        if ratio > _QUARANTINE_FAIL_RATIO:
+            raise RuntimeError(f"DQX quarantine ratio {ratio:.3f} exceeded threshold {_QUARANTINE_FAIL_RATIO}")
 
         df_order_item = self.spark.read.table("external_source.order_item")
 
-        if self.config.get_value("debug"):
-            df_order.show()
-            df_order_invalid.show()
-            df_order_item.show()
-
-        df_order.write.mode("overwrite").saveAsTable(f"{self.config.get_value('schema')}.order")
-        df_order_item.write.mode("overwrite").saveAsTable(f"{self.config.get_value('schema')}.order_item")
+        (df_order.write.mode("overwrite").option("overwriteSchema", "false").saveAsTable("raw.order"))
+        (df_order_item.write.mode("overwrite").option("overwriteSchema", "false").saveAsTable("raw.order_item"))

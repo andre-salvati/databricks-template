@@ -6,8 +6,13 @@ from databricks.sdk.service.sql import StatementState
 
 
 SP_DISPLAY_NAME = "template-sp"
-CATALOGS = ["dev", "staging", "prod"]
-SCHEMAS = ["raw", "curated", "report"]
+# Per-developer dev catalogs (`dev_<short_name>`) and their schemas are created
+# on the fly by Config when a developer runs the wheel — see src/template/config.py.
+# Only the shared `staging` and `prod` catalogs are bootstrapped here.
+CATALOGS = ["staging", "prod"]
+# Keep aligned with template.config.MEDALLION_SCHEMAS so staging/prod come up with
+# the same schema layout that dev creates on the fly.
+SCHEMAS = ["external_source", "raw", "curated", "report", "ops"]
 
 
 def _get_warehouse_id(workspace: WorkspaceClient) -> str:
