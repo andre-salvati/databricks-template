@@ -139,6 +139,7 @@ On every push: install deps → unit tests → bundle validate → deploy to sta
 
 ## Don't
 
+- Don't ship changes to the CLI surface (`main.py:arg_parser`), runtime env vars, catalog/schema model, or production guardrails without updating `README.md` and this file (`CLAUDE.md`) in the same commit. Stale docs are worse than no docs — they mislead future contributors and future sessions.
 - Don't reintroduce `--user`, `--debug`, or `--schema` CLI args. They were removed deliberately — see PR #21.
 - Don't add `funcy` (or any decorator-based timing utility) to the dependencies. Use the structured logger.
 - Don't add `CREATE CATALOG` calls outside the `args.env == "dev"` branch in `config.py`. Staging/prod jobs run without that privilege.
