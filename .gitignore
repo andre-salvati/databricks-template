@@ -13,3 +13,7 @@ src/template.egg-info/
 .coverage*
 resources/jobs.yml
 .databricks-resources.json
+# Databricks AI Dev Kit — installed locally per-developer, contains absolute paths
+.ai-dev-kit/
+.github/skills/
+.mcp.json
