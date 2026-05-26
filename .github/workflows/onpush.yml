@@ -9,6 +9,10 @@ on:
     paths-ignore:
       - 'README.md'
       - 'docs/**'
+  # Manual trigger for re-running CI without a new commit (e.g. after a transient
+  # GitHub Actions hiccup that silently drops a push event):
+  #   gh workflow run "CI pipeline" --ref <branch>
+  workflow_dispatch:
 
 # Don't let two pushes on the same branch race each other through the deploy step.
 concurrency:
