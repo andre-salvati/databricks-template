@@ -34,6 +34,7 @@ make sync              # Install all dependencies via uv
 make test              # Run pytest with coverage
 make pre-commit        # Update and run pre-commit hooks (ruff lint/format)
 make init              # One-time workspace bootstrap (SP, catalogs, schemas, grants). Edit S3 path first.
+                       # If workspace has >1 SQL warehouse, pass --warehouse-name to the underlying script.
 make deploy env=dev    # Generate jobs.yml + deploy bundle to target env (dev/staging/prod)
 make run env=dev       # Run integration test job on a target env (dev or staging)
 ```
@@ -118,8 +119,9 @@ On every push: install deps → unit tests → bundle validate → deploy to sta
 - `databricks.yml` prod target has `mode: production` → DABs refuses to deploy if deployer != run-as identity (the SP). A developer's local `make deploy env=prod` will fail by design.
 - CI deploys to prod only when `github.ref == 'refs/heads/main'`.
 - `run_as` and `permissions` on every staging/prod job are pinned to the service principal's `application_id` (numeric), wired by `_get_service_principal_id` in `sdk_generate_template_job.py`.
-- Prod-only features in `_build_job`: cron schedule, `JobEmailNotifications`, and a `health_check` task running before any extract.
+- Prod-only features in `_build_job`: cron schedule, `JobEmailNotifications`, a `health_check` task running before any extract, and a `JobsHealthRule` on `RUN_DURATION_SECONDS > DURATION_WARNING_SECONDS` (30 min) so the `on_duration_warning_threshold_exceeded` email actually has an event to fire on.
 - The wheel filename in `JobEnvironment.dependencies` is pinned to `_project_version()` (reads `pyproject.toml`) so a forgotten rebuild can't silently deploy an old wheel.
+- Every job sets `max_concurrent_runs=1` + `queue.enabled=true`: late runs queue instead of getting silently skipped. Retries (staging/prod only) back off `MIN_RETRY_INTERVAL_MS` (60s). Per-task `timeout_seconds` (constants near the top of `sdk_generate_template_job.py`) prevent one hung task from eating the whole job budget. `notification_settings.no_alert_for_canceled_runs / _skipped_runs` keeps deliberate cancellations off the on-call pager.
 
 ### Adding a New Job
 

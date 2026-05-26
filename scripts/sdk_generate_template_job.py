@@ -9,7 +9,13 @@ from databricks.bundles.jobs import (
     Job,
     JobEmailNotifications,
     JobEnvironment,
+    JobNotificationSettings,
+    JobsHealthMetric,
+    JobsHealthOperator,
+    JobsHealthRule,
+    JobsHealthRules,
     PythonWheelTask,
+    QueueSettings,
     RunJobTask,
     Task,
     TaskDependency,
@@ -28,6 +34,21 @@ TEAM = "data-engineering"
 
 # Where prod failures are emailed. CI overrides via TEMPLATE_ALERT_EMAILS=a@x.com,b@y.com.
 DEFAULT_ALERT_EMAILS = ["data-platform-oncall@example.com"]
+
+# Trigger the on_duration_warning_threshold_exceeded email if the prod run takes
+# longer than this. Nominal end-to-end is ~5 minutes, so 30 minutes leaves headroom
+# for transient slowness without crying wolf.
+DURATION_WARNING_SECONDS = 1800
+
+# Per-task timeouts. A single hung task can't consume the whole job budget,
+# and downstream tasks fail fast with a clear cause.
+TIMEOUT_HEALTH_CHECK_S = 300
+TIMEOUT_EXTRACT_S = 900
+TIMEOUT_TRANSFORM_S = 1800
+TIMEOUT_INTEGRATION_S = 900
+
+# Back off before retrying so transient lock/metastore blips have time to clear.
+MIN_RETRY_INTERVAL_MS = 60_000
 
 
 def _project_version() -> str:
@@ -92,6 +113,18 @@ def _retries(environment: str) -> int:
     return 0 if environment == "dev" else 2
 
 
+def _retry_kwargs(retries: int) -> dict:
+    # Avoid setting min_retry_interval_millis when retries=0 (it would be wasted config);
+    # always set retry_on_timeout=False so a 30min hung task isn't retried twice.
+    if retries == 0:
+        return {"max_retries": 0}
+    return {
+        "max_retries": retries,
+        "min_retry_interval_millis": MIN_RETRY_INTERVAL_MS,
+        "retry_on_timeout": False,
+    }
+
+
 def _build_job(environment: str) -> dict:
     retries = _retries(environment)
     tasks: list[Task] = []
@@ -103,6 +136,8 @@ def _build_job(environment: str) -> dict:
             Task(
                 task_key="health_check",
                 max_retries=1,
+                min_retry_interval_millis=MIN_RETRY_INTERVAL_MS,
+                timeout_seconds=TIMEOUT_HEALTH_CHECK_S,
                 environment_key="default",
                 python_wheel_task=_wheel_task(),
             )
@@ -114,21 +149,24 @@ def _build_job(environment: str) -> dict:
         [
             Task(
                 task_key="extract_source1",
-                max_retries=retries,
+                **_retry_kwargs(retries),
+                timeout_seconds=TIMEOUT_EXTRACT_S,
                 environment_key="default",
                 depends_on=extract_deps or None,
                 python_wheel_task=_wheel_task(),
             ),
             Task(
                 task_key="extract_source2",
-                max_retries=retries,
+                **_retry_kwargs(retries),
+                timeout_seconds=TIMEOUT_EXTRACT_S,
                 environment_key="default",
                 depends_on=extract_deps or None,
                 python_wheel_task=_wheel_task(),
             ),
             Task(
                 task_key="generate_orders",
-                max_retries=retries,
+                **_retry_kwargs(retries),
+                timeout_seconds=TIMEOUT_TRANSFORM_S,
                 environment_key="default",
                 depends_on=[
                     TaskDependency(task_key="extract_source1"),
@@ -138,7 +176,8 @@ def _build_job(environment: str) -> dict:
             ),
             Task(
                 task_key="generate_orders_agg",
-                max_retries=retries,
+                **_retry_kwargs(retries),
+                timeout_seconds=TIMEOUT_TRANSFORM_S,
                 environment_key="default",
                 depends_on=[TaskDependency(task_key="generate_orders")],
                 python_wheel_task=_wheel_task(),
@@ -148,20 +187,44 @@ def _build_job(environment: str) -> dict:
 
     schedule = None
     email_notifications = None
+    health = None
     if environment == "prod":
         schedule = CronSchedule(quartz_cron_expression="0 0 5 * * ?", timezone_id="UTC")
         email_notifications = JobEmailNotifications(
             on_failure=_alert_emails(),
             on_duration_warning_threshold_exceeded=_alert_emails(),
         )
+        # Without this rule, on_duration_warning_threshold_exceeded above
+        # would be wired to an event that can never fire.
+        health = JobsHealthRules(
+            rules=[
+                JobsHealthRule(
+                    metric=JobsHealthMetric.RUN_DURATION_SECONDS,
+                    op=JobsHealthOperator.GREATER_THAN,
+                    value=DURATION_WARNING_SECONDS,
+                )
+            ]
+        )
 
     job = Job(
         name=f"{JOB_NAME}_${{bundle.target}}",
         timeout_seconds=3600,
+        # max_concurrent_runs=1 + queue.enabled=True: if a run is already in flight
+        # when the next scheduled tick arrives, queue it rather than silently
+        # skipping. Skipping a scheduled prod run is almost never what you want.
+        max_concurrent_runs=1,
+        queue=QueueSettings(enabled=True),
+        # Suppress alerts for runs that were manually cancelled or skipped by an
+        # upstream condition — those aren't failures and shouldn't page anyone.
+        notification_settings=JobNotificationSettings(
+            no_alert_for_canceled_runs=True,
+            no_alert_for_skipped_runs=True,
+        ),
         tags=_tags(environment),
         environments=_environments(),
         schedule=schedule,
         email_notifications=email_notifications,
+        health=health,
         tasks=tasks,
     )
 
@@ -184,6 +247,7 @@ def _build_job_integration_test(environment: str) -> dict:
         Task(
             task_key="setup",
             max_retries=0,
+            timeout_seconds=TIMEOUT_INTEGRATION_S,
             environment_key="default",
             python_wheel_task=_wheel_task(),
         ),
@@ -195,6 +259,7 @@ def _build_job_integration_test(environment: str) -> dict:
         Task(
             task_key="validate",
             max_retries=0,
+            timeout_seconds=TIMEOUT_INTEGRATION_S,
             environment_key="default",
             depends_on=[TaskDependency(task_key="run")],
             python_wheel_task=_wheel_task(),
@@ -204,6 +269,8 @@ def _build_job_integration_test(environment: str) -> dict:
     job = Job(
         name=f"{JOB_NAME}_${{bundle.target}}_integration_test",
         timeout_seconds=3600,
+        max_concurrent_runs=1,
+        queue=QueueSettings(enabled=True),
         tags=_tags(environment),
         environments=_environments(),
         tasks=tasks,

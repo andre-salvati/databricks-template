@@ -15,10 +15,31 @@ CATALOGS = ["staging", "prod"]
 SCHEMAS = ["external_source", "raw", "curated", "report", "ops"]
 
 
-def _get_warehouse_id(workspace: WorkspaceClient) -> str:
+def _get_warehouse_id(workspace: WorkspaceClient, name: str | None = None) -> str:
+    """Resolve a SQL warehouse to use for DDL.
+
+    Picking warehouses[0] is fragile — the API returns warehouses in an
+    implementation-defined order, so on a workspace with multiple warehouses
+    we'd silently grab whichever one happens to be first. Instead:
+
+    - If `name` is provided, look it up by name (fail loudly if missing).
+    - Otherwise, succeed only if there's exactly one warehouse; fail with
+      a clear "ambiguous, pass --warehouse-name" error when there are many.
+    """
     warehouses = list(workspace.warehouses.list())
     if not warehouses:
         raise ValueError("No SQL warehouse found. Please create one to run SQL statements.")
+
+    if name:
+        match = next((w for w in warehouses if w.name == name), None)
+        if match is None:
+            raise ValueError(f"SQL warehouse {name!r} not found. Available: {[w.name for w in warehouses]}")
+        return match.id
+
+    if len(warehouses) > 1:
+        raise ValueError(
+            f"Multiple SQL warehouses found ({[w.name for w in warehouses]}); pass --warehouse-name to disambiguate."
+        )
     return warehouses[0].id
 
 
@@ -43,7 +64,7 @@ def _find_sp(workspace: WorkspaceClient, display_name: str):
     return None
 
 
-def create_service_principal(workspace: WorkspaceClient, display_name: str) -> str:
+def create_service_principal(workspace: WorkspaceClient, display_name: str, warehouse_id: str) -> str:
     existing = _find_sp(workspace, display_name)
     if existing:
         print(f"Service principal '{existing.display_name}' already exists.")
@@ -72,7 +93,6 @@ def create_service_principal(workspace: WorkspaceClient, display_name: str) -> s
     except Exception as e:
         print(f"  Warning: could not set CAN_USE on service principal ({e}). Continuing.")
 
-    warehouse_id = _get_warehouse_id(workspace)
     _run_sql(workspace, warehouse_id, f"GRANT CREATE CATALOG ON Metastore TO `{sp_id}`")
 
     print(f"\nSP_ID={sp_id}")
@@ -90,8 +110,7 @@ def _existing_schemas(workspace: WorkspaceClient, catalog: str) -> set[str]:
     return {s.name for s in workspace.schemas.list(catalog_name=catalog)}
 
 
-def create_catalogs_and_schemas(workspace: WorkspaceClient, sp_id: str, storage_root: str | None):
-    warehouse_id = _get_warehouse_id(workspace)
+def create_catalogs_and_schemas(workspace: WorkspaceClient, sp_id: str, storage_root: str | None, warehouse_id: str):
     existing_cats = _existing_catalogs(workspace)
 
     for catalog in CATALOGS:
@@ -139,15 +158,24 @@ def main():
         default="dev",
         help="Databricks CLI profile to use (default: dev)",
     )
+    parser.add_argument(
+        "--warehouse-name",
+        default=None,
+        help="SQL warehouse name to use for DDL. Required when the workspace has multiple warehouses.",
+    )
     args = parser.parse_args()
 
     workspace = WorkspaceClient(profile=args.profile)
+    # Resolve once up-front so a missing/ambiguous warehouse fails before we
+    # create any SP or catalogs.
+    warehouse_id = _get_warehouse_id(workspace, args.warehouse_name)
+    print(f"Using SQL warehouse: {warehouse_id}")
 
-    print("=== Step 1: Service principal ===")
-    sp_id = create_service_principal(workspace, args.sp_name)
+    print("\n=== Step 1: Service principal ===")
+    sp_id = create_service_principal(workspace, args.sp_name, warehouse_id)
 
     print("\n=== Step 2: Catalogs and schemas ===")
-    create_catalogs_and_schemas(workspace, sp_id, args.storage_root)
+    create_catalogs_and_schemas(workspace, sp_id, args.storage_root, warehouse_id)
 
     print("\nDone.")
 

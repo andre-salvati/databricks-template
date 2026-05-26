@@ -204,6 +204,10 @@ databricks-template/
 
         make init
 
+   If your workspace has more than one SQL warehouse, you'll need to disambiguate via `--warehouse-name`:
+
+        uv run python ./scripts/sdk_init_workspace.py --storage-root s3://your-bucket --warehouse-name "Serverless Starter Warehouse"
+
 6) Generate a secret for the service principal. In Databricks, go to: Workspace -> Settings -> Identity and access -> Service principals -> Secrets. Generate a new secret for your service principal and update the corresponding profiles in your .databrickscfg file. Your configuration should look similar to this:
 
         [dev]
@@ -270,8 +274,12 @@ These let you tune behavior without editing code or redeploying.
 - **`run_as` and `permissions`** on every staging/prod job are pinned to the service principal's `application_id` (not `${workspace.current_user.userName}`), wired by `scripts/sdk_generate_template_job.py`.
 - **`health_check` task** runs first in prod and fails fast on a broken wheel, missing grant, or unreachable SQL warehouse — before any medallion table is touched.
 - **Wheel version pinning**: `_project_version()` reads `pyproject.toml` to produce the exact wheel filename in the bundle's `JobEnvironment.dependencies`, so a forgotten rebuild can't silently deploy an old wheel.
-- **Per-environment retries**: 0 in dev (fast feedback), 2 in staging/prod (transient failure resilience).
+- **Per-environment retries**: 0 in dev (fast feedback), 2 in staging/prod (transient failure resilience). Retries on staging/prod back off `MIN_RETRY_INTERVAL_MS` (60s) before re-attempting, giving transient lock/metastore blips time to clear.
+- **Per-task timeouts**: each task has its own `timeout_seconds` (300s for health-check, 900s for extracts, 1800s for transforms) so a single hung task can't consume the whole job budget.
 - **Schema-drift guard**: all writes use `overwriteSchema=false` so an upstream change in column type or order fails the task loudly instead of silently propagating bad data.
+- **Queued runs, not skipped**: prod has `max_concurrent_runs=1` paired with `queue.enabled=true` — if a run is still in flight when the next 5 a.m. tick arrives, the new run queues rather than getting silently dropped.
+- **Health-rule-backed duration alert**: the `on_duration_warning_threshold_exceeded` email is wired to a `JobsHealthRule` on `RUN_DURATION_SECONDS > 1800` (30 min). Without that rule, the email would be wired to an event that can never fire.
+- **Cancelled/skipped runs don't page**: `notification_settings.no_alert_for_canceled_runs` and `no_alert_for_skipped_runs` are both `true`, so manual cancellations or upstream-condition skips don't generate failure alerts.
 
 
 ## Star History
