@@ -8,6 +8,7 @@ on:
       - 'v*' # this tag type is used for release pipelines
     paths-ignore:
       - 'README.md'
+      - 'CLAUDE.md'
       - 'docs/**'
   # Manual trigger for re-running CI without a new commit (e.g. after a transient
   # GitHub Actions hiccup that silently drops a push event):
