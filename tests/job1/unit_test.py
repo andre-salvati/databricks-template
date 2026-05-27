@@ -30,7 +30,6 @@ def config() -> TaskConfig:
         Namespace(
             task="extract_source1",
             env="local",
-            default_catalog="dev",
             skip=False,
             log_level="INFO",
             quarantine_fail_ratio=1.0,
