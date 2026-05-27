@@ -11,15 +11,17 @@ from .job1.extract_source2 import ExtractSource2
 from .job1.generate_orders import GenerateOrders
 from .job1.generate_orders_agg import GenerateOrdersAgg
 from .job1.health_check import HealthCheck
+from .job1.seed_sources import SeedSources
 
 TASKS = {
     "extract_source1": ExtractSource1,
     "extract_source2": ExtractSource2,
     "generate_orders": GenerateOrders,
     "generate_orders_agg": GenerateOrdersAgg,
+    "health_check": HealthCheck,
+    "seed_sources": SeedSources,
     "setup": Setup,
     "validate": Validate,
-    "health_check": HealthCheck,
 }
 
 
@@ -33,6 +35,9 @@ def arg_parser():
     parser.add_argument("--run-id")
     parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARN", "WARNING"])
     parser.add_argument("--quarantine-fail-ratio", type=float, default=1.0)
+    # ISO-8601 date (YYYY-MM-DD). Empty string or absent → resolved to today by Config.
+    # Filled by {{job.parameters.seed_date}}; override per-run for backfills.
+    parser.add_argument("--seed-date", default=None)
 
     return parser
 

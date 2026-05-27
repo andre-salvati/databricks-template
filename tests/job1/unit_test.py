@@ -8,6 +8,7 @@ from template.main import *
 from template.config import Config as TaskConfig
 from template.job1.generate_orders import GenerateOrders
 from template.job1.generate_orders_agg import GenerateOrdersAgg
+from template.job1.seed_sources import SeedSources, _base_id, _day_offset
 from template.commonSchemas import customer_schema, order_schema, order_item_schema
 
 from pyspark.testing import assertDataFrameEqual
@@ -32,6 +33,7 @@ def config() -> TaskConfig:
             env="local",
             log_level="INFO",
             quarantine_fail_ratio=1.0,
+            seed_date="2024-01-01",  # fixed date so tests are deterministic
         )
     )
 
@@ -81,7 +83,7 @@ def test_arg_parser():
     args = parser.parse_args(["--task=extract_source1", "--env=dev"])
 
     assert args == Namespace(
-        task="extract_source1", env="dev", run_id=None, log_level="INFO", quarantine_fail_ratio=1.0
+        task="extract_source1", env="dev", run_id=None, log_level="INFO", quarantine_fail_ratio=1.0, seed_date=None
     )
 
 
@@ -94,12 +96,14 @@ def test_arg_parser():
                 env="local",
                 log_level="INFO",
                 quarantine_fail_ratio=1.0,
+                seed_date="2024-01-01",
             ),
             {
                 "task": "extract_source1",
                 "env": "local",
                 "log_level": "INFO",
                 "quarantine_fail_ratio": 1.0,
+                "seed_date": "2024-01-01",
             },
         ),
     ],
@@ -185,3 +189,42 @@ def test_aggregate_orders(spark, config, df_orders):
     df_expected = spark.createDataFrame(expected_data, schema=expected_schema)
 
     assertDataFrameEqual(df_out, df_expected)
+
+
+# ---------------------------------------------------------------------------
+# SeedSources — generator methods only (no Spark tables, runs in local mode)
+# ---------------------------------------------------------------------------
+
+
+def test_seed_sources_generate_customers(spark, config):
+    task = SeedSources(config)
+    df = task._generate_customers("2024-01-01")
+    assert df.count() == 1
+    assert df.schema == customer_schema
+
+
+def test_seed_sources_generate_orders(spark, config):
+    task = SeedSources(config)
+    df = task._generate_orders("2024-01-01")
+    assert df.count() == 2
+    assert df.schema == order_schema
+    # All generated orders are dated to seed_date
+    dates = {row.date for row in df.collect()}
+    assert dates == {"2024-01-01"}
+
+
+def test_seed_sources_generate_order_items(spark, config):
+    task = SeedSources(config)
+    df = task._generate_order_items("2024-01-01")
+    assert df.count() == 3
+    assert df.schema == order_item_schema
+
+
+def test_seed_sources_daily_ids_are_unique(spark, config):
+    """Customer and order IDs generated for consecutive days must not collide."""
+    task = SeedSources(config)
+    ids_day0 = {row.id for row in task._generate_customers("2024-01-01").collect()}
+    ids_day0 |= {row.id for row in task._generate_orders("2024-01-01").collect()}
+    ids_day1 = {row.id for row in task._generate_customers("2024-01-02").collect()}
+    ids_day1 |= {row.id for row in task._generate_orders("2024-01-02").collect()}
+    assert ids_day0.isdisjoint(ids_day1)
