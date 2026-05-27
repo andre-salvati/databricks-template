@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import date as _date
 
 from databricks.labs.dqx.engine import DQEngine
 from databricks.sdk import WorkspaceClient
@@ -55,6 +56,13 @@ class Config:
         log_level = args.log_level.upper()
         self.params.update({"log_level": log_level})
         self.params.update({"quarantine_fail_ratio": args.quarantine_fail_ratio})
+
+        # --seed-date is a job-level parameter filled by {{job.parameters.seed_date}}.
+        # An empty string (the job default) resolves to today so every daily run seeds
+        # the current date without any operator action. Operators can override it per-run
+        # (e.g. "2024-03-15") to backfill a specific day.
+        seed_date = (getattr(args, "seed_date", None) or "").strip() or _date.today().isoformat()
+        self.params.update({"seed_date": seed_date})
 
         # run_id comes from --run-id={{job.run_id}}. Not exposed as an env var on serverless,
         # so it has to be threaded through as a CLI param. Falls back to "-" for local tests.

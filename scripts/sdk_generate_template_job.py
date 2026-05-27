@@ -86,6 +86,7 @@ def _wheel_task() -> PythonWheelTask:
             "--run-id={{job.run_id}}",
             "--log-level={{job.parameters.log_level}}",
             "--quarantine-fail-ratio={{job.parameters.quarantine_fail_ratio}}",
+            "--seed-date={{job.parameters.seed_date}}",
         ],
     )
 
@@ -172,7 +173,20 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
             )
         )
 
-    extract_deps: list[TaskDependency] = [TaskDependency(task_key="health_check")] if environment == "prod" else []
+    # seed_sources always runs before extract tasks; in prod it waits for health_check first.
+    seed_deps: list[TaskDependency] = [TaskDependency(task_key="health_check")] if environment == "prod" else []
+    tasks.append(
+        Task(
+            task_key="seed_sources",
+            **_retry_kwargs(retries),
+            timeout_seconds=TIMEOUT_EXTRACT_S,
+            environment_key="default",
+            depends_on=seed_deps or None,
+            python_wheel_task=_wheel_task(),
+        )
+    )
+
+    extract_deps: list[TaskDependency] = [TaskDependency(task_key="seed_sources")]
 
     tasks.extend(
         [
@@ -181,7 +195,7 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
                 **_retry_kwargs(retries),
                 timeout_seconds=TIMEOUT_EXTRACT_S,
                 environment_key="default",
-                depends_on=extract_deps or None,
+                depends_on=extract_deps,
                 python_wheel_task=_wheel_task(),
             ),
             Task(
@@ -189,7 +203,7 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
                 **_retry_kwargs(retries),
                 timeout_seconds=TIMEOUT_EXTRACT_S,
                 environment_key="default",
-                depends_on=extract_deps or None,
+                depends_on=extract_deps,
                 python_wheel_task=_wheel_task(),
             ),
             Task(
@@ -255,6 +269,9 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
                 name="quarantine_fail_ratio",
                 default=PROD_QUARANTINE_FAIL_RATIO if environment == "prod" else DEFAULT_QUARANTINE_FAIL_RATIO,
             ),
+            # Empty string → SeedSources resolves to today's date at runtime.
+            # Override per-run (e.g. "2024-03-15") to backfill a specific day.
+            JobParameterDefinition(name="seed_date", default=""),
         ],
         tags=_tags(environment),
         environments=_environments(),
@@ -310,6 +327,7 @@ def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
         parameters=[
             JobParameterDefinition(name="log_level", default=DEFAULT_LOG_LEVEL),
             JobParameterDefinition(name="quarantine_fail_ratio", default=DEFAULT_QUARANTINE_FAIL_RATIO),
+            JobParameterDefinition(name="seed_date", default=""),
         ],
         tags=_tags(environment),
         environments=_environments(),
