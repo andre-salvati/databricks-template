@@ -25,15 +25,12 @@ dev = [
     "databricks-bundles>=0.298.0",
 ]
 
-[project.entry-points.packages]
+[project.scripts]
 main = "template.main:main"
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
-
-[tool.hatch.build]
-packages = ["src/template", "tests"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/template", "tests"]
