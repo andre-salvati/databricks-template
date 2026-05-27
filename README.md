@@ -233,6 +233,7 @@ These are defined as `JobParameterDefinition` in `scripts/sdk_generate_template_
 |---|---|---|---|---|
 | `log_level` | `--log-level` | `DEBUG` / `INFO` / `WARNING`. Bump to `DEBUG` for a single prod run during incident response. | `INFO` | `INFO` |
 | `quarantine_fail_ratio` | `--quarantine-fail-ratio` | Hard-fail `extract_source2` if more than this fraction of rows are quarantined by DQX. Defaults to disabled so demo seed data still ingests. | `1.0` | `0.1` |
+| `seed_date` | `--seed-date` | ISO-8601 date (e.g. `2024-03-15`) for the `seed_sources` task. Empty string (default) resolves to today's date at runtime. Override per-run to backfill a specific day. | `""` → today | `""` → today |
 
 ## Deploy-time environment variables (CI/build machine only)
 

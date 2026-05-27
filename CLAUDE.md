@@ -66,6 +66,7 @@ The wheel entry point is intentionally minimal:
 - `--run-id` *(optional, observability-only)* — filled by Databricks via `{{job.run_id}}`. Stamped onto every log line via a `logging.Filter` so logs are correlatable after ingest. Defaults to `-` when absent (e.g. local tests).
 - `--log-level` *(optional)* — `DEBUG`/`INFO`/`WARNING`. Filled from the job-level parameter `log_level` (default `INFO`). Override per-run from the Databricks Jobs UI "Run with different parameters" dialog.
 - `--quarantine-fail-ratio` *(optional)* — float threshold for DQX hard-fail in `extract_source2`. Filled from the job-level parameter `quarantine_fail_ratio` (default `1.0` in dev/staging, `0.1` in prod).
+- `--seed-date` *(optional)* — ISO-8601 date (e.g. `2024-03-15`) consumed by `seed_sources`. Filled from the job-level parameter `seed_date` (default `""` → resolved to today at runtime). Override per-run to backfill a specific day.
 
 Anything tunable at runtime is a **CLI arg** populated from a Databricks job-level parameter — not an environment variable. Serverless compute does not expose custom env vars to the process.
 
@@ -73,7 +74,7 @@ Anything tunable at runtime is a **CLI arg** populated from a Databricks job-lev
 
 - **`Config`** ([src/template/config.py](src/template/config.py)) — runtime config: catalog/schema setup, logging, DQX engine. When `env=local` (unit tests), it mocks the `WorkspaceClient` so tests run without Databricks connectivity.
 - **`BaseTask`** ([src/template/baseTask.py](src/template/baseTask.py)) — base class giving every task `self.spark`, `self.config`, and `self.logger`.
-- **Task classes** (e.g. `ExtractSource1`, `GenerateOrders`, `HealthCheck`) — subclass `BaseTask`, implement `run()`. Transformation logic lives in dedicated methods (e.g. `enrich_order`) so unit tests can call them directly without Spark tables.
+- **Task classes** (e.g. `ExtractSource1`, `GenerateOrders`, `HealthCheck`, `SeedSources`) — subclass `BaseTask`, implement `run()`. Transformation logic lives in dedicated methods (e.g. `enrich_order`) so unit tests can call them directly without Spark tables.
 
 ### Catalog / schema model (load-bearing)
 
@@ -86,7 +87,7 @@ Medallion schemas (`MEDALLION_SCHEMAS` in `config.py`):
 
 | Schema | Content |
 |---|---|
-| `external_source` | Raw input data (seeded by integration test `setup` task) |
+| `external_source` | Raw input data — populated by `seed_sources` task (daily) in normal runs; destructively reset by the integration test `setup` task before each test run |
 | `raw` | Bronze — direct copies from sources |
 | `curated` | Silver — joined/enriched tables |
 | `report` | Gold — aggregated tables |
@@ -102,6 +103,7 @@ Defined as `JobParameterDefinition` in `sdk_generate_template_job.py` and refere
 |---|---|---|---|
 | `log_level` | `DEBUG`/`INFO`/`WARNING`. Bump to `DEBUG` for a single run during prod incident response. | `INFO` | `INFO` |
 | `quarantine_fail_ratio` | Hard-fail `extract_source2` if more than this fraction of rows are quarantined by DQX. | `1.0` (disabled) | `0.1` |
+| `seed_date` | ISO-8601 date consumed by `seed_sources`. Empty string (default) resolves to today at runtime. Override to backfill a specific day (e.g. `"2024-03-15"`). | `""` → today | `""` → today |
 
 ### Deploy-time environment variables (CI/build machine only)
 
