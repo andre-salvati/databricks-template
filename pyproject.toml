@@ -33,10 +33,10 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build]
-packages = ["src/template"]
+packages = ["src/template", "tests"]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/template"]
+packages = ["src/template", "tests"]
 
 [tool.hatch.version]
 path = "src/template/__init__.py"

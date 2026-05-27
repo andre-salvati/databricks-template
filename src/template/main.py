@@ -2,14 +2,15 @@ import argparse
 import logging
 import sys
 
+from tests.job1.integration_setup import Setup
+from tests.job1.integration_validate import Validate
+
 from .config import Config
 from .job1.extract_source1 import ExtractSource1
 from .job1.extract_source2 import ExtractSource2
 from .job1.generate_orders import GenerateOrders
 from .job1.generate_orders_agg import GenerateOrdersAgg
 from .job1.health_check import HealthCheck
-from .job1.integration_setup import Setup
-from .job1.integration_validate import Validate
 
 TASKS = {
     "extract_source1": ExtractSource1,

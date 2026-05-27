@@ -1,7 +1,7 @@
 from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
 from pyspark.testing import assertDataFrameEqual
 
-from ..baseTask import BaseTask
+from template.baseTask import BaseTask
 
 
 class Validate(BaseTask):
