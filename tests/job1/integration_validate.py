@@ -1,7 +1,7 @@
 from pyspark.sql.types import DoubleType, LongType, StringType, StructField, StructType
 from pyspark.testing import assertDataFrameEqual
 
-from ..baseTask import BaseTask
+from template.baseTask import BaseTask
 
 
 class Validate(BaseTask):
@@ -13,7 +13,9 @@ class Validate(BaseTask):
 
         df_out = self.spark.table("report.order_agg")
 
-        assert df_out.count() == 2
+        count = df_out.count()
+        if count != 2:
+            raise RuntimeError(f"Expected 2 rows in report.order_agg, got {count}")
 
         expected_data = [
             ("John Doe", 3, 100.0),

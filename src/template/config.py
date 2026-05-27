@@ -11,8 +11,9 @@ _LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s [run=%(run_id)s] :: %(message)
 INTERNAL_SCHEMA = "ops"
 
 # Single source of truth for the schemas this template expects in every catalog.
-# Created on Config init (idempotent) so any task can read/write any layer regardless
-# of which task happens to run first.
+# Dev catalogs create these on demand (Config.__init__).
+# Staging/prod schemas are pre-provisioned by make init (sdk_init_workspace.py)
+# and are never created at runtime — the job's run-as identity has no CREATE SCHEMA privilege.
 MEDALLION_SCHEMAS = ["external_source", "raw", "curated", "report", INTERNAL_SCHEMA]
 
 
@@ -95,8 +96,13 @@ class Config:
             self.logger.info("using catalog=%s", catalog)
 
             self.spark.sql(f"USE CATALOG {catalog}")
-            for s in MEDALLION_SCHEMAS:
-                self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {s}")
+            if args.env == "dev":
+                # Dev sandbox: create schemas on first use so a developer can
+                # run any task without manual bootstrapping.
+                # staging/prod schemas are pre-provisioned by make init and must
+                # not be recreated at runtime (no CREATE SCHEMA privilege).
+                for s in MEDALLION_SCHEMAS:
+                    self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {s}")
 
         else:
             from unittest.mock import MagicMock
