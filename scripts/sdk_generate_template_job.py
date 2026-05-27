@@ -173,20 +173,22 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
             )
         )
 
-    # seed_sources always runs before extract tasks; in prod it waits for health_check first.
-    seed_deps: list[TaskDependency] = [TaskDependency(task_key="health_check")] if environment == "prod" else []
-    tasks.append(
-        Task(
-            task_key="seed_sources",
-            **_retry_kwargs(retries),
-            timeout_seconds=TIMEOUT_EXTRACT_S,
-            environment_key="default",
-            depends_on=seed_deps or None,
-            python_wheel_task=_wheel_task(),
+    # seed_sources runs only in prod: staging/dev use the integration test `setup` task
+    # to seed external_source with controlled data, so seed_sources would add noise there.
+    # In prod, seed_sources runs after health_check and before the extract tasks.
+    if environment == "prod":
+        tasks.append(
+            Task(
+                task_key="seed_sources",
+                **_retry_kwargs(retries),
+                timeout_seconds=TIMEOUT_EXTRACT_S,
+                environment_key="default",
+                depends_on=[TaskDependency(task_key="health_check")],
+                python_wheel_task=_wheel_task(),
+            )
         )
-    )
 
-    extract_deps: list[TaskDependency] = [TaskDependency(task_key="seed_sources")]
+    extract_deps: list[TaskDependency] = [TaskDependency(task_key="seed_sources")] if environment == "prod" else []
 
     tasks.extend(
         [
@@ -195,7 +197,7 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
                 **_retry_kwargs(retries),
                 timeout_seconds=TIMEOUT_EXTRACT_S,
                 environment_key="default",
-                depends_on=extract_deps,
+                depends_on=extract_deps or None,
                 python_wheel_task=_wheel_task(),
             ),
             Task(
@@ -203,7 +205,7 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
                 **_retry_kwargs(retries),
                 timeout_seconds=TIMEOUT_EXTRACT_S,
                 environment_key="default",
-                depends_on=extract_deps,
+                depends_on=extract_deps or None,
                 python_wheel_task=_wheel_task(),
             ),
             Task(

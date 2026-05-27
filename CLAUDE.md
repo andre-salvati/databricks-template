@@ -87,7 +87,7 @@ Medallion schemas (`MEDALLION_SCHEMAS` in `config.py`):
 
 | Schema | Content |
 |---|---|
-| `external_source` | Raw input data — populated by `seed_sources` task (daily) in normal runs; destructively reset by the integration test `setup` task before each test run |
+| `external_source` | Raw input data — populated by `seed_sources` task (prod only, daily); seeded with controlled data by the integration test `setup` task (dev/staging) |
 | `raw` | Bronze — direct copies from sources |
 | `curated` | Silver — joined/enriched tables |
 | `report` | Gold — aggregated tables |
