@@ -1,14 +1,12 @@
 import logging
 import re
 
-import pyspark.sql.functions as F
 from databricks.labs.dqx.engine import DQEngine
 from databricks.sdk import WorkspaceClient
 from pyspark.sql import SparkSession
 
 _LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s [run=%(run_id)s] :: %(message)s"
 
-# Schema used internally by the template for runtime config (e.g. tasks to skip).
 # Renamed from "system" to avoid colliding with Unity Catalog's reserved `system` catalog.
 INTERNAL_SCHEMA = "ops"
 
@@ -49,7 +47,6 @@ class Config:
         self.params: dict = {}
 
         self.params.update({"task": args.task})
-        self.params.update({"skip": args.skip})
         self.params.update({"env": args.env})
 
         # --log-level is a job-level parameter set in sdk_generate_template_job.py.
@@ -114,24 +111,5 @@ class Config:
     def get_value(self, key):
         return self.params[key]
 
-    def skip_task(self):
-        if self.params["skip"]:
-            self.logger.info("skipping task: --skip flag set")
-            return True
-        elif self.params["env"] in ("dev", "staging", "prod") and self._in_skip_table(self.params["task"]):
-            self.logger.info("skipping task: present in %s.config skip table", INTERNAL_SCHEMA)
-            return True
-
-        return False
-
     def get_test_output(self):
         return self.params
-
-    def _in_skip_table(self, task):
-        # Schema `ops` is created in __init__ via MEDALLION_SCHEMAS.
-        schema_ddl = "task STRING, description STRING"
-        self.spark.sql(f"CREATE TABLE IF NOT EXISTS {INTERNAL_SCHEMA}.config ({schema_ddl})")
-
-        df = self.spark.read.table(f"{INTERNAL_SCHEMA}.config").filter(F.col("task") == task)
-
-        return df.count() > 0
