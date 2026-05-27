@@ -80,7 +80,7 @@ Anything tunable at runtime is a **CLI arg** populated from a Databricks job-lev
 **Environment isolation is at the *catalog* level, not the schema level.** Same medallion schemas exist in every catalog.
 
 - `dev_{sanitized_user}` — per-developer sandbox; created lazily by `Config.__init__`. Username is `WorkspaceClient().current_user.me().user_name.split("@")[0]` with non-alphanumerics replaced by `_` (e.g. `andre.f.salvati` → `andre_f_salvati`).
-- `staging`, `prod` — shared; provisioned upfront by `make init`. Runtime jobs in these envs must NOT have `CREATE CATALOG` privilege.
+- `staging`, `prod` — shared; provisioned upfront by `make init` (`scripts/sdk_init_workspace.py`), which creates the catalogs, all `MEDALLION_SCHEMAS`, and the required grants. Runtime jobs in these envs must NOT have `CREATE CATALOG` or `CREATE SCHEMA` privilege — those operations belong to the bootstrap script, not the runtime wheel.
 
 Medallion schemas (`MEDALLION_SCHEMAS` in `config.py`):
 
@@ -154,7 +154,7 @@ On every push: install deps → unit tests → bundle validate → deploy to sta
 - Don't ship changes to the CLI surface (`main.py:arg_parser`), runtime env vars, catalog/schema model, or production guardrails without updating `README.md` and this file (`CLAUDE.md`) in the same commit. Stale docs are worse than no docs — they mislead future contributors and future sessions.
 - Don't reintroduce `--user`, `--debug`, or `--schema` CLI args. They were removed deliberately — see PR #21.
 - Don't add `funcy` (or any decorator-based timing utility) to the dependencies. Use the structured logger.
-- Don't add `CREATE CATALOG` calls outside the `args.env == "dev"` branch in `config.py`. Staging/prod jobs run without that privilege.
+- Don't add `CREATE CATALOG` or `CREATE SCHEMA` calls outside the `args.env == "dev"` branch in `config.py`. Staging/prod catalogs and schemas are owned by `make init`; runtime jobs run without those privileges.
 - Don't commit `resources/jobs.yml` (gitignored — regenerated on every deploy).
 - Don't commit `.databricks-resources.json` (gitignored — local provisioning state, diverges per developer).
 - Don't hand-edit `resources/jobs.yml` — it's overwritten on every deploy. Change `scripts/sdk_generate_template_job.py` instead.

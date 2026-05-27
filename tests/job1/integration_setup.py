@@ -1,5 +1,6 @@
 from template.baseTask import BaseTask
 from template.commonSchemas import customer_schema, order_item_schema, order_schema
+from template.config import MEDALLION_SCHEMAS
 
 SCHEMA = "external_source"
 
@@ -11,12 +12,16 @@ class Setup(BaseTask):
     def run(self):
         self.logger.info("setup for integration tests")
 
-        # Destructive DDL: qualify with the catalog so it's unmistakably scoped to the
-        # current env's catalog, never the workspace default.
         catalog = self.config.get_value("catalog")
-        for s in (SCHEMA, "raw", "curated", "report"):
+
+        # Wipe all medallion schemas (including ops) so the integration test starts
+        # from a clean slate. Re-create them immediately: on staging/prod, Config no
+        # longer creates schemas at runtime, so Setup is responsible for restoring
+        # the full schema layout after the wipe.
+        for s in MEDALLION_SCHEMAS:
             self.spark.sql(f"DROP SCHEMA IF EXISTS {catalog}.{s} CASCADE")
-        self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{SCHEMA}")
+        for s in MEDALLION_SCHEMAS:
+            self.spark.sql(f"CREATE SCHEMA IF NOT EXISTS {catalog}.{s}")
 
         # customer
 
