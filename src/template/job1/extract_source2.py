@@ -42,18 +42,32 @@ class ExtractSource2(BaseTask):
         return (df_valid, df_invalid)
 
     def run(self):
-        print("Extracting data from Source2 ...")
+        self.logger.info("extracting data from Source2")
+
+        quarantine_fail_ratio = self.config.get_value("quarantine_fail_ratio")
 
         df_order = self.spark.read.table("external_source.order")
         df_order, df_order_invalid = self.validate_order(df_order)
-        df_order_invalid.write.mode("overwrite").saveAsTable(f"{self.config.get_value('schema')}.order_quarantine")
+
+        # Persist quarantine first so it survives a downstream failure.
+        (
+            df_order_invalid.write.mode("overwrite")
+            .option("overwriteSchema", "false")
+            .saveAsTable("raw.order_quarantine")
+        )
+
+        valid_count = df_order.count()
+        invalid_count = df_order_invalid.count()
+        total = valid_count + invalid_count
+        ratio = (invalid_count / total) if total else 0.0
+        self.logger.info("dq summary valid=%d invalid=%d ratio=%.3f", valid_count, invalid_count, ratio)
+
+        # Hard-fail if too many rows are quarantined — silent quarantine bloat is the
+        # main failure mode of DQX in production. Disabled by default (ratio=1.0).
+        if ratio > quarantine_fail_ratio:
+            raise RuntimeError(f"DQX quarantine ratio {ratio:.3f} exceeded threshold {quarantine_fail_ratio}")
 
         df_order_item = self.spark.read.table("external_source.order_item")
 
-        if self.config.get_value("debug"):
-            df_order.show()
-            df_order_invalid.show()
-            df_order_item.show()
-
-        df_order.write.mode("overwrite").saveAsTable(f"{self.config.get_value('schema')}.order")
-        df_order_item.write.mode("overwrite").saveAsTable(f"{self.config.get_value('schema')}.order_item")
+        (df_order.write.mode("overwrite").option("overwriteSchema", "false").saveAsTable("raw.order"))
+        (df_order_item.write.mode("overwrite").option("overwriteSchema", "false").saveAsTable("raw.order_item"))

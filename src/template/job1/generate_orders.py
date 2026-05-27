@@ -1,5 +1,3 @@
-from funcy import print_durations
-
 from ..baseTask import BaseTask
 
 
@@ -7,7 +5,6 @@ class GenerateOrders(BaseTask):
     def __init__(self, config):
         super().__init__(config)
 
-    @print_durations
     def enrich_order(self, df_customer, df_order, df_order_item):
         # TODO code your transformations here...
 
@@ -18,7 +15,7 @@ class GenerateOrders(BaseTask):
         )
 
     def run(self):
-        print("Generating Orders ...")
+        self.logger.info("generating orders")
 
         df_customer = self.spark.read.table("raw.customer")
         df_order = self.spark.read.table("raw.order")
@@ -26,7 +23,4 @@ class GenerateOrders(BaseTask):
 
         df_out = self.enrich_order(df_customer, df_order, df_order_item)
 
-        if self.config.get_value("debug"):
-            df_out.show()
-
-        df_out.write.mode("overwrite").saveAsTable(f"{self.config.get_value('schema')}.order_enriched")
+        (df_out.write.mode("overwrite").option("overwriteSchema", "false").saveAsTable("curated.order_enriched"))

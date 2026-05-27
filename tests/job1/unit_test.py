@@ -30,10 +30,9 @@ def config() -> TaskConfig:
         Namespace(
             task="extract_source1",
             env="local",
-            default_catalog="dev",
-            schema="raw",
             skip=False,
-            debug=True,
+            log_level="INFO",
+            quarantine_fail_ratio=1.0,
         )
     )
 
@@ -80,12 +79,10 @@ def df_orders(spark) -> DataFrame:
 def test_arg_parser():
     parser = arg_parser()
 
-    args = parser.parse_args(
-        ["--task=extract_source1", "--user=andre_f_salvati", "--schema=raw", "--env=dev", "--skip", "--debug"]
-    )
+    args = parser.parse_args(["--task=extract_source1", "--env=dev", "--skip"])
 
     assert args == Namespace(
-        task="extract_source1", user="andre_f_salvati", schema="raw", env="dev", skip=True, debug=True
+        task="extract_source1", env="dev", skip=True, run_id=None, log_level="INFO", quarantine_fail_ratio=1.0
     )
 
 
@@ -97,16 +94,15 @@ def test_arg_parser():
                 task="extract_source1",
                 env="local",
                 skip=False,
-                debug=True,
-                schema="raw",
-                user="andre_f_salvati",
+                log_level="INFO",
+                quarantine_fail_ratio=1.0,
             ),
             {
                 "task": "extract_source1",
                 "env": "local",
-                "schema": "raw",
                 "skip": False,
-                "debug": True,
+                "log_level": "INFO",
+                "quarantine_fail_ratio": 1.0,
             },
         ),
     ],
