@@ -65,8 +65,10 @@ The wheel entry point is intentionally minimal:
 - `--env` *(required)* — `dev` / `staging` / `prod` (or `local` for tests).
 - `--skip` *(optional flag)* — short-circuit this run (paired with the `ops.config` skip table).
 - `--run-id` *(optional, observability-only)* — filled by Databricks via `{{job.run_id}}`. Stamped onto every log line via a `logging.Filter` so logs are correlatable after ingest. Defaults to `-` when absent (e.g. local tests).
+- `--log-level` *(optional)* — `DEBUG`/`INFO`/`WARNING`. Filled from the job-level parameter `log_level` (default `INFO`). Override per-run from the Databricks Jobs UI "Run with different parameters" dialog.
+- `--quarantine-fail-ratio` *(optional)* — float threshold for DQX hard-fail in `extract_source2`. Filled from the job-level parameter `quarantine_fail_ratio` (default `1.0` in dev/staging, `0.1` in prod).
 
-Anything else should be an **environment variable**, not a CLI arg. See "Runtime environment variables" below.
+Anything tunable at runtime is a **CLI arg** populated from a Databricks job-level parameter — not an environment variable. Serverless compute does not expose custom env vars to the process.
 
 ### Key Classes
 
@@ -93,18 +95,27 @@ Medallion schemas (`MEDALLION_SCHEMAS` in `config.py`):
 
 Each task's input/output tables are **hardcoded** in the task module (e.g. `raw.customer` → `curated.order_enriched`). The medallion layer is a semantic contract, not a runtime parameter — this is the dbt `ref()` pattern. Don't parameterize the layer; if a task genuinely needs a configurable target, that's a different task.
 
-### Runtime environment variables
+### Job-level parameters (runtime, overridable per-run)
+
+Defined as `JobParameterDefinition` in `sdk_generate_template_job.py` and referenced in every task's `parameters` list via `{{job.parameters.*}}`. Operators can override them per-run from the Databricks Jobs UI "Run with different parameters" dialog by name — no need to rewrite the entire task parameters array.
+
+| Parameter | Purpose | Default (dev/staging) | Default (prod) |
+|---|---|---|---|
+| `log_level` | `DEBUG`/`INFO`/`WARNING`. Bump to `DEBUG` for a single run during prod incident response. | `INFO` | `INFO` |
+| `quarantine_fail_ratio` | Hard-fail `extract_source2` if more than this fraction of rows are quarantined by DQX. | `1.0` (disabled) | `0.1` |
+
+### Deploy-time environment variables (CI/build machine only)
+
+These are read by `sdk_generate_template_job.py` at deploy time — never on Databricks serverless. Use `os.environ.get()` is correct here.
 
 | Variable | Purpose | Default |
 |---|---|---|
-| `TEMPLATE_LOG_LEVEL` | `DEBUG`/`INFO`/`WARNING`. Overridable per-run from the Databricks Jobs UI for prod incident response. | `INFO` |
-| `TEMPLATE_QUARANTINE_FAIL_RATIO` | Hard-fail `extract_source2` if quarantine ratio exceeds this. Set to e.g. `0.1` on prod to enforce. | `1.0` (disabled) |
 | `TEMPLATE_ALERT_EMAILS` | Comma-separated recipients for prod `JobEmailNotifications`. CI overrides via secret. | `data-platform-oncall@example.com` |
 | `TEMPLATE_SP_APP_ID` | CI bypass for the SCIM lookup of the service principal. | resolved from `SP_DISPLAY_NAME` |
 
 ### Data Quality (DQX)
 
-`ExtractSource2` demonstrates the DQX pattern: define rules as `DQRowRule`/`DQForEachColRule`/`DQDatasetRule`, call `dq_engine.apply_checks_and_split()`, write invalid rows to a `_quarantine` table. The `TEMPLATE_QUARANTINE_FAIL_RATIO` env var hard-fails the task when too many rows are quarantined (silent quarantine bloat is the main DQX failure mode in prod).
+`ExtractSource2` demonstrates the DQX pattern: define rules as `DQRowRule`/`DQForEachColRule`/`DQDatasetRule`, call `dq_engine.apply_checks_and_split()`, write invalid rows to a `_quarantine` table. The `--quarantine-fail-ratio` job parameter hard-fails the task when too many rows are quarantined (silent quarantine bloat is the main DQX failure mode in prod).
 
 ### Testing Pattern
 

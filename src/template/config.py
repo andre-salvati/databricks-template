@@ -1,5 +1,4 @@
 import logging
-import os
 import re
 
 import pyspark.sql.functions as F
@@ -47,22 +46,30 @@ def _configure_logging(level: int, run_id: str) -> None:
 
 class Config:
     def __init__(self, args):
-        # Instance-scoped — earlier versions used a class-level dict which leaked across instances.
         self.params: dict = {}
 
         self.params.update({"task": args.task})
         self.params.update({"skip": args.skip})
         self.params.update({"env": args.env})
 
-        # Override at runtime via TEMPLATE_LOG_LEVEL env var (e.g. set DEBUG from the
-        # Jobs UI "Run with different parameters" dialog when investigating prod incidents).
-        log_level = os.environ.get("TEMPLATE_LOG_LEVEL", "INFO").upper()
+        # --log-level is a job-level parameter set in sdk_generate_template_job.py.
+        # Operators can override it per-run via the Jobs UI "Run with different parameters".
+        log_level = args.log_level.upper()
+        self.params.update({"log_level": log_level})
+        self.params.update({"quarantine_fail_ratio": args.quarantine_fail_ratio})
+
         # run_id comes from --run-id={{job.run_id}}. Not exposed as an env var on serverless,
         # so it has to be threaded through as a CLI param. Falls back to "-" for local tests.
         run_id = getattr(args, "run_id", None) or "-"
         _configure_logging(getattr(logging, log_level, logging.INFO), run_id)
         self.logger = logging.getLogger("template")
-        self.logger.info("config init task=%s env=%s", args.task, args.env)
+        self.logger.info(
+            "config init task=%s env=%s log_level=%s quarantine_fail_ratio=%s",
+            args.task,
+            args.env,
+            log_level,
+            args.quarantine_fail_ratio,
+        )
 
         self.spark = SparkSession.builder.appName(args.task).getOrCreate()
 

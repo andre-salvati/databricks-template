@@ -14,13 +14,14 @@ include:
   - resources/*.yml
 
 
-# For simplicity, we use a single workspace profile across all targets.
 # Here is a good reference on how to structure your catalogs, workspaces, and groups:
 # https://youtu.be/CLBq4fBE2Ro
 #
-# `run_as` and `permissions` for staging/prod jobs are pinned to the service principal
-# at the *job* level by scripts/sdk_generate_template_job.py, so they're intentionally
-# omitted from the targets below.
+# For staging and prod, target-level `run_as` and `workspace.root_path` are injected
+# by scripts/sdk_generate_template_job.py into resources/jobs.yml (merged in via
+# `include: resources/*.yml`). Keeping them in the generated file lets the SP UUID
+# live in a single place — resolved by display name at generation time — so this
+# file stays portable across forks that wire up a different SP.
 targets:
   dev:
     mode: development
@@ -31,14 +32,13 @@ targets:
   staging:
     workspace:
       profile: staging
-      root_path: /Workspace/Users/${workspace.current_user.userName}/.bundle/staging/${bundle.name}
 
   prod:
-    # mode: production enforces that the deployer is the run-as identity (the SP)
-    # and that no two deployments collide on the same workspace path. This makes
-    # `make deploy env=prod` fail locally for any user other than the SP — which
-    # is exactly what we want; only CI should be able to push to prod.
+    # mode: production + the target-level run_as injected by the generator is what
+    # actually enforces the deployer-identity check. Without a target-level run_as,
+    # mode: production has nothing to compare the deployer against and silently
+    # falls through. The SP-pinned root_path (also injected) makes the workspace
+    # ACL block non-SP deployers too — two independent gates.
     mode: production
     workspace:
       profile: prod
-      root_path: /Workspace/Shared/.bundle/prod/${bundle.name}

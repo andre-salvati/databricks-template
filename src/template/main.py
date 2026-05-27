@@ -31,6 +31,8 @@ def arg_parser():
     # Pure observability — filled by Databricks at runtime via {{job.run_id}};
     # there's no equivalent env var on serverless compute.
     parser.add_argument("--run-id")
+    parser.add_argument("--log-level", default="INFO", choices=["DEBUG", "INFO", "WARNING"])
+    parser.add_argument("--quarantine-fail-ratio", type=float, default=1.0)
 
     return parser
 

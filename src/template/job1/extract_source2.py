@@ -1,5 +1,3 @@
-import os
-
 from databricks.labs.dqx import check_funcs
 from databricks.labs.dqx.rule import (
     Criticality,
@@ -9,11 +7,6 @@ from databricks.labs.dqx.rule import (
 )
 
 from ..baseTask import BaseTask
-
-# Fail the task if more than this fraction of rows hit ERROR-level DQX rules.
-# Default 1.0 (effectively disabled) preserves the demo's ability to ingest seeded
-# bad data; set TEMPLATE_QUARANTINE_FAIL_RATIO=0.1 (or similar) on the prod job to enforce.
-_QUARANTINE_FAIL_RATIO = float(os.environ.get("TEMPLATE_QUARANTINE_FAIL_RATIO", "1.0"))
 
 
 class ExtractSource2(BaseTask):
@@ -51,6 +44,8 @@ class ExtractSource2(BaseTask):
     def run(self):
         self.logger.info("extracting data from Source2")
 
+        quarantine_fail_ratio = self.config.get_value("quarantine_fail_ratio")
+
         df_order = self.spark.read.table("external_source.order")
         df_order, df_order_invalid = self.validate_order(df_order)
 
@@ -69,8 +64,8 @@ class ExtractSource2(BaseTask):
 
         # Hard-fail if too many rows are quarantined — silent quarantine bloat is the
         # main failure mode of DQX in production. Disabled by default (ratio=1.0).
-        if ratio > _QUARANTINE_FAIL_RATIO:
-            raise RuntimeError(f"DQX quarantine ratio {ratio:.3f} exceeded threshold {_QUARANTINE_FAIL_RATIO}")
+        if ratio > quarantine_fail_ratio:
+            raise RuntimeError(f"DQX quarantine ratio {ratio:.3f} exceeded threshold {quarantine_fail_ratio}")
 
         df_order_item = self.spark.read.table("external_source.order_item")
 

@@ -32,6 +32,8 @@ def config() -> TaskConfig:
             env="local",
             default_catalog="dev",
             skip=False,
+            log_level="INFO",
+            quarantine_fail_ratio=1.0,
         )
     )
 
@@ -80,7 +82,9 @@ def test_arg_parser():
 
     args = parser.parse_args(["--task=extract_source1", "--env=dev", "--skip"])
 
-    assert args == Namespace(task="extract_source1", env="dev", skip=True, run_id=None)
+    assert args == Namespace(
+        task="extract_source1", env="dev", skip=True, run_id=None, log_level="INFO", quarantine_fail_ratio=1.0
+    )
 
 
 @pytest.mark.parametrize(
@@ -91,11 +95,15 @@ def test_arg_parser():
                 task="extract_source1",
                 env="local",
                 skip=False,
+                log_level="INFO",
+                quarantine_fail_ratio=1.0,
             ),
             {
                 "task": "extract_source1",
                 "env": "local",
                 "skip": False,
+                "log_level": "INFO",
+                "quarantine_fail_ratio": 1.0,
             },
         ),
     ],

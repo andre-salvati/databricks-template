@@ -10,6 +10,7 @@ from databricks.bundles.jobs import (
     JobEmailNotifications,
     JobEnvironment,
     JobNotificationSettings,
+    JobParameterDefinition,
     JobsHealthMetric,
     JobsHealthOperator,
     JobsHealthRule,
@@ -34,6 +35,12 @@ TEAM = "data-engineering"
 
 # Where prod failures are emailed. CI overrides via TEMPLATE_ALERT_EMAILS=a@x.com,b@y.com.
 DEFAULT_ALERT_EMAILS = ["data-platform-oncall@example.com"]
+
+# Job-level parameter defaults. Operators can override per-run from the Databricks
+# Jobs UI "Run with different parameters" dialog without rewriting the full task params.
+DEFAULT_LOG_LEVEL = "INFO"
+DEFAULT_QUARANTINE_FAIL_RATIO = "1.0"  # disabled; all rows pass through in dev/staging
+PROD_QUARANTINE_FAIL_RATIO = "0.1"  # hard-fail if >10% of rows quarantined in prod
 
 # Trigger the on_duration_warning_threshold_exceeded email if the prod run takes
 # longer than this. Nominal end-to-end is ~5 minutes, so 30 minutes leaves headroom
@@ -77,6 +84,8 @@ def _wheel_task() -> PythonWheelTask:
             "--task={{task.name}}",
             "--env=${bundle.target}",
             "--run-id={{job.run_id}}",
+            "--log-level={{job.parameters.log_level}}",
+            "--quarantine-fail-ratio={{job.parameters.quarantine_fail_ratio}}",
         ],
     )
 
@@ -125,7 +134,27 @@ def _retry_kwargs(retries: int) -> dict:
     }
 
 
-def _build_job(environment: str) -> dict:
+def _target_overrides(environment: str, sp_id: str) -> dict:
+    """Target-level run_as and root_path pinned to the SP for staging/prod.
+
+    Two independent gates stack here:
+      1. Target-level run_as makes mode: production's deployer-identity check
+         actually enforce — without a target-level run_as, the check has nothing
+         to compare against and silently falls through.
+      2. SP-pinned root_path means the workspace ACL itself blocks non-SP
+         deployers from writing under /Workspace/Users/<sp-uuid>/..., independent
+         of mode: production.
+
+    These overrides are merged into databricks.yml's `targets:` block via the
+    bundle's `include: resources/*.yml`.
+    """
+    return {
+        "run_as": {"service_principal_name": sp_id},
+        "workspace": {"root_path": f"/Workspace/Users/{sp_id}/.bundle/{environment}/${{bundle.name}}"},
+    }
+
+
+def _build_job(environment: str, sp_id: str | None) -> dict:
     retries = _retries(environment)
     tasks: list[Task] = []
 
@@ -220,6 +249,13 @@ def _build_job(environment: str) -> dict:
             no_alert_for_canceled_runs=True,
             no_alert_for_skipped_runs=True,
         ),
+        parameters=[
+            JobParameterDefinition(name="log_level", default=DEFAULT_LOG_LEVEL),
+            JobParameterDefinition(
+                name="quarantine_fail_ratio",
+                default=PROD_QUARANTINE_FAIL_RATIO if environment == "prod" else DEFAULT_QUARANTINE_FAIL_RATIO,
+            ),
+        ],
         tags=_tags(environment),
         environments=_environments(),
         schedule=schedule,
@@ -234,15 +270,15 @@ def _build_job(environment: str) -> dict:
     if environment in ("staging", "prod"):
         # Pin the run-as identity to the SP application id rather than $current_user
         # so a developer running `make deploy env=staging` doesn't accidentally deploy
-        # a job that runs as themselves.
-        sp_id = os.environ.get("TEMPLATE_SP_APP_ID") or _get_service_principal_id(SP_DISPLAY_NAME, profile=environment)
+        # a job that runs as themselves. Same SP is also wired at the target level by
+        # _target_overrides() so mode: production can actually enforce identity.
         d["run_as"] = {"service_principal_name": sp_id}
         d["permissions"] = [{"service_principal_name": sp_id, "level": "CAN_MANAGE"}]
 
     return d
 
 
-def _build_job_integration_test(environment: str) -> dict:
+def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
     tasks = [
         Task(
             task_key="setup",
@@ -271,6 +307,10 @@ def _build_job_integration_test(environment: str) -> dict:
         timeout_seconds=3600,
         max_concurrent_runs=1,
         queue=QueueSettings(enabled=True),
+        parameters=[
+            JobParameterDefinition(name="log_level", default=DEFAULT_LOG_LEVEL),
+            JobParameterDefinition(name="quarantine_fail_ratio", default=DEFAULT_QUARANTINE_FAIL_RATIO),
+        ],
         tags=_tags(environment),
         environments=_environments(),
         tasks=tasks,
@@ -280,7 +320,6 @@ def _build_job_integration_test(environment: str) -> dict:
     d["deployment"] = {"kind": "BUNDLE"}
 
     if environment in ("staging", "prod"):
-        sp_id = os.environ.get("TEMPLATE_SP_APP_ID") or _get_service_principal_id(SP_DISPLAY_NAME, profile=environment)
         d["run_as"] = {"service_principal_name": sp_id}
         d["permissions"] = [{"service_principal_name": sp_id, "level": "CAN_MANAGE"}]
 
@@ -292,11 +331,21 @@ def main():
     parser.add_argument("environment", help="Target environment (dev, staging, prod)")
     args = parser.parse_args()
 
-    jobs: dict = {JOB_NAME: _build_job(args.environment)}
-    if args.environment in ("dev", "staging"):
-        jobs[f"{JOB_NAME}_integration_test"] = _build_job_integration_test(args.environment)
+    env = args.environment
 
-    output = {"resources": {"jobs": jobs}}
+    # Resolve SP app id once for staging/prod; reused for job-level run_as/permissions
+    # and target-level run_as/root_path so the SP UUID lives in exactly one place.
+    sp_id: str | None = None
+    if env in ("staging", "prod"):
+        sp_id = os.environ.get("TEMPLATE_SP_APP_ID") or _get_service_principal_id(SP_DISPLAY_NAME, profile=env)
+
+    jobs: dict = {JOB_NAME: _build_job(env, sp_id)}
+    if env in ("dev", "staging"):
+        jobs[f"{JOB_NAME}_integration_test"] = _build_job_integration_test(env, sp_id)
+
+    output: dict = {"resources": {"jobs": jobs}}
+    if sp_id is not None:
+        output["targets"] = {env: _target_overrides(env, sp_id)}
 
     output_file = "./resources/jobs.yml"
     with open(output_file, "w") as f:
