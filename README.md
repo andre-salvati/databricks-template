@@ -45,7 +45,6 @@ This project template demonstrates how to:
 - utilize job tags to track issues, costs, and ownership.
 - utilize the [coverage package](https://pypi.org/project/coverage/) to generate test coverage reports.
 - utilize [uv](https://docs.astral.sh/uv/) as a project/package manager.
-- configure a job to run tasks selectively.
 - use the [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
 - use a Makefile to automate repetitive tasks.

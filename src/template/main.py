@@ -27,7 +27,6 @@ def arg_parser():
 
     parser.add_argument("--env", required=True, choices=["dev", "staging", "prod"])
     parser.add_argument("--task", required=True, choices=sorted(TASKS.keys()))
-    parser.add_argument("--skip", action="store_true")
     # Pure observability — filled by Databricks at runtime via {{job.run_id}};
     # there's no equivalent env var on serverless compute.
     parser.add_argument("--run-id")
@@ -41,9 +40,6 @@ def main():
     args = arg_parser().parse_args()
 
     config = Config(args)
-
-    if config.skip_task():
-        return
 
     try:
         TASKS[args.task](config).run()

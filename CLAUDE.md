@@ -63,7 +63,6 @@ The wheel entry point is intentionally minimal:
 
 - `--task` *(required)* — task key. In jobs, `{{task.name}}` fills this.
 - `--env` *(required)* — `dev` / `staging` / `prod` (or `local` for tests).
-- `--skip` *(optional flag)* — short-circuit this run (paired with the `ops.config` skip table).
 - `--run-id` *(optional, observability-only)* — filled by Databricks via `{{job.run_id}}`. Stamped onto every log line via a `logging.Filter` so logs are correlatable after ingest. Defaults to `-` when absent (e.g. local tests).
 - `--log-level` *(optional)* — `DEBUG`/`INFO`/`WARNING`. Filled from the job-level parameter `log_level` (default `INFO`). Override per-run from the Databricks Jobs UI "Run with different parameters" dialog.
 - `--quarantine-fail-ratio` *(optional)* — float threshold for DQX hard-fail in `extract_source2`. Filled from the job-level parameter `quarantine_fail_ratio` (default `1.0` in dev/staging, `0.1` in prod).
@@ -72,7 +71,7 @@ Anything tunable at runtime is a **CLI arg** populated from a Databricks job-lev
 
 ### Key Classes
 
-- **`Config`** ([src/template/config.py](src/template/config.py)) — runtime config: catalog/schema setup, logging, DQX engine, skip-table logic. When `env=local` (unit tests), it mocks the `WorkspaceClient` so tests run without Databricks connectivity.
+- **`Config`** ([src/template/config.py](src/template/config.py)) — runtime config: catalog/schema setup, logging, DQX engine. When `env=local` (unit tests), it mocks the `WorkspaceClient` so tests run without Databricks connectivity.
 - **`BaseTask`** ([src/template/baseTask.py](src/template/baseTask.py)) — base class giving every task `self.spark`, `self.config`, and `self.logger`.
 - **Task classes** (e.g. `ExtractSource1`, `GenerateOrders`, `HealthCheck`) — subclass `BaseTask`, implement `run()`. Transformation logic lives in dedicated methods (e.g. `enrich_order`) so unit tests can call them directly without Spark tables.
 
@@ -91,7 +90,7 @@ Medallion schemas (`MEDALLION_SCHEMAS` in `config.py`):
 | `raw` | Bronze — direct copies from sources |
 | `curated` | Silver — joined/enriched tables |
 | `report` | Gold — aggregated tables |
-| `ops` | Internal — skip table, health-check table. Named `ops` instead of `system` because Unity Catalog reserves `system`. |
+| `ops` | Internal — health-check table. Named `ops` instead of `system` because Unity Catalog reserves `system`. |
 
 Each task's input/output tables are **hardcoded** in the task module (e.g. `raw.customer` → `curated.order_enriched`). The medallion layer is a semantic contract, not a runtime parameter — this is the dbt `ref()` pattern. Don't parameterize the layer; if a task genuinely needs a configurable target, that's a different task.
 
