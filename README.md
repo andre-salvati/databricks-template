@@ -40,6 +40,7 @@ This project template demonstrates how to:
 - structure PySpark code inside classes/packages and utilize a Python wheel package, instead of notebooks.
 - package and deploy code with [Declarative Automation Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to different environments (dev, staging, prod). Use a CI/CD pipeline with [GitHub Actions](https://docs.github.com/en/actions). Generate job definitions to run with environment-specific conditions using [Databricks SDK](https://docs.databricks.com/aws/en/dev-tools/sdk-python#create-a-job-that-uses-serverless-compute).
 - isolate "dev" environments / catalogs to avoid concurrency issues between developer tests.
+- ships with a twin [Lakeflow Spark Declarative Pipeline](https://docs.databricks.com/aws/en/ldp/) that runs the same ETL logic side-by-side with the batch job, demonstrating both paradigms from one codebase.
 - run unit tests on transformations with the [pytest package](https://pypi.org/project/pytest/). Set up VS Code to run tests on your local machine.
 - run integration tests by setting the input data and validating the output data.
 - utilize job tags to track issues, costs, and ownership.
