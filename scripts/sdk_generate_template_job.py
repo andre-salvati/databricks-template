@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 import tomllib
 from pathlib import Path
 
@@ -15,6 +16,7 @@ from databricks.bundles.jobs import (
     JobsHealthOperator,
     JobsHealthRule,
     JobsHealthRules,
+    PipelineTask,
     PythonWheelTask,
     QueueSettings,
     RunJobTask,
@@ -22,9 +24,30 @@ from databricks.bundles.jobs import (
     TaskDependency,
 )
 from databricks.bundles.jobs._models.environment import Environment
+from databricks.bundles.pipelines import (
+    FileLibrary,
+    Pipeline,
+    PipelineLibrary,
+    PipelinesEnvironment,
+)
 from databricks.sdk import WorkspaceClient
 
 JOB_NAME = "job1"
+PIPELINE_NAME = "job1_sdp"
+
+
+def _dqx_package() -> str:
+    """Read the DQX version from pyproject.toml so it stays in sync with the runtime dep."""
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    with open(pyproject, "rb") as f:
+        deps = tomllib.load(f)["project"]["dependencies"]
+    for dep in deps:
+        if dep.startswith("databricks-labs-dqx"):
+            return dep
+    raise ValueError("databricks-labs-dqx not found in pyproject.toml dependencies")
+
+
+DQX_PACKAGE = _dqx_package()
 
 # Service principal name. "make init" overrides with parameter.
 SP_DISPLAY_NAME = "template-sp"
@@ -298,6 +321,11 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
 
 
 def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
+    """Integration test: setup → run (job1 batch) + run_sdp (pipeline) in parallel → validate.
+
+    A single validate task waits for both run and run_sdp to finish, then checks
+    both the batch output (report.order_agg) and the SDP output (report.order_agg_sdp).
+    """
     tasks = [
         Task(
             task_key="setup",
@@ -312,11 +340,19 @@ def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
             run_job_task=RunJobTask(job_id=f"${{{f'resources.jobs.{JOB_NAME}.id'}}}"),
         ),
         Task(
+            task_key="run_sdp",
+            depends_on=[TaskDependency(task_key="setup")],
+            pipeline_task=PipelineTask(
+                pipeline_id="${resources.pipelines.job1_sdp.id}",
+                full_refresh=True,
+            ),
+        ),
+        Task(
             task_key="validate",
             max_retries=0,
             timeout_seconds=TIMEOUT_INTEGRATION_S,
             environment_key="default",
-            depends_on=[TaskDependency(task_key="run")],
+            depends_on=[TaskDependency(task_key="run"), TaskDependency(task_key="run_sdp")],
             python_wheel_task=_wheel_task(),
         ),
     ]
@@ -346,9 +382,45 @@ def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
     return d
 
 
+def _resolve_catalog(environment: str) -> str:
+    """Compute the target catalog at generation time, mirroring Config.__init__.
+
+    - dev      → dev_<sanitized_user>  (per-developer sandbox)
+    - staging / prod → environment name
+    """
+    if environment == "dev":
+        ws = WorkspaceClient(profile="dev")
+        local_part = ws.current_user.me().user_name.split("@")[0]
+        user = re.sub(r"[^a-zA-Z0-9_]", "_", local_part)
+        return f"dev_{user}"
+    return environment
+
+
+def _build_pipeline(environment: str, catalog: str, sp_id: str | None) -> dict:
+    pipeline = Pipeline(
+        name=f"{PIPELINE_NAME}_${{bundle.target}}",
+        serverless=True,
+        catalog=catalog,
+        schema="raw",
+        development=(environment == "dev"),
+        libraries=[PipelineLibrary(file=FileLibrary(path="../src/template/job1_sdp/pipeline.py"))],
+        environment=PipelinesEnvironment(dependencies=[WHEEL_GLOB, DQX_PACKAGE]),
+        configuration={"target_catalog": catalog},
+        tags=_tags(environment),
+    )
+
+    d = pipeline.as_dict()
+
+    if environment in ("staging", "prod"):
+        d["run_as"] = {"service_principal_name": sp_id}
+        d["permissions"] = [{"service_principal_name": sp_id, "level": "IS_OWNER"}]
+
+    return d
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate Databricks Jobs YAML")
-    parser.add_argument("environment", help="Target environment (dev, staging, prod)")
+    parser.add_argument("environment", choices=["dev", "staging", "prod"])
     args = parser.parse_args()
 
     env = args.environment
@@ -359,11 +431,18 @@ def main():
     if env in ("staging", "prod"):
         sp_id = os.environ.get("TEMPLATE_SP_APP_ID") or _get_service_principal_id(SP_DISPLAY_NAME, profile=env)
 
+    catalog = _resolve_catalog(env)
+
     jobs: dict = {JOB_NAME: _build_job(env, sp_id)}
     if env in ("dev", "staging"):
         jobs[f"{JOB_NAME}_integration_test"] = _build_job_integration_test(env, sp_id)
 
-    output: dict = {"resources": {"jobs": jobs}}
+    output: dict = {
+        "resources": {
+            "jobs": jobs,
+            "pipelines": {PIPELINE_NAME: _build_pipeline(env, catalog, sp_id)},
+        }
+    }
     if sp_id is not None:
         output["targets"] = {env: _target_overrides(env, sp_id)}
 

@@ -20,16 +20,15 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+  DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+  TEMPLATE_ALERT_EMAILS: ${{ secrets.TEMPLATE_ALERT_EMAILS }}
+
 jobs:
-  ci-pipeline:
-
+  ci:
     runs-on: ubuntu-latest
-
-    env:
-      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_CLIENT_ID:  ${{ secrets.DATABRICKS_CLIENT_ID }}
-      DATABRICKS_CLIENT_SECRET:  ${{ secrets.DATABRICKS_CLIENT_SECRET }}
-      TEMPLATE_ALERT_EMAILS: ${{ secrets.TEMPLATE_ALERT_EMAILS }}
 
     steps:
       - uses: actions/checkout@v4
@@ -49,7 +48,7 @@ jobs:
       - name: Install dependencies
         run: make sync
 
-      - name: Run pytest and coverage (unit tests)
+      - name: Unit tests
         run: make test
 
       - name: Upload coverage report
@@ -64,23 +63,11 @@ jobs:
       - name: Install Databricks CLI
         uses: databricks/setup-cli@v0.298.0
 
-      - name: Validate bundle (staging)
-        run: |
-          uv run python ./scripts/sdk_generate_template_job.py staging
-          uv run databricks bundle validate --target staging
-
       - name: Deploy on staging
         run: make deploy env=staging
 
-      - name: Run on staging (integration tests)
+      - name: Run integration tests on staging
         run: make run env=staging
-
-      # Only deploy to prod from main. Feature branches must merge before they reach prod.
-      - name: Validate bundle (prod)
-        if: github.ref == 'refs/heads/main'
-        run: |
-          uv run python ./scripts/sdk_generate_template_job.py prod
-          uv run databricks bundle validate --target prod
 
       - name: Deploy on prod
         if: github.ref == 'refs/heads/main'

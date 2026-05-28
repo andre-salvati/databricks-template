@@ -24,7 +24,7 @@ whoami:
 
 deploy: whoami
 	uv run python ./scripts/sdk_generate_template_job.py $(env)
-	uv run databricks bundle deploy --target $(env) --auto-approve
+	uv run databricks bundle deploy --target $(env)
 
 run: whoami
 	uv run databricks bundle run job1_integration_test --target $(env)
