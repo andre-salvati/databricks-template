@@ -404,7 +404,7 @@ def _build_pipeline(environment: str, catalog: str, sp_id: str | None) -> dict:
         schema="raw",
         development=(environment == "dev"),
         libraries=[PipelineLibrary(file=FileLibrary(path="../src/template/job1_sdp/pipeline.py"))],
-        environment=PipelinesEnvironment(dependencies=[WHEEL_GLOB, DQX_PACKAGE]),
+        environment=PipelinesEnvironment(dependencies=[WHEEL_GLOB]),
         configuration={"target_catalog": catalog},
         tags=_tags(environment),
     )
