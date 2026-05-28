@@ -12,7 +12,6 @@ src/template.egg-info/
 *.lock
 .coverage*
 resources/jobs.yml
-resources/jobs_sdp.yml
 .databricks-resources.json
 # Databricks AI Dev Kit — installed locally per-developer, contains absolute paths
 .ai-dev-kit/

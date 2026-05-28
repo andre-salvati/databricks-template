@@ -1,5 +1,6 @@
 import argparse
 import os
+import re
 import tomllib
 from pathlib import Path
 
@@ -23,9 +24,19 @@ from databricks.bundles.jobs import (
     TaskDependency,
 )
 from databricks.bundles.jobs._models.environment import Environment
+from databricks.bundles.pipelines import (
+    FileLibrary,
+    Pipeline,
+    PipelineLibrary,
+    PipelinesEnvironment,
+)
 from databricks.sdk import WorkspaceClient
 
 JOB_NAME = "job1"
+PIPELINE_NAME = "job1_sdp"
+
+# Pin DQX to the same version declared in pyproject.toml dependencies.
+DQX_PACKAGE = "databricks-labs-dqx==0.12.0"
 
 # Service principal name. "make init" overrides with parameter.
 SP_DISPLAY_NAME = "template-sp"
@@ -360,6 +371,42 @@ def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
     return d
 
 
+def _resolve_catalog(environment: str) -> str:
+    """Compute the target catalog at generation time, mirroring Config.__init__.
+
+    - dev      → dev_<sanitized_user>  (per-developer sandbox)
+    - staging / prod → environment name
+    """
+    if environment == "dev":
+        ws = WorkspaceClient(profile="dev")
+        local_part = ws.current_user.me().user_name.split("@")[0]
+        user = re.sub(r"[^a-zA-Z0-9_]", "_", local_part)
+        return f"dev_{user}"
+    return environment
+
+
+def _build_pipeline(environment: str, catalog: str, sp_id: str | None) -> dict:
+    pipeline = Pipeline(
+        name=f"{PIPELINE_NAME}_${{bundle.target}}",
+        serverless=True,
+        catalog=catalog,
+        schema="raw",
+        development=(environment == "dev"),
+        libraries=[PipelineLibrary(file=FileLibrary(path="../src/template/job1_sdp/pipeline.py"))],
+        environment=PipelinesEnvironment(dependencies=[WHEEL_GLOB, DQX_PACKAGE]),
+        configuration={"target_catalog": catalog},
+        tags=_tags(environment),
+    )
+
+    d = pipeline.as_dict()
+
+    if environment in ("staging", "prod"):
+        d["run_as"] = {"service_principal_name": sp_id}
+        d["permissions"] = [{"service_principal_name": sp_id, "level": "IS_OWNER"}]
+
+    return d
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate Databricks Jobs YAML")
     parser.add_argument("environment", help="Target environment (dev, staging, prod)")
@@ -373,11 +420,18 @@ def main():
     if env in ("staging", "prod"):
         sp_id = os.environ.get("TEMPLATE_SP_APP_ID") or _get_service_principal_id(SP_DISPLAY_NAME, profile=env)
 
+    catalog = _resolve_catalog(env)
+
     jobs: dict = {JOB_NAME: _build_job(env, sp_id)}
     if env in ("dev", "staging"):
         jobs[f"{JOB_NAME}_integration_test"] = _build_job_integration_test(env, sp_id)
 
-    output: dict = {"resources": {"jobs": jobs}}
+    output: dict = {
+        "resources": {
+            "jobs": jobs,
+            "pipelines": {PIPELINE_NAME: _build_pipeline(env, catalog, sp_id)},
+        }
+    }
     if sp_id is not None:
         output["targets"] = {env: _target_overrides(env, sp_id)}
 

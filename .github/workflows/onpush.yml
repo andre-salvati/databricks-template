@@ -66,7 +66,7 @@ jobs:
       - name: Validate bundle (staging)
         run: |
           uv run python ./scripts/sdk_generate_template_job.py staging
-          uv run python ./scripts/sdk_generate_sdp_pipeline.py staging
+
           uv run databricks bundle validate --target staging
 
       - name: Deploy on staging
@@ -100,7 +100,7 @@ jobs:
       - name: Generate bundle resources
         run: |
           uv run python ./scripts/sdk_generate_template_job.py staging
-          uv run python ./scripts/sdk_generate_sdp_pipeline.py staging
+
 
       - name: Run on staging
         run: make run env=staging
@@ -134,7 +134,7 @@ jobs:
       - name: Validate bundle (prod)
         run: |
           uv run python ./scripts/sdk_generate_template_job.py prod
-          uv run python ./scripts/sdk_generate_sdp_pipeline.py prod
+
           uv run databricks bundle validate --target prod
 
       - name: Deploy on prod

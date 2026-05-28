@@ -24,7 +24,6 @@ whoami:
 
 deploy: whoami
 	uv run python ./scripts/sdk_generate_template_job.py $(env)
-	uv run python ./scripts/sdk_generate_sdp_pipeline.py $(env)
 	uv run databricks bundle deploy --target $(env)
 
 run: whoami
