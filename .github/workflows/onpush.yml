@@ -27,7 +27,7 @@ env:
   TEMPLATE_ALERT_EMAILS: ${{ secrets.TEMPLATE_ALERT_EMAILS }}
 
 jobs:
-  build-and-deploy-staging:
+  ci:
     runs-on: ubuntu-latest
 
     steps:
@@ -48,7 +48,7 @@ jobs:
       - name: Install dependencies
         run: make sync
 
-      - name: Run pytest and coverage (unit tests)
+      - name: Unit tests
         run: make test
 
       - name: Upload coverage report
@@ -63,79 +63,12 @@ jobs:
       - name: Install Databricks CLI
         uses: databricks/setup-cli@v0.298.0
 
-      - name: Validate bundle (staging)
-        run: |
-          uv run python ./scripts/sdk_generate_template_job.py staging
-
-          uv run databricks bundle validate --target staging
-
       - name: Deploy on staging
         run: make deploy env=staging
 
-  integration-tests:
-    needs: build-and-deploy-staging
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: "0.9.8"
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install dependencies
-        run: make sync
-
-      - name: Install Databricks CLI
-        uses: databricks/setup-cli@v0.298.0
-
-      - name: Generate bundle resources
-        run: |
-          uv run python ./scripts/sdk_generate_template_job.py staging
-
-
-      - name: Run on staging
+      - name: Run integration tests on staging
         run: make run env=staging
 
-  deploy-prod:
-    needs: integration-tests
-    if: github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v7
-        with:
-          version: "0.9.8"
-          enable-cache: true
-          cache-dependency-glob: "uv.lock"
-
-      - name: Install dependencies
-        run: make sync
-
-      - name: Install Databricks CLI
-        uses: databricks/setup-cli@v0.298.0
-
-      - name: Validate bundle (prod)
-        run: |
-          uv run python ./scripts/sdk_generate_template_job.py prod
-
-          uv run databricks bundle validate --target prod
-
       - name: Deploy on prod
+        if: github.ref == 'refs/heads/main'
         run: make deploy env=prod
