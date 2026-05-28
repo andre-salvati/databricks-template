@@ -72,17 +72,10 @@ jobs:
       - name: Deploy on staging
         run: make deploy env=staging
 
-  integration-tests:
+  integration-test-job1:
     needs: build-and-deploy-staging
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        include:
-          - name: job1 pipeline
-            make_target: run
-          - name: job1_sdp pipeline
-            make_target: run-sdp
-    name: Integration tests (${{ matrix.name }})
+    name: Integration tests (job1 batch)
 
     steps:
       - uses: actions/checkout@v4
@@ -110,11 +103,47 @@ jobs:
           uv run python ./scripts/sdk_generate_template_job.py staging
           uv run python ./scripts/sdk_generate_sdp_pipeline.py staging
 
-      - name: Run on staging (${{ matrix.name }})
-        run: make ${{ matrix.make_target }} env=staging
+      - name: Run on staging (job1 batch)
+        run: make run env=staging
+
+  # Runs after job1 so it reuses the external_source.* data seeded by job1's setup task.
+  # Running both setup tasks in parallel would cause a DROP/CREATE schema race.
+  integration-test-job1-sdp:
+    needs: integration-test-job1
+    runs-on: ubuntu-latest
+    name: Integration tests (job1_sdp pipeline)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.8"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: make sync
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@v0.298.0
+
+      - name: Generate bundle resources
+        run: |
+          uv run python ./scripts/sdk_generate_template_job.py staging
+          uv run python ./scripts/sdk_generate_sdp_pipeline.py staging
+
+      - name: Run on staging (job1_sdp pipeline)
+        run: make run-sdp env=staging
 
   deploy-prod:
-    needs: integration-tests
+    needs: integration-test-job1-sdp
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
 

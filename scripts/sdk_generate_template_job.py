@@ -349,24 +349,16 @@ def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
 
 
 def _build_job_sdp_integration_test(environment: str, sp_id: str | None) -> dict:
-    """Integration test for the job1_sdp pipeline: setup → run_sdp (pipeline) → validate_sdp.
+    """Integration test for the job1_sdp pipeline: run_sdp (pipeline) → validate_sdp.
 
-    Kept separate from job1_integration_test so CI can detect which component changed
-    (src/template/job1/** vs src/template/job1_sdp/**) and trigger only the relevant
-    test. Each job seeds its own data via the shared setup task, so they are fully
-    independent and can run in parallel across CI runs on different branches.
+    No setup task — relies on job1_integration_test having already seeded
+    external_source.* in the same CI run. Both jobs share the staging catalog,
+    so running setup twice in parallel would cause a DROP/CREATE race on the schemas.
+    CI sequences job1 before job1_sdp to avoid this.
     """
     tasks = [
         Task(
-            task_key="setup",
-            max_retries=0,
-            timeout_seconds=TIMEOUT_INTEGRATION_S,
-            environment_key="default",
-            python_wheel_task=_wheel_task(),
-        ),
-        Task(
             task_key="run_sdp",
-            depends_on=[TaskDependency(task_key="setup")],
             pipeline_task=PipelineTask(
                 pipeline_id="${resources.pipelines.job1_sdp.id}",
                 full_refresh=True,
