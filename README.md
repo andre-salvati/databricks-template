@@ -28,6 +28,7 @@ Let's [connect on LinkedIn](https://www.linkedin.com/in/andresalvati/).
 - Databricks AI Dev Kit
 - Claude Code
 - PySpark 4.1
+- Spark Declarative Pipelines (SDP)
 - Python 3.12+
 - GitHub Actions
 - Pytest
