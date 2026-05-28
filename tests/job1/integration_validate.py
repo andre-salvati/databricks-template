@@ -11,11 +11,7 @@ class Validate(BaseTask):
     def run(self):
         self.logger.info("validating integration tests")
 
-        df_out = self.spark.table("report.order_agg")
-
-        count = df_out.count()
-        if count != 2:
-            raise RuntimeError(f"Expected 2 rows in report.order_agg, got {count}")
+        catalog = self.config.get_value("catalog")
 
         expected_data = [
             ("John Doe", 3, 100.0),
@@ -30,4 +26,9 @@ class Validate(BaseTask):
         )
         df_expected = self.spark.createDataFrame(expected_data, schema=expected_schema)
 
-        assertDataFrameEqual(df_out, df_expected)
+        for table in (f"{catalog}.report.order_agg", f"{catalog}.report.order_agg_sdp"):
+            df_out = self.spark.table(table)
+            count = df_out.count()
+            if count != 2:
+                raise RuntimeError(f"Expected 2 rows in {table}, got {count}")
+            assertDataFrameEqual(df_out, df_expected)

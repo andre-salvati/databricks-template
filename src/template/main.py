@@ -4,7 +4,6 @@ import sys
 
 from tests.job1.integration_setup import Setup
 from tests.job1.integration_validate import Validate
-from tests.job1_sdp.integration_validate import ValidateSdp
 
 from .config import Config
 from .job1.extract_source1 import ExtractSource1
@@ -23,7 +22,6 @@ TASKS = {
     "seed_sources": SeedSources,
     "setup": Setup,
     "validate": Validate,
-    "validate_sdp": ValidateSdp,
 }
 
 

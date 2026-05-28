@@ -299,7 +299,11 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
 
 
 def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
-    """Integration test for the job1 batch ETL: setup → run (job1) → validate."""
+    """Integration test: setup → run (job1 batch) + run_sdp (pipeline) in parallel → validate.
+
+    A single validate task waits for both run and run_sdp to finish, then checks
+    both the batch output (report.order_agg) and the SDP output (report.order_agg_sdp).
+    """
     tasks = [
         Task(
             task_key="setup",
@@ -314,68 +318,25 @@ def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
             run_job_task=RunJobTask(job_id=f"${{{f'resources.jobs.{JOB_NAME}.id'}}}"),
         ),
         Task(
-            task_key="validate",
-            max_retries=0,
-            timeout_seconds=TIMEOUT_INTEGRATION_S,
-            environment_key="default",
-            depends_on=[TaskDependency(task_key="run")],
-            python_wheel_task=_wheel_task(),
-        ),
-    ]
-
-    job = Job(
-        name=f"{JOB_NAME}_${{bundle.target}}_integration_test",
-        timeout_seconds=3600,
-        max_concurrent_runs=1,
-        queue=QueueSettings(enabled=True),
-        parameters=[
-            JobParameterDefinition(name="log_level", default=DEFAULT_LOG_LEVEL),
-            JobParameterDefinition(name="quarantine_fail_ratio", default=DEFAULT_QUARANTINE_FAIL_RATIO),
-            JobParameterDefinition(name="seed_date", default=""),
-        ],
-        tags=_tags(environment),
-        environments=_environments(),
-        tasks=tasks,
-    )
-
-    d = job.as_dict()
-    d["deployment"] = {"kind": "BUNDLE"}
-
-    if environment in ("staging", "prod"):
-        d["run_as"] = {"service_principal_name": sp_id}
-        d["permissions"] = [{"service_principal_name": sp_id, "level": "CAN_MANAGE"}]
-
-    return d
-
-
-def _build_job_sdp_integration_test(environment: str, sp_id: str | None) -> dict:
-    """Integration test for the job1_sdp pipeline: run_sdp (pipeline) → validate_sdp.
-
-    No setup task — relies on job1_integration_test having already seeded
-    external_source.* in the same CI run. Both jobs share the staging catalog,
-    so running setup twice in parallel would cause a DROP/CREATE race on the schemas.
-    CI sequences job1 before job1_sdp to avoid this.
-    """
-    tasks = [
-        Task(
             task_key="run_sdp",
+            depends_on=[TaskDependency(task_key="setup")],
             pipeline_task=PipelineTask(
                 pipeline_id="${resources.pipelines.job1_sdp.id}",
                 full_refresh=True,
             ),
         ),
         Task(
-            task_key="validate_sdp",
+            task_key="validate",
             max_retries=0,
             timeout_seconds=TIMEOUT_INTEGRATION_S,
             environment_key="default",
-            depends_on=[TaskDependency(task_key="run_sdp")],
+            depends_on=[TaskDependency(task_key="run"), TaskDependency(task_key="run_sdp")],
             python_wheel_task=_wheel_task(),
         ),
     ]
 
     job = Job(
-        name=f"{JOB_NAME}_sdp_${{bundle.target}}_integration_test",
+        name=f"{JOB_NAME}_${{bundle.target}}_integration_test",
         timeout_seconds=3600,
         max_concurrent_runs=1,
         queue=QueueSettings(enabled=True),
@@ -415,7 +376,6 @@ def main():
     jobs: dict = {JOB_NAME: _build_job(env, sp_id)}
     if env in ("dev", "staging"):
         jobs[f"{JOB_NAME}_integration_test"] = _build_job_integration_test(env, sp_id)
-        jobs[f"{JOB_NAME}_sdp_integration_test"] = _build_job_sdp_integration_test(env, sp_id)
 
     output: dict = {"resources": {"jobs": jobs}}
     if sp_id is not None:
