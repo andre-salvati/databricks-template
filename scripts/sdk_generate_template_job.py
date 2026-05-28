@@ -15,6 +15,7 @@ from databricks.bundles.jobs import (
     JobsHealthOperator,
     JobsHealthRule,
     JobsHealthRules,
+    PipelineTask,
     PythonWheelTask,
     QueueSettings,
     RunJobTask,
@@ -298,6 +299,7 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
 
 
 def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
+    """Integration test for the job1 batch ETL: setup → run (job1) → validate."""
     tasks = [
         Task(
             task_key="setup",
@@ -346,6 +348,65 @@ def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
     return d
 
 
+def _build_job_sdp_integration_test(environment: str, sp_id: str | None) -> dict:
+    """Integration test for the job1_sdp pipeline: setup → run_sdp (pipeline) → validate_sdp.
+
+    Kept separate from job1_integration_test so CI can detect which component changed
+    (src/template/job1/** vs src/template/job1_sdp/**) and trigger only the relevant
+    test. Each job seeds its own data via the shared setup task, so they are fully
+    independent and can run in parallel across CI runs on different branches.
+    """
+    tasks = [
+        Task(
+            task_key="setup",
+            max_retries=0,
+            timeout_seconds=TIMEOUT_INTEGRATION_S,
+            environment_key="default",
+            python_wheel_task=_wheel_task(),
+        ),
+        Task(
+            task_key="run_sdp",
+            depends_on=[TaskDependency(task_key="setup")],
+            pipeline_task=PipelineTask(
+                pipeline_id="${resources.pipelines.job1_sdp.id}",
+                full_refresh=True,
+            ),
+        ),
+        Task(
+            task_key="validate_sdp",
+            max_retries=0,
+            timeout_seconds=TIMEOUT_INTEGRATION_S,
+            environment_key="default",
+            depends_on=[TaskDependency(task_key="run_sdp")],
+            python_wheel_task=_wheel_task(),
+        ),
+    ]
+
+    job = Job(
+        name=f"{JOB_NAME}_sdp_${{bundle.target}}_integration_test",
+        timeout_seconds=3600,
+        max_concurrent_runs=1,
+        queue=QueueSettings(enabled=True),
+        parameters=[
+            JobParameterDefinition(name="log_level", default=DEFAULT_LOG_LEVEL),
+            JobParameterDefinition(name="quarantine_fail_ratio", default=DEFAULT_QUARANTINE_FAIL_RATIO),
+            JobParameterDefinition(name="seed_date", default=""),
+        ],
+        tags=_tags(environment),
+        environments=_environments(),
+        tasks=tasks,
+    )
+
+    d = job.as_dict()
+    d["deployment"] = {"kind": "BUNDLE"}
+
+    if environment in ("staging", "prod"):
+        d["run_as"] = {"service_principal_name": sp_id}
+        d["permissions"] = [{"service_principal_name": sp_id, "level": "CAN_MANAGE"}]
+
+    return d
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate Databricks Jobs YAML")
     parser.add_argument("environment", help="Target environment (dev, staging, prod)")
@@ -362,6 +423,7 @@ def main():
     jobs: dict = {JOB_NAME: _build_job(env, sp_id)}
     if env in ("dev", "staging"):
         jobs[f"{JOB_NAME}_integration_test"] = _build_job_integration_test(env, sp_id)
+        jobs[f"{JOB_NAME}_sdp_integration_test"] = _build_job_sdp_integration_test(env, sp_id)
 
     output: dict = {"resources": {"jobs": jobs}}
     if sp_id is not None:

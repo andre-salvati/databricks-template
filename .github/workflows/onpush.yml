@@ -20,16 +20,15 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
+  DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
+  DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
+  TEMPLATE_ALERT_EMAILS: ${{ secrets.TEMPLATE_ALERT_EMAILS }}
+
 jobs:
-  ci-pipeline:
-
+  build-and-deploy-staging:
     runs-on: ubuntu-latest
-
-    env:
-      DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
-      DATABRICKS_CLIENT_ID:  ${{ secrets.DATABRICKS_CLIENT_ID }}
-      DATABRICKS_CLIENT_SECRET:  ${{ secrets.DATABRICKS_CLIENT_SECRET }}
-      TEMPLATE_ALERT_EMAILS: ${{ secrets.TEMPLATE_ALERT_EMAILS }}
 
     steps:
       - uses: actions/checkout@v4
@@ -67,21 +66,71 @@ jobs:
       - name: Validate bundle (staging)
         run: |
           uv run python ./scripts/sdk_generate_template_job.py staging
+          uv run python ./scripts/sdk_generate_sdp_pipeline.py staging
           uv run databricks bundle validate --target staging
 
       - name: Deploy on staging
         run: make deploy env=staging
 
-      - name: Run on staging (integration tests)
-        run: make run env=staging
+  integration-tests:
+    needs: build-and-deploy-staging
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: job1 pipeline
+            make_target: run
+          - name: job1_sdp pipeline
+            make_target: run-sdp
+    name: Integration tests (${{ matrix.name }})
 
-      # Only deploy to prod from main. Feature branches must merge before they reach prod.
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.8"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@v0.298.0
+
+      - name: Run on staging (${{ matrix.name }})
+        run: make ${{ matrix.make_target }} env=staging
+
+  deploy-prod:
+    needs: integration-tests
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.9.8"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: Install dependencies
+        run: make sync
+
+      - name: Install Databricks CLI
+        uses: databricks/setup-cli@v0.298.0
+
       - name: Validate bundle (prod)
-        if: github.ref == 'refs/heads/main'
         run: |
           uv run python ./scripts/sdk_generate_template_job.py prod
+          uv run python ./scripts/sdk_generate_sdp_pipeline.py prod
           uv run databricks bundle validate --target prod
 
       - name: Deploy on prod
-        if: github.ref == 'refs/heads/main'
         run: make deploy env=prod

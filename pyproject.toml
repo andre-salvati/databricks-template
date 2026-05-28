@@ -53,6 +53,10 @@ target-version = "py312"
 select = ["E", "F", "W", "I"]
 ignore = []
 
+[tool.ruff.lint.per-file-ignores]
+# spark is injected by the SDP runtime — not a normal Python import
+"src/template/job1_sdp/pipeline.py" = ["F821"]
+
 [tool.coverage.run]
 source = ["."]
 omit = ["tests/*", "setup.py"]

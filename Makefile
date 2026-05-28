@@ -24,8 +24,14 @@ whoami:
 
 deploy: whoami
 	uv run python ./scripts/sdk_generate_template_job.py $(env)
-	uv run databricks bundle deploy --target $(env) --auto-approve
+	uv run python ./scripts/sdk_generate_sdp_pipeline.py $(env)
+	uv run databricks bundle deploy --target $(env)
 
 run: whoami
 	uv run databricks bundle run job1_integration_test --target $(env)
+
+# Run only the SDP integration test (setup → run_sdp pipeline → validate_sdp).
+# Used by CI when only src/template/job1_sdp/** or tests/job1_sdp/** changed.
+run-sdp: whoami
+	uv run databricks bundle run job1_sdp_integration_test --target $(env)
 
