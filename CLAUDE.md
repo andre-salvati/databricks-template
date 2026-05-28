@@ -35,7 +35,7 @@ make test              # Run pytest with coverage
 make pre-commit        # Update and run pre-commit hooks (ruff lint/format)
 make init              # One-time workspace bootstrap (SP, catalogs, schemas, grants). Edit S3 path first.
                        # If workspace has >1 SQL warehouse, pass --warehouse-name to the underlying script.
-make deploy env=dev    # Generate jobs.yml + deploy bundle to target env (dev/staging/prod)
+make deploy env=dev    # Generate resources/jobs.yml (jobs + SDP pipeline) + deploy bundle to target env (dev/staging/prod)
 make run env=dev       # Run integration test job on a target env (dev or staging)
 ```
 
@@ -55,7 +55,7 @@ uv run pytest tests/job1/unit_test.py::test_enrich_orders
 
 `main.py` parses CLI args → instantiates `Config` → dispatches to a task class via `TASKS` dict → calls `.run()`.
 
-Each Databricks job task maps to one class. The `--task` arg value must match a key in `TASKS`. Job definitions are **generated** (not hand-authored) by `scripts/sdk_generate_template_job.py` into `resources/jobs.yml`, which is then consumed by the bundle. Never edit `resources/jobs.yml` directly.
+Each Databricks job task maps to one class. The `--task` arg value must match a key in `TASKS`. Job definitions **and the SDP pipeline** are **generated** (not hand-authored) by `scripts/sdk_generate_template_job.py` into `resources/jobs.yml`, which is then consumed by the bundle. Never edit `resources/jobs.yml` directly.
 
 ### CLI surface
 
@@ -159,4 +159,4 @@ On every push: install deps → unit tests → bundle validate → deploy to sta
 - Don't add `CREATE CATALOG` or `CREATE SCHEMA` calls outside the `args.env == "dev"` branch in `config.py`. Staging/prod catalogs and schemas are owned by `make init`; runtime jobs run without those privileges.
 - Don't commit `resources/jobs.yml` (gitignored — regenerated on every deploy).
 - Don't commit `.databricks-resources.json` (gitignored — local provisioning state, diverges per developer).
-- Don't hand-edit `resources/jobs.yml` — it's overwritten on every deploy. Change `scripts/sdk_generate_template_job.py` instead.
+- Don't hand-edit `resources/jobs.yml` — it's overwritten on every deploy. Change `scripts/sdk_generate_template_job.py` instead (it generates both jobs and the SDP pipeline into one file).

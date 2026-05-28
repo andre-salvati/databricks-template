@@ -35,8 +35,19 @@ from databricks.sdk import WorkspaceClient
 JOB_NAME = "job1"
 PIPELINE_NAME = "job1_sdp"
 
-# Pin DQX to the same version declared in pyproject.toml dependencies.
-DQX_PACKAGE = "databricks-labs-dqx==0.12.0"
+
+def _dqx_package() -> str:
+    """Read the DQX version from pyproject.toml so it stays in sync with the runtime dep."""
+    pyproject = Path(__file__).resolve().parent.parent / "pyproject.toml"
+    with open(pyproject, "rb") as f:
+        deps = tomllib.load(f)["project"]["dependencies"]
+    for dep in deps:
+        if dep.startswith("databricks-labs-dqx"):
+            return dep
+    raise ValueError("databricks-labs-dqx not found in pyproject.toml dependencies")
+
+
+DQX_PACKAGE = _dqx_package()
 
 # Service principal name. "make init" overrides with parameter.
 SP_DISPLAY_NAME = "template-sp"
@@ -409,7 +420,7 @@ def _build_pipeline(environment: str, catalog: str, sp_id: str | None) -> dict:
 
 def main():
     parser = argparse.ArgumentParser(description="Generate Databricks Jobs YAML")
-    parser.add_argument("environment", help="Target environment (dev, staging, prod)")
+    parser.add_argument("environment", choices=["dev", "staging", "prod"])
     args = parser.parse_args()
 
     env = args.environment

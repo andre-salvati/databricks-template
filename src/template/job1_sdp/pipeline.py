@@ -19,7 +19,7 @@ Data flow (all batch tables / materialized views — full reprocess per run):
 
 Catalog resolution
 ------------------
-``target_catalog`` is resolved at **generate time** by sdk_generate_sdp_pipeline.py
+``target_catalog`` is resolved at **generate time** by sdk_generate_template_job.py
 (using WorkspaceClient, mirroring Config.__init__) and stamped into the pipeline's
 configuration block.  pipeline.py reads it via ``spark.conf.get("target_catalog")``
 — no runtime WorkspaceClient call is needed for catalog lookup.
