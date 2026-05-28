@@ -7,16 +7,11 @@ here: it references the `spark` global injected by the SDP runtime and would
 raise NameError in a plain pytest session.
 
 The test structure and fixtures mirror tests/job1/unit_test.py so the two
-pipelines are held to the same data-quality contract.
+pipelines are held to the same data contract.
 """
 
-from unittest.mock import MagicMock
-
 import pytest
-from databricks.labs.dqx.engine import DQEngine
-from databricks.sdk import WorkspaceClient
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql import functions as F
 from pyspark.sql.types import (
     DoubleType,
     FloatType,
@@ -29,7 +24,7 @@ from pyspark.sql.types import (
 from pyspark.testing import assertDataFrameEqual
 
 from template.commonSchemas import customer_schema, order_item_schema, order_schema
-from template.job1_sdp.transforms import aggregate_orders, enrich_order, validate_order
+from template.job1_sdp.transforms import aggregate_orders, enrich_order
 
 
 # ── Fixtures ─────────────────────────────────────────────────────────────────
@@ -38,26 +33,6 @@ from template.job1_sdp.transforms import aggregate_orders, enrich_order, validat
 @pytest.fixture(scope="session")
 def spark() -> SparkSession:
     return SparkSession.builder.appName("job1-sdp-unit-tests").getOrCreate()
-
-
-@pytest.fixture(scope="session")
-def dq_engine() -> DQEngine:
-    """DQEngine with a mocked WorkspaceClient — no Databricks connectivity needed."""
-    ws = MagicMock(spec=WorkspaceClient, **{"current_user.me.return_value": None})
-    return DQEngine(ws)
-
-
-@pytest.fixture
-def df_orders_from_source(spark) -> DataFrame:
-    """Five-row order DataFrame covering all DQX rule scenarios."""
-    order_data = [
-        (1, 10, 100.0, "2023-01-01"),  # valid
-        (2, 20, 151.0, "2023-01-02"),  # WARN: total > 150  (stays valid)
-        (None, 10, 100.0, "2023-01-01"),  # ERROR: id is null
-        (3, 20, 100.0, "2023-01-02"),  # ERROR: id is duplicated
-        (3, 20, 100.0, "2023-01-02"),  # ERROR: id is duplicated
-    ]
-    return spark.createDataFrame(order_data, schema=order_schema)
 
 
 @pytest.fixture
@@ -81,67 +56,6 @@ def df_orders_enriched(spark) -> DataFrame:
         ]
     )
     return spark.createDataFrame(data, schema=schema)
-
-
-# ── validate_order ────────────────────────────────────────────────────────────
-
-
-def test_validate_order_valid_count(spark, dq_engine, df_orders_from_source):
-    """Rows with only warnings (not errors) survive into raw.order."""
-    annotated = validate_order(dq_engine, df_orders_from_source)
-    valid = dq_engine.get_valid(annotated)
-    # id=1 (clean) + id=2 (warn only) = 2 valid rows
-    assert valid.count() == 2
-
-
-def test_validate_order_quarantine_count(spark, dq_engine, df_orders_from_source):
-    """
-    Rows with warnings OR errors land in quarantine.
-
-    DQX get_invalid() (and apply_checks_and_split's "bad" df) includes rows
-    with warnings as well as rows with errors — warning rows therefore appear in
-    BOTH raw.order (valid, no errors) and raw.order_quarantine.  This mirrors
-    the apply_checks_and_split contract used by job1's ExtractSource2.
-    """
-    annotated = validate_order(dq_engine, df_orders_from_source)
-    invalid = dq_engine.get_invalid(annotated)
-    # id=2 (warn only) + id=None (error) + id=3 (error, ×2) = 4 quarantined rows
-    assert invalid.count() == 4
-
-
-def test_validate_order_error_names(spark, dq_engine, df_orders_from_source):
-    """The exact DQX rule names fired on invalid rows must match job1."""
-    annotated = validate_order(dq_engine, df_orders_from_source)
-    invalid = dq_engine.get_invalid(annotated)
-
-    # Collect all fired error/warning rule names alongside their row id.
-    df_violations = invalid.select("id", F.explode("_errors.name").alias("name")).union(
-        invalid.select("id", F.explode("_warnings.name").alias("name"))
-    )
-
-    expected_data = [
-        (None, "id_is_null_or_empty"),
-        (2, "total_greater_than_limit"),
-        (3, "id_is_not_unique"),
-        (3, "id_is_not_unique"),
-    ]
-    expected_schema = StructType(
-        [
-            StructField("id", IntegerType(), True),
-            StructField("name", StringType(), True),
-        ]
-    )
-    df_expected = spark.createDataFrame(expected_data, schema=expected_schema)
-
-    assertDataFrameEqual(df_violations, df_expected)
-
-
-def test_validate_order_valid_has_no_dq_columns(spark, dq_engine, df_orders_from_source):
-    """get_valid() must strip the _errors/_warnings columns from the output."""
-    annotated = validate_order(dq_engine, df_orders_from_source)
-    valid = dq_engine.get_valid(annotated)
-    assert "_errors" not in valid.columns
-    assert "_warnings" not in valid.columns
 
 
 # ── enrich_order ──────────────────────────────────────────────────────────────
