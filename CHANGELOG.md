@@ -1,0 +1,91 @@
+# Changelog
+
+---
+
+## [#26](https://github.com/andre-salvati/databricks-template/pull/26) · 2026-05-28 · refactor: convert SDP bronze tables to materialized_view, remove DQX from pipeline
+
+Converted all bronze table functions in `job1_sdp/pipeline.py` from `@dp.table` to `@dp.materialized_view` so Enzyme can track Delta version watermarks end-to-end without forcing full recomputes. Removed DQX from the SDP pipeline entirely because DQX's non-deterministic `run_time` timestamp caused Enzyme to treat annotated tables as changed on every run, propagating recomputes to all downstream materialized views. Data quality validation for order data is retained in the batch `job1`'s `ExtractSource2` task where DQX runs safely outside the incremental engine.
+
+---
+
+## [#25](https://github.com/andre-salvati/databricks-template/pull/25) · 2026-05-28 · feat: add job1_sdp Lakeflow pipeline with parallel CI integration tests
+
+Added a twin Lakeflow Spark Declarative Pipeline (`job1_sdp`) that runs the same medallion ETL as the existing batch `job1` using `@dp.table` and `@dp.materialized_view` decorators, demonstrating both paradigms from a single codebase. Consolidated job and SDP pipeline generation into a single `sdk_generate_template_job.py` script that produces one `resources/jobs.yml`, replacing the separate `sdk_generate_sdp_pipeline.py`. The CI integration test DAG was unified so `setup → (run + run_sdp in parallel) → validate` covers both pipelines in a single test run.
+
+---
+
+## [#24](https://github.com/andre-salvati/databricks-template/pull/24) · 2026-05-27 · feat: add seed_sources task with --seed-date parameter
+
+Added a `SeedSources` task that creates and daily-updates `external_source` tables in production, closing a gap where prod ETL jobs would fail with table-not-found errors because no seeding mechanism existed outside of the destructive integration test setup. Introduced a `--seed-date` job-level parameter allowing operators to backfill a specific day by overriding the default (today at runtime). The task is intentionally prod-only since dev/staging use the integration test `setup` task to own `external_source` with controlled data.
+
+---
+
+## [#23](https://github.com/andre-salvati/databricks-template/pull/23) · 2026-05-27 · refactor: move integration_setup/validate from src/ to tests/
+
+Moved `integration_setup.py` and `integration_validate.py` from `src/template/job1/` to `tests/job1/`, consolidating all test code under `tests/` and removing test helpers from the production source tree. To keep them deployable as Databricks wheel tasks dispatched via `main.py`'s `TASKS` dict, `tests/` was added to the hatch wheel build alongside `src/template/`. This is safe because the integration test job only exists in dev/staging; the prod job never references `setup` or `validate`.
+
+---
+
+## [#22](https://github.com/andre-salvati/databricks-template/pull/22) · 2026-05-27 · refactor: remove --skip flag and ops.config skip table
+
+Removed the `--skip` CLI flag and the `ops.config` Delta table that backed the application-level task skip mechanism. Task-level skipping is now handled by Databricks Lakeflow's native disabled-tasks feature, which is visible in the DAG, survives deploys, and requires no application code. The `ops` schema is retained for the `ops._health` health-check table.
+
+---
+
+## [#21](https://github.com/andre-salvati/databricks-template/pull/21) · 2026-05-27 · Prod hardening: SP run-as, catalog isolation, structured logging, CI gates
+
+Hardened production deployments by pinning `run_as` and `permissions` to the service principal's numeric `application_id` and setting `mode: production` in `databricks.yml`, so only CI can deploy to prod. Introduced per-developer `dev_{user}` catalog isolation created lazily at runtime, and removed all auto-creation of catalogs/schemas in staging/prod (now owned exclusively by `make init`). Replaced unreachable serverless environment variables with `JobParameterDefinition` job-level parameters, and added structured logging with `run_id` stamped on every log line via a `logging.Filter`.
+
+---
+
+## [#20](https://github.com/andre-salvati/databricks-template/pull/20) · 2026-05-15 · Add CLAUDE.md and document AI Dev Kit + Claude Code in README
+
+Added `CLAUDE.md` at the project root documenting the Databricks AI Dev Kit and MCP workflow, architecture decisions, CLI commands, and coding conventions for Claude Code sessions. Updated `README.md` to reference the AI Dev Kit and Claude Code tooling with links to related resources and an optional install step. The `.claude/` directory is kept gitignored so per-developer settings stay local; only `CLAUDE.md` is tracked.
+
+---
+
+## [#19](https://github.com/andre-salvati/databricks-template/pull/19) · 2026-05-05 · Introduce service principals and use SDK to generate job definitions
+
+Replaced Jinja-based job definitions with Python SDK-generated definitions for greater type safety and maintainability. Added workspace initialization support for service principals, catalogs, and schema creation, and introduced a task registry pattern in `main.py` for cleaner task dispatch. Updated the Databricks CLI to 0.298.0, set the serverless environment to version 5, and cleaned up GitHub Actions configurations and documentation.
+
+---
+
+## [#18](https://github.com/andre-salvati/databricks-template/pull/18) · 2026-02-11 · improve git parameters
+
+Updated how git parameters (branch, PR number, actor) are passed through the CI/CD and job generation workflow. No detailed description was provided for this change. A maintenance release improving git metadata propagation in the deployment pipeline.
+
+---
+
+## [#14](https://github.com/andre-salvati/databricks-template/pull/14) · 2026-02-05 · Upgrade to DBR 18 LTS, enforce CLI version, and improve CI/CD traceability
+
+Upgraded the template to Databricks Runtime 18.0 LTS and PySpark 4.1, and pinned the minimum Databricks CLI version via `databricks_cli_version` in `databricks.yml`. Updated GitHub Actions to capture branch name, PR number, and actor, passing them into the job generation step for richer staging/prod job metadata. Refreshed documentation and SDK demo scripts.
+
+---
+
+## [#13](https://github.com/andre-salvati/databricks-template/pull/13) · 2025-11-08 · update to Spark 4 and use uv as package manager
+
+Migrated the package manager from `pipenv` to `uv`, reducing CI pipeline execution time from 7.5 to 4.5 minutes. Upgraded to Databricks Runtime 17.3 LTS with Spark 4 (PySpark 4.0), updating all major dependencies including numpy, pandas, pyarrow, pydantic, pytest, and pyspark. Renamed the `conf/` directory to `resources/` and moved pre-commit configuration into `pyproject.toml`.
+
+---
+
+## [#12](https://github.com/andre-salvati/databricks-template/pull/12) · 2025-07-25 · Improve project structure
+
+Improved project structure by splitting job source code and test code into separate job-specific subdirectories (e.g., `job1/`, `job2/`), enhancing maintainability and clarity. Production logic and test logic are now co-located by job rather than mixed in a flat directory. No functional changes to pipeline behavior were introduced.
+
+---
+
+## [#11](https://github.com/andre-salvati/databricks-template/pull/11) · 2025-07-16 · Add data quality checks
+
+Added data quality checks to the pipeline using the Databricks DQX framework, with rules validating row-level and dataset-level conditions and quarantining invalid rows into separate tables. Unit tests were added to cover the data quality check logic. This establishes the DQX pattern that subsequent tasks follow.
+
+---
+
+## [#10](https://github.com/andre-salvati/databricks-template/pull/10) · 2025-07-08 · Isolate dev catalog, integration tests, test coverage
+
+Introduced per-developer catalog isolation in the dev environment by reading the workspace username as a task parameter, eliminating the need for a `config.ini` file and preventing catalog collisions between concurrent developers. Added an integration test job with dedicated `setup` and `validate` tasks to automate end-to-end pipeline testing, and applied test coverage tooling for better visibility on tested code paths. Updated production deployment to use a shared folder and simplified documentation.
+
+---
+
+## [#8](https://github.com/andre-salvati/databricks-template/pull/8) · 2025-06-18 · Use the new free workspace and other improvements
+
+Adopted the new Databricks Free Workspace as a supported deployment target, switching all workflow configurations to serverless since the Free Workspace only supports serverless compute. Unified task-skipping logic across all environments using a `system.config` table, removing environment-specific branching. Simplified the Makefile and pre-commit configuration for easier developer onboarding.
