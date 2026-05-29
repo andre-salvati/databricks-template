@@ -35,7 +35,7 @@ class SeedSources(BaseTask):
         self._ensure_tables(catalog)
 
         count = self.spark.table(f"{catalog}.{SCHEMA}.customer").count()
-        if count == 0:
+        if count < _INITIAL_CUSTOMERS:
             self.logger.info(
                 "initial load: %d customers, %d orders, %d items",
                 _INITIAL_CUSTOMERS,
@@ -98,19 +98,13 @@ class SeedSources(BaseTask):
     # ------------------------------------------------------------------
 
     def _seed_incremental(self, catalog: str, seed_date: str) -> None:
-        self._build_incremental_orders(seed_date).createOrReplaceTempView("_seed_incr_orders")
-        self.spark.sql(f"""
-            MERGE INTO {catalog}.{SCHEMA}.order AS t
-            USING _seed_incr_orders AS s ON t.id = s.id
-            WHEN NOT MATCHED THEN INSERT *
-        """)
+        self._build_incremental_orders(seed_date).write.mode("append").option("overwriteSchema", "false").saveAsTable(
+            f"{catalog}.{SCHEMA}.order"
+        )
 
-        self._build_incremental_items(seed_date).createOrReplaceTempView("_seed_incr_items")
-        self.spark.sql(f"""
-            MERGE INTO {catalog}.{SCHEMA}.order_item AS t
-            USING _seed_incr_items AS s ON t.id_order = s.id_order AND t.seq = s.seq
-            WHEN NOT MATCHED THEN INSERT *
-        """)
+        self._build_incremental_items(seed_date).write.mode("append").option("overwriteSchema", "false").saveAsTable(
+            f"{catalog}.{SCHEMA}.order_item"
+        )
 
         df_customers = self._build_customer_updates(seed_date)
         df_customers.createOrReplaceTempView("_seed_customer_updates")
