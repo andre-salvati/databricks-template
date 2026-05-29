@@ -2,7 +2,7 @@
 
 ---
 
-## [#27](https://github.com/andre-salvati/databricks-template/pull/27) · 2026-05-29 · feat: add load-test mode to integration tests via job parameter
+## [#28](https://github.com/andre-salvati/databricks-template/pull/28) · 2026-05-29 · feat: add load-test mode to integration tests via job parameter
 
 Added a `load_test` job parameter (default `"false"`) to the integration test job in both dev and staging. When set to `"true"`, the existing `Setup` and `Validate` tasks branch into load-test mode: `Setup` seeds 200 customers, 500k orders, and 200 order_items using `spark.range()` (distributed generation, no driver-side Python loops), and `Validate` checks that both `report.order_agg` and `report.order_agg_sdp` produce exactly 200 rows with the expected deterministic aggregates (`total_qty=2`, `total_value=50.0` per customer). The parameter is threaded from the job definition through `_wheel_task(include_load_test=True)` and stored in `Config.params` via the same `getattr` pattern used by `seed_date`. No new task classes or job definitions were added — the existing integration test job handles both modes. Added a `## Keep It Simple` principle to `CLAUDE.md`.
 
