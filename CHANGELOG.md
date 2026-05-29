@@ -4,13 +4,17 @@
 
 ## [#29](https://github.com/andre-salvati/databricks-template/pull/29) · 2026-05-29 · feat: scale load-test, rewrite seed_sources, add prod integration job
 
-Scaled load-test seed volumes from 200 customers / 500k orders / 200 order_items to 500 customers / 2M orders / 6M order_items (3 items per order) so the 3-way join in `GenerateOrders` is genuinely heavy and the batch vs incremental timing gap is measurable. Updated `_validate_load_test` assertions accordingly (500 rows, `total_qty=24_000`, `total_value=600_000.0`). Rewrote `seed_sources` with a two-phase design: when `external_source.customer` has fewer than 500 rows it performs a full initial load via `spark.range()`; on every subsequent run it appends 2000 new orders and 2000 order_items via `.write.mode("append")` and MERGEs `country` updates for 50 customers (cycling through all 500 every 10 days). Incremental orders and items use append (not MERGE) since IDs are unique per date. Logs `external_source` row totals after every run. Added `job1_prod_integration` job — `seed_sources` → (`run` + `run_sdp` in parallel), no validate — mirroring the staging integration test pattern; `seed_sources` removed from `job1_prod`'s task graph so the prod ETL job is now structurally identical to staging (`health_check` → extracts → transforms). Updated unit tests to use the new `_build_incremental_*` builder methods.
+Scaled load-test to 500 customers / 2M orders / 6M order_items so the batch vs incremental timing gap is measurable; updated `_validate_load_test` assertions accordingly.
+Rewrote `seed_sources`: initial load when `customer` count < 500, then daily append of 2000 orders + items and MERGE of 50 customer country updates; logs table totals after each run.
+Added `job1_prod_integration` job (seed → run + run_sdp in parallel, no validate); removed `seed_sources` from `job1_prod` so the prod ETL is structurally identical to staging.
 
 ---
 
 ## [#28](https://github.com/andre-salvati/databricks-template/pull/28) · 2026-05-29 · feat: add load-test mode to integration tests via job parameter
 
-Added a `load_test` job parameter (default `"false"`) to the integration test job in both dev and staging. When set to `"true"`, the existing `Setup` and `Validate` tasks branch into load-test mode: `Setup` seeds 200 customers, 500k orders, and 200 order_items using `spark.range()` (distributed generation, no driver-side Python loops), and `Validate` checks that both `report.order_agg` and `report.order_agg_sdp` produce exactly 200 rows with the expected deterministic aggregates (`total_qty=2`, `total_value=50.0` per customer). The parameter is threaded from the job definition through `_wheel_task(include_load_test=True)` and stored in `Config.params` via the same `getattr` pattern used by `seed_date`. No new task classes or job definitions were added — the existing integration test job handles both modes. Added a `## Keep It Simple` principle to `CLAUDE.md`.
+Added a `load_test` job parameter (default `"false"`) to the integration test job.
+When `"true"`, `Setup` seeds 200 customers / 500k orders / 200 order_items via `spark.range()` and `Validate` checks both `report.order_agg` and `report.order_agg_sdp` for deterministic aggregates.
+No new task classes — the existing integration test job handles both modes.
 
 ---
 
