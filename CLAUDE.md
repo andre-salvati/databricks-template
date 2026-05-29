@@ -151,6 +151,11 @@ On every push: install deps → unit tests → bundle validate → deploy to sta
 - **`run_as` field on a job dict takes `application_id` (int), not `display_name`** — the dict key is named `service_principal_name` for legacy reasons, but the value is the numeric app ID.
 - **All writes must use `.option("overwriteSchema", "false")`** on medallion tables. Schema drift is a failure signal, not something to silently absorb. The only exception is `ops._health` (intentional; `overwriteSchema=true` is fine there).
 
+## Git Workflow
+
+- **Never commit directly to `main`.** All changes must go on a feature branch and land via PR. A hook blocks direct commits and pushes to `main`.
+- **Before merging a PR**, always update the PR description to accurately reflect all changes in the branch. Use `gh pr edit <number> --body "..."` to finalize it. A hook automatically uses the PR description as the merge commit message body, so whatever is in the description at merge time becomes the permanent commit record.
+
 ## Don't
 
 - Don't ship changes to the CLI surface (`main.py:arg_parser`), runtime env vars, catalog/schema model, or production guardrails without updating `README.md` and this file (`CLAUDE.md`) in the same commit. Stale docs are worse than no docs — they mislead future contributors and future sessions.
