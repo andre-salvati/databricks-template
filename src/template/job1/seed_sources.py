@@ -91,55 +91,63 @@ class SeedSources(BaseTask):
     # ------------------------------------------------------------------
 
     def _seed_incremental(self, catalog: str, seed_date: str) -> None:
-        day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
-        order_base = _INITIAL_ORDERS + day_offset * _INCREMENTAL_ORDERS
-
-        # 2000 new orders
-        self.spark.range(order_base + 1, order_base + _INCREMENTAL_ORDERS + 1).select(
-            F.col("id").cast(IntegerType()),
-            ((F.col("id") - 1) % _INITIAL_CUSTOMERS + 1).cast(IntegerType()).alias("id_customer"),
-            F.lit(100.0).cast(FloatType()).alias("total"),
-            F.lit(seed_date).alias("date"),
-        ).createOrReplaceTempView("_seed_incr_orders")
+        self._build_incremental_orders(seed_date).createOrReplaceTempView("_seed_incr_orders")
         self.spark.sql(f"""
             MERGE INTO {catalog}.{SCHEMA}.order AS t
             USING _seed_incr_orders AS s ON t.id = s.id
             WHEN NOT MATCHED THEN INSERT *
         """)
 
-        # 1 item per new order
-        self.spark.range(order_base + 1, order_base + _INCREMENTAL_ORDERS + 1).select(
-            F.col("id").cast(IntegerType()).alias("id_order"),
-            F.lit(1).cast(IntegerType()).alias("seq"),
-            F.concat(F.lit("Item_incr_"), F.col("id")).alias("desc_item"),
-            F.lit(2).cast(IntegerType()).alias("qty"),
-            F.lit(50.0).cast(FloatType()).alias("total_item"),
-        ).createOrReplaceTempView("_seed_incr_items")
+        self._build_incremental_items(seed_date).createOrReplaceTempView("_seed_incr_items")
         self.spark.sql(f"""
             MERGE INTO {catalog}.{SCHEMA}.order_item AS t
             USING _seed_incr_items AS s ON t.id_order = s.id_order AND t.seq = s.seq
             WHEN NOT MATCHED THEN INSERT *
         """)
 
-        # Update country for 50 customers, cycling through all 500 every 10 days
-        start = day_offset * _INCREMENTAL_CUSTOMER_UPDATES % _INITIAL_CUSTOMERS
-        customer_ids = [((start + i) % _INITIAL_CUSTOMERS) + 1 for i in range(_INCREMENTAL_CUSTOMER_UPDATES)]
-        new_country = _COUNTRIES[day_offset % len(_COUNTRIES)]
-        update_rows = [(cid, f"Customer_{cid}", new_country) for cid in customer_ids]
-        self.spark.createDataFrame(update_rows, schema=customer_schema).createOrReplaceTempView(
-            "_seed_customer_updates"
-        )
+        df_customers = self._build_customer_updates(seed_date)
+        df_customers.createOrReplaceTempView("_seed_customer_updates")
         self.spark.sql(f"""
             MERGE INTO {catalog}.{SCHEMA}.customer AS t
             USING _seed_customer_updates AS s ON t.id = s.id
             WHEN MATCHED THEN UPDATE SET t.country = s.country
         """)
 
+        day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
         self.logger.info(
             "incremental seed complete date=%s orders=%d items=%d customers_updated=%d country=%s",
             seed_date,
             _INCREMENTAL_ORDERS,
             _INCREMENTAL_ORDERS,
             _INCREMENTAL_CUSTOMER_UPDATES,
-            new_country,
+            _COUNTRIES[day_offset % len(_COUNTRIES)],
         )
+
+    def _build_incremental_orders(self, seed_date: str):
+        day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
+        order_base = _INITIAL_ORDERS + day_offset * _INCREMENTAL_ORDERS
+        return self.spark.range(order_base + 1, order_base + _INCREMENTAL_ORDERS + 1).select(
+            F.col("id").cast(IntegerType()),
+            ((F.col("id") - 1) % _INITIAL_CUSTOMERS + 1).cast(IntegerType()).alias("id_customer"),
+            F.lit(100.0).cast(FloatType()).alias("total"),
+            F.lit(seed_date).alias("date"),
+        )
+
+    def _build_incremental_items(self, seed_date: str):
+        day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
+        order_base = _INITIAL_ORDERS + day_offset * _INCREMENTAL_ORDERS
+        return self.spark.range(order_base + 1, order_base + _INCREMENTAL_ORDERS + 1).select(
+            F.col("id").cast(IntegerType()).alias("id_order"),
+            F.lit(1).cast(IntegerType()).alias("seq"),
+            F.concat(F.lit("Item_incr_"), F.col("id")).alias("desc_item"),
+            F.lit(2).cast(IntegerType()).alias("qty"),
+            F.lit(50.0).cast(FloatType()).alias("total_item"),
+        )
+
+    def _build_customer_updates(self, seed_date: str):
+        day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
+        start = day_offset * _INCREMENTAL_CUSTOMER_UPDATES % _INITIAL_CUSTOMERS
+        customer_ids = [((start + i) % _INITIAL_CUSTOMERS) + 1 for i in range(_INCREMENTAL_CUSTOMER_UPDATES)]
+        new_country = _COUNTRIES[day_offset % len(_COUNTRIES)]
+        update_rows = [(cid, f"Customer_{cid}", new_country) for cid in customer_ids]
+        return self.spark.createDataFrame(update_rows, schema=customer_schema)
