@@ -2,9 +2,21 @@
 
 ---
 
+## [#29](https://github.com/andre-salvati/databricks-template/pull/29) · 2026-05-29 · test: scale load-test data to produce measurable batch vs incremental timing gap
+
+Increased load-test seed volumes from 200 customers / 500k orders / 200 order_items to 500 customers / 2M orders / 6M order_items (3 items per order). The previous design seeded only 200 order_items against 500k orders, so most orders joined to nothing and the compute was trivially fast — no meaningful gap between batch and incremental runs. With 6M order_items proportional to orders, the 3-way join and shuffle in `GenerateOrders` and `GenerateOrdersAgg` now stress serverless enough to produce a 4–6 minute batch runtime, while `job1_sdp` re-runs with no new data remain under a minute (Enzyme detects no changed Delta versions). Updated `_validate_load_test` assertions: 500 expected rows, `total_qty=24_000` and `total_value=600_000.0` per customer (500 customers × 4000 orders × 3 items × qty=2 × total_item=50.0).
+
+---
+
 ## [#28](https://github.com/andre-salvati/databricks-template/pull/28) · 2026-05-29 · feat: add load-test mode to integration tests via job parameter
 
 Added a `load_test` job parameter (default `"false"`) to the integration test job in both dev and staging. When set to `"true"`, the existing `Setup` and `Validate` tasks branch into load-test mode: `Setup` seeds 200 customers, 500k orders, and 200 order_items using `spark.range()` (distributed generation, no driver-side Python loops), and `Validate` checks that both `report.order_agg` and `report.order_agg_sdp` produce exactly 200 rows with the expected deterministic aggregates (`total_qty=2`, `total_value=50.0` per customer). The parameter is threaded from the job definition through `_wheel_task(include_load_test=True)` and stored in `Config.params` via the same `getattr` pattern used by `seed_date`. No new task classes or job definitions were added — the existing integration test job handles both modes. Added a `## Keep It Simple` principle to `CLAUDE.md`.
+
+---
+
+## [#27](https://github.com/andre-salvati/databricks-template/pull/27) · 2026-05-29 · docs: add CHANGELOG and git workflow rules to CLAUDE.md
+
+Added `CHANGELOG.md` at the repo root with entries for the last 15 merged PRs, each with merge date, GitHub link, and a 3-sentence summary of what changed and why. Added a **Git Workflow** section to `CLAUDE.md` with two standing rules: no direct commits to `main` (enforced by a local hook), and always update the PR description before merging (the merge hook uses it as the commit message body). This was a bootstrapping PR — the CHANGELOG entry for #27 itself was omitted at the time and added retroactively in a follow-up.
 
 ---
 

@@ -43,25 +43,25 @@ class Setup(BaseTask):
         )
 
     def _seed_load_test(self, catalog):
-        # 200 customers (ids 1–200)
-        self.spark.range(1, 201).select(
+        # 500 customers (ids 1–500)
+        self.spark.range(1, 501).select(
             F.col("id").cast(IntegerType()),
             F.concat(F.lit("Customer_"), F.col("id")).alias("name"),
             F.lit("USA").alias("country"),
         ).write.saveAsTable(f"{catalog}.{SCHEMA}.customer")
 
-        # 500k orders — customer_id round-robins through 1–200
-        self.spark.range(1, 500_001).select(
+        # 2M orders — customer_id round-robins through 1–500
+        self.spark.range(1, 2_000_001).select(
             F.col("id").cast(IntegerType()),
-            ((F.col("id") - 1) % 200 + 1).cast(IntegerType()).alias("id_customer"),
+            ((F.col("id") - 1) % 500 + 1).cast(IntegerType()).alias("id_customer"),
             F.lit(100.0).cast(FloatType()).alias("total"),
             F.lit("2024-01-01").alias("date"),
         ).write.saveAsTable(f"{catalog}.{SCHEMA}.order")
 
-        # 200 order_items — one item per order for orders 1–200
-        self.spark.range(1, 201).select(
-            F.col("id").cast(IntegerType()).alias("id_order"),
-            F.lit(1).cast(IntegerType()).alias("seq"),
+        # 6M order_items — 3 items per order, covering all 2M orders
+        self.spark.range(1, 6_000_001).select(
+            (F.floor((F.col("id") - 1) / 3) + 1).cast(IntegerType()).alias("id_order"),
+            ((F.col("id") - 1) % 3 + 1).cast(IntegerType()).alias("seq"),
             F.concat(F.lit("Item_"), F.col("id")).alias("desc_item"),
             F.lit(2).cast(IntegerType()).alias("qty"),
             F.lit(50.0).cast(FloatType()).alias("total_item"),
