@@ -38,6 +38,8 @@ def arg_parser():
     # ISO-8601 date (YYYY-MM-DD). Empty string or absent → resolved to today by Config.
     # Filled by {{job.parameters.seed_date}}; override per-run for backfills.
     parser.add_argument("--seed-date", default=None)
+    # Staging-only: "true" activates load-test data volumes in Setup/Validate.
+    parser.add_argument("--load-test", default="false")
 
     return parser
 

@@ -64,6 +64,9 @@ class Config:
         seed_date = (getattr(args, "seed_date", None) or "").strip() or _date.today().isoformat()
         self.params.update({"seed_date": seed_date})
 
+        load_test = getattr(args, "load_test", "false") or "false"
+        self.params.update({"load_test": load_test})
+
         # run_id comes from --run-id={{job.run_id}}. Not exposed as an env var on serverless,
         # so it has to be threaded through as a CLI param. Falls back to "-" for local tests.
         run_id = getattr(args, "run_id", None) or "-"
