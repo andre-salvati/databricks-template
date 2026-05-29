@@ -48,6 +48,13 @@ class SeedSources(BaseTask):
             self.logger.info("incremental seed date=%s", seed_date)
             self._seed_incremental(catalog, seed_date)
 
+        self.logger.info(
+            "external_source totals: customers=%d orders=%d order_items=%d",
+            self.spark.table(f"{catalog}.{SCHEMA}.customer").count(),
+            self.spark.table(f"{catalog}.{SCHEMA}.order").count(),
+            self.spark.table(f"{catalog}.{SCHEMA}.order_item").count(),
+        )
+
     # ------------------------------------------------------------------
     # Table bootstrap
     # ------------------------------------------------------------------
