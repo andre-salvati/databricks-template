@@ -2,6 +2,12 @@
 
 ---
 
+## [#30](https://github.com/andre-salvati/databricks-template/pull/30) · 2026-05-29 · feat: rewrite seed_sources with initial load + daily incremental CDC
+
+Replaced the minimal 1-customer-per-day synthetic seeder with a two-phase design. On first run (empty tables), `seed_sources` performs a full initial load identical to the load-test dataset — 500 customers, 2M orders, 6M order_items — using `spark.range()` distributed writes, giving prod a realistic baseline for the batch vs incremental comparison. On every subsequent daily run it appends 2000 new orders (+ 1 item each, MERGE-idempotent by PK) and updates the `country` field for 50 customers (cycling through all 500 every 10 days), simulating realistic daily CDC activity that `job1_sdp` can detect and process incrementally. First-run detection is automatic (row-count check on `external_source.customer`) — no new CLI parameter needed.
+
+---
+
 ## [#29](https://github.com/andre-salvati/databricks-template/pull/29) · 2026-05-29 · test: scale load-test data to produce measurable batch vs incremental timing gap
 
 Increased load-test seed volumes from 200 customers / 500k orders / 200 order_items to 500 customers / 2M orders / 6M order_items (3 items per order). The previous design seeded only 200 order_items against 500k orders, so most orders joined to nothing and the compute was trivially fast — no meaningful gap between batch and incremental runs. With 6M order_items proportional to orders, the 3-way join and shuffle in `GenerateOrders` and `GenerateOrdersAgg` now stress serverless enough to produce a 4–6 minute batch runtime, while `job1_sdp` re-runs with no new data remain under a minute (Enzyme detects no changed Delta versions). Updated `_validate_load_test` assertions: 500 expected rows, `total_qty=24_000` and `total_value=600_000.0` per customer (500 customers × 4000 orders × 3 items × qty=2 × total_item=50.0).
