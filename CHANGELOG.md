@@ -2,6 +2,12 @@
 
 ---
 
+## [#27](https://github.com/andre-salvati/databricks-template/pull/27) · 2026-05-29 · feat: add load-test mode to integration tests via job parameter
+
+Added a `load_test` job parameter (default `"false"`) to the integration test job in both dev and staging. When set to `"true"`, the existing `Setup` and `Validate` tasks branch into load-test mode: `Setup` seeds 200 customers, 500k orders, and 200 order_items using `spark.range()` (distributed generation, no driver-side Python loops), and `Validate` checks that both `report.order_agg` and `report.order_agg_sdp` produce exactly 200 rows with the expected deterministic aggregates (`total_qty=2`, `total_value=50.0` per customer). The parameter is threaded from the job definition through `_wheel_task(include_load_test=True)` and stored in `Config.params` via the same `getattr` pattern used by `seed_date`. No new task classes or job definitions were added — the existing integration test job handles both modes. Added a `## Keep It Simple` principle to `CLAUDE.md`.
+
+---
+
 ## [#26](https://github.com/andre-salvati/databricks-template/pull/26) · 2026-05-28 · refactor: convert SDP bronze tables to materialized_view, remove DQX from pipeline
 
 Converted all bronze table functions in `job1_sdp/pipeline.py` from `@dp.table` to `@dp.materialized_view` so Enzyme can track Delta version watermarks end-to-end without forcing full recomputes. Removed DQX from the SDP pipeline entirely because DQX's non-deterministic `run_time` timestamp caused Enzyme to treat annotated tables as changed on every run, propagating recomputes to all downstream materialized views. Data quality validation for order data is retained in the batch `job1`'s `ExtractSource2` task where DQX runs safely outside the incremental engine.

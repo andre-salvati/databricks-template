@@ -99,19 +99,18 @@ def _get_service_principal_id(display_name: str, profile: str) -> int:
     raise ValueError(f"Service principal '{display_name}' not found in workspace.")
 
 
-def _wheel_task() -> PythonWheelTask:
-    return PythonWheelTask(
-        package_name="template",
-        entry_point="main",
-        parameters=[
-            "--task={{task.name}}",
-            "--env=${bundle.target}",
-            "--run-id={{job.run_id}}",
-            "--log-level={{job.parameters.log_level}}",
-            "--quarantine-fail-ratio={{job.parameters.quarantine_fail_ratio}}",
-            "--seed-date={{job.parameters.seed_date}}",
-        ],
-    )
+def _wheel_task(include_load_test: bool = False) -> PythonWheelTask:
+    params = [
+        "--task={{task.name}}",
+        "--env=${bundle.target}",
+        "--run-id={{job.run_id}}",
+        "--log-level={{job.parameters.log_level}}",
+        "--quarantine-fail-ratio={{job.parameters.quarantine_fail_ratio}}",
+        "--seed-date={{job.parameters.seed_date}}",
+    ]
+    if include_load_test:
+        params.append("--load-test={{job.parameters.load_test}}")
+    return PythonWheelTask(package_name="template", entry_point="main", parameters=params)
 
 
 def _environments() -> list[JobEnvironment]:
@@ -326,13 +325,15 @@ def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
     A single validate task waits for both run and run_sdp to finish, then checks
     both the batch output (report.order_agg) and the SDP output (report.order_agg_sdp).
     """
+    wheel = _wheel_task(include_load_test=True)
+
     tasks = [
         Task(
             task_key="setup",
             max_retries=0,
             timeout_seconds=TIMEOUT_INTEGRATION_S,
             environment_key="default",
-            python_wheel_task=_wheel_task(),
+            python_wheel_task=wheel,
         ),
         Task(
             task_key="run",
@@ -353,20 +354,23 @@ def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
             timeout_seconds=TIMEOUT_INTEGRATION_S,
             environment_key="default",
             depends_on=[TaskDependency(task_key="run"), TaskDependency(task_key="run_sdp")],
-            python_wheel_task=_wheel_task(),
+            python_wheel_task=wheel,
         ),
     ]
+
+    parameters = [
+        JobParameterDefinition(name="log_level", default=DEFAULT_LOG_LEVEL),
+        JobParameterDefinition(name="quarantine_fail_ratio", default=DEFAULT_QUARANTINE_FAIL_RATIO),
+        JobParameterDefinition(name="seed_date", default=""),
+    ]
+    parameters.append(JobParameterDefinition(name="load_test", default="false"))
 
     job = Job(
         name=f"{JOB_NAME}_${{bundle.target}}_integration_test",
         timeout_seconds=3600,
         max_concurrent_runs=1,
         queue=QueueSettings(enabled=True),
-        parameters=[
-            JobParameterDefinition(name="log_level", default=DEFAULT_LOG_LEVEL),
-            JobParameterDefinition(name="quarantine_fail_ratio", default=DEFAULT_QUARANTINE_FAIL_RATIO),
-            JobParameterDefinition(name="seed_date", default=""),
-        ],
+        parameters=parameters,
         tags=_tags(environment),
         environments=_environments(),
         tasks=tasks,

@@ -83,7 +83,13 @@ def test_arg_parser():
     args = parser.parse_args(["--task=extract_source1", "--env=dev"])
 
     assert args == Namespace(
-        task="extract_source1", env="dev", run_id=None, log_level="INFO", quarantine_fail_ratio=1.0, seed_date=None
+        task="extract_source1",
+        env="dev",
+        run_id=None,
+        log_level="INFO",
+        quarantine_fail_ratio=1.0,
+        seed_date=None,
+        load_test="false",
     )
 
 
@@ -97,6 +103,7 @@ def test_arg_parser():
                 log_level="INFO",
                 quarantine_fail_ratio=1.0,
                 seed_date="2024-01-01",
+                load_test="false",
             ),
             {
                 "task": "extract_source1",
@@ -104,6 +111,7 @@ def test_arg_parser():
                 "log_level": "INFO",
                 "quarantine_fail_ratio": 1.0,
                 "seed_date": "2024-01-01",
+                "load_test": "false",
             },
         ),
     ],
