@@ -195,22 +195,7 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
             )
         )
 
-    # seed_sources runs only in prod: staging/dev use the integration test `setup` task
-    # to seed external_source with controlled data, so seed_sources would add noise there.
-    # In prod, seed_sources runs after health_check and before the extract tasks.
-    if environment == "prod":
-        tasks.append(
-            Task(
-                task_key="seed_sources",
-                **_retry_kwargs(retries),
-                timeout_seconds=TIMEOUT_EXTRACT_S,
-                environment_key="default",
-                depends_on=[TaskDependency(task_key="health_check")],
-                python_wheel_task=_wheel_task(),
-            )
-        )
-
-    extract_deps: list[TaskDependency] = [TaskDependency(task_key="seed_sources")] if environment == "prod" else []
+    extract_deps: list[TaskDependency] = [TaskDependency(task_key="health_check")] if environment == "prod" else []
 
     tasks.extend(
         [
@@ -386,6 +371,63 @@ def _build_job_integration_test(environment: str, sp_id: str | None) -> dict:
     return d
 
 
+def _build_job_prod_integration(sp_id: str | None) -> dict:
+    """Prod integration job: seed_sources → run (job1 batch) + run_sdp (pipeline) in parallel.
+
+    Mirrors the staging integration test structure but uses seed_sources instead of the
+    test-only setup task, and omits validate (prod data is synthetic/incremental, not
+    the deterministic fixtures that integration_validate checks).
+    """
+    tasks = [
+        Task(
+            task_key="seed_sources",
+            **_retry_kwargs(2),
+            timeout_seconds=TIMEOUT_EXTRACT_S,
+            environment_key="default",
+            python_wheel_task=_wheel_task(),
+        ),
+        Task(
+            task_key="run",
+            depends_on=[TaskDependency(task_key="seed_sources")],
+            run_job_task=RunJobTask(job_id=f"${{{f'resources.jobs.{JOB_NAME}.id'}}}"),
+        ),
+        Task(
+            task_key="run_sdp",
+            depends_on=[TaskDependency(task_key="seed_sources")],
+            pipeline_task=PipelineTask(
+                pipeline_id="${resources.pipelines.job1_sdp.id}",
+                full_refresh=False,
+            ),
+        ),
+    ]
+
+    job = Job(
+        name=f"{JOB_NAME}_${{bundle.target}}_integration",
+        timeout_seconds=3600,
+        max_concurrent_runs=1,
+        queue=QueueSettings(enabled=True),
+        notification_settings=JobNotificationSettings(
+            no_alert_for_canceled_runs=True,
+            no_alert_for_skipped_runs=True,
+        ),
+        parameters=[
+            JobParameterDefinition(name="log_level", default=DEFAULT_LOG_LEVEL),
+            JobParameterDefinition(name="quarantine_fail_ratio", default=PROD_QUARANTINE_FAIL_RATIO),
+            JobParameterDefinition(name="seed_date", default=""),
+        ],
+        tags=_tags("prod"),
+        environments=_environments(),
+        tasks=tasks,
+    )
+
+    d = job.as_dict()
+    d["deployment"] = {"kind": "BUNDLE"}
+    d["run_as"] = {"service_principal_name": sp_id}
+    d["permissions"] = [{"service_principal_name": sp_id, "level": "CAN_MANAGE"}]
+
+    return d
+
+
 def _resolve_catalog(environment: str) -> str:
     """Compute the target catalog at generation time, mirroring Config.__init__.
 
@@ -440,6 +482,8 @@ def main():
     jobs: dict = {JOB_NAME: _build_job(env, sp_id)}
     if env in ("dev", "staging"):
         jobs[f"{JOB_NAME}_integration_test"] = _build_job_integration_test(env, sp_id)
+    if env == "prod":
+        jobs[f"{JOB_NAME}_prod_integration"] = _build_job_prod_integration(sp_id)
 
     output: dict = {
         "resources": {
