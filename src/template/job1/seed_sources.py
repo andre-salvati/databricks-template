@@ -1,129 +1,154 @@
 from datetime import date as _date
 
-from pyspark.sql import DataFrame
+from pyspark.sql import functions as F
+from pyspark.sql.types import FloatType, IntegerType
 
 from ..baseTask import BaseTask
 from ..commonSchemas import customer_schema, order_item_schema, order_schema
 
 SCHEMA = "external_source"
 
-# Synthetic ID space starts at 1_000 and grows by 10 per day so there is no
-# overlap with integration-test rows (customer ids 10/20, order ids 1-3).
 _EPOCH = _date(2024, 1, 1)
+_COUNTRIES = ["US", "UK", "CA", "DE", "FR"]
 
+_INITIAL_CUSTOMERS = 500
+_INITIAL_ORDERS = 2_000_000
+_INITIAL_ITEMS = 6_000_000  # 3 per order
 
-def _day_offset(seed_date: str) -> int:
-    """Days since _EPOCH — deterministic, collision-free index per calendar day."""
-    return max(0, (_date.fromisoformat(seed_date) - _EPOCH).days)
-
-
-def _base_id(seed_date: str) -> int:
-    """First synthetic primary-key value available for seed_date (10 IDs reserved/day)."""
-    return _day_offset(seed_date) * 10 + 1_000
+_INCREMENTAL_ORDERS = 2_000
+_INCREMENTAL_CUSTOMER_UPDATES = 50
 
 
 class SeedSources(BaseTask):
     """
-    Idempotent daily seeder for external_source tables.
+    Idempotent seeder for external_source tables.
 
-    On first run: creates each table from its declared schema if it does not
-    exist yet (``mode="ignore"`` is a no-op when the table is already present).
-    On every run: appends one day's worth of synthetic rows keyed by seed_date,
-    using MERGE-by-primary-key so reruns of the same day are safe no-ops.
-
-    In a real pipeline, replace the ``_generate_*`` methods with reads from
-    your actual upstream source (S3 landing zone, JDBC connection, REST API,
-    Kafka topic, etc.).  The ``_upsert_*`` helpers stay unchanged.
+    First run (empty tables): full initial load — 500 customers, 2M orders, 6M order_items.
+    Subsequent runs: append 2000 orders (+1 item each) and update 50 customers' country.
+    Incremental IDs are anchored to seed_date so reruns of the same date are no-ops.
     """
 
     def run(self) -> None:
         catalog = self.config.get_value("catalog")
         seed_date = self.config.get_value("seed_date")
-        self.logger.info("seeding external_source tables catalog=%s date=%s", catalog, seed_date)
 
         self._ensure_tables(catalog)
 
-        n_customers = self._upsert_customers(catalog, seed_date)
-        n_orders, n_items = self._upsert_orders(catalog, seed_date)
+        count = self.spark.table(f"{catalog}.{SCHEMA}.customer").count()
+        if count < _INITIAL_CUSTOMERS:
+            self.logger.info(
+                "initial load: %d customers, %d orders, %d items",
+                _INITIAL_CUSTOMERS,
+                _INITIAL_ORDERS,
+                _INITIAL_ITEMS,
+            )
+            self._seed_initial(catalog)
+            self.logger.info("initial load complete")
+        else:
+            self.logger.info("incremental seed date=%s", seed_date)
+            self._seed_incremental(catalog, seed_date)
 
         self.logger.info(
-            "seed complete customers_upserted=%d orders_upserted=%d items_upserted=%d",
-            n_customers,
-            n_orders,
-            n_items,
+            "external_source totals: customers=%d orders=%d order_items=%d",
+            self.spark.table(f"{catalog}.{SCHEMA}.customer").count(),
+            self.spark.table(f"{catalog}.{SCHEMA}.order").count(),
+            self.spark.table(f"{catalog}.{SCHEMA}.order_item").count(),
         )
 
     # ------------------------------------------------------------------
-    # Table bootstrap (idempotent CREATE IF NOT EXISTS)
+    # Table bootstrap
     # ------------------------------------------------------------------
 
     def _ensure_tables(self, catalog: str) -> None:
-        """Create each external_source table from its declared schema when absent."""
         for name, schema in (
             ("customer", customer_schema),
             ("order", order_schema),
             ("order_item", order_item_schema),
         ):
-            (self.spark.createDataFrame([], schema).write.mode("ignore").saveAsTable(f"{catalog}.{SCHEMA}.{name}"))
-            self.logger.info("ensured table %s.%s.%s", catalog, SCHEMA, name)
+            self.spark.createDataFrame([], schema).write.mode("ignore").saveAsTable(f"{catalog}.{SCHEMA}.{name}")
 
     # ------------------------------------------------------------------
-    # Synthetic row generators
-    # Replace with real upstream reads in production.
+    # Initial load (first run only)
     # ------------------------------------------------------------------
 
-    def _generate_customers(self, seed_date: str) -> DataFrame:
-        """One new customer per day; id derived from seed_date so there are no cross-day collisions."""
-        base = _base_id(seed_date)
-        rows = [(base, f"Customer_{base}", "US")]
-        return self.spark.createDataFrame(rows, schema=customer_schema)
+    def _seed_initial(self, catalog: str) -> None:
+        self.spark.range(1, _INITIAL_CUSTOMERS + 1).select(
+            F.col("id").cast(IntegerType()),
+            F.concat(F.lit("Customer_"), F.col("id")).alias("name"),
+            F.lit("US").alias("country"),
+        ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.customer")
 
-    def _generate_orders(self, seed_date: str) -> DataFrame:
-        """Two new orders per day, both belonging to today's customer."""
-        base = _base_id(seed_date)
-        rows = [
-            (base, base, 99.9, seed_date),
-            (base + 1, base, 49.5, seed_date),
-        ]
-        return self.spark.createDataFrame(rows, schema=order_schema)
+        self.spark.range(1, _INITIAL_ORDERS + 1).select(
+            F.col("id").cast(IntegerType()),
+            ((F.col("id") - 1) % _INITIAL_CUSTOMERS + 1).cast(IntegerType()).alias("id_customer"),
+            F.lit(100.0).cast(FloatType()).alias("total"),
+            F.lit("2024-01-01").alias("date"),
+        ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.order")
 
-    def _generate_order_items(self, seed_date: str) -> DataFrame:
-        """Three line items: two for the first order of the day, one for the second."""
-        base = _base_id(seed_date)
-        rows = [
-            (base, 1, "Widget A", 2, 49.95),
-            (base, 2, "Widget B", 1, 49.95),
-            (base + 1, 1, "Widget C", 1, 49.5),
-        ]
-        return self.spark.createDataFrame(rows, schema=order_item_schema)
+        self.spark.range(1, _INITIAL_ITEMS + 1).select(
+            (F.floor((F.col("id") - 1) / 3) + 1).cast(IntegerType()).alias("id_order"),
+            ((F.col("id") - 1) % 3 + 1).cast(IntegerType()).alias("seq"),
+            F.concat(F.lit("Item_"), F.col("id")).alias("desc_item"),
+            F.lit(2).cast(IntegerType()).alias("qty"),
+            F.lit(50.0).cast(FloatType()).alias("total_item"),
+        ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.order_item")
 
     # ------------------------------------------------------------------
-    # Upsert helpers — MERGE by PK so reruns on the same day are no-ops
+    # Incremental (every subsequent run)
     # ------------------------------------------------------------------
 
-    def _upsert_customers(self, catalog: str, seed_date: str) -> int:
-        df = self._generate_customers(seed_date)
-        df.createOrReplaceTempView("_seed_customers")
+    def _seed_incremental(self, catalog: str, seed_date: str) -> None:
+        self._build_incremental_orders(seed_date).write.mode("append").option("overwriteSchema", "false").saveAsTable(
+            f"{catalog}.{SCHEMA}.order"
+        )
+
+        self._build_incremental_items(seed_date).write.mode("append").option("overwriteSchema", "false").saveAsTable(
+            f"{catalog}.{SCHEMA}.order_item"
+        )
+
+        df_customers = self._build_customer_updates(seed_date)
+        df_customers.createOrReplaceTempView("_seed_customer_updates")
         self.spark.sql(f"""
             MERGE INTO {catalog}.{SCHEMA}.customer AS t
-            USING _seed_customers AS s ON t.id = s.id
-            WHEN NOT MATCHED THEN INSERT *
+            USING _seed_customer_updates AS s ON t.id = s.id
+            WHEN MATCHED THEN UPDATE SET t.country = s.country
         """)
-        return df.count()
 
-    def _upsert_orders(self, catalog: str, seed_date: str) -> tuple[int, int]:
-        df_orders = self._generate_orders(seed_date)
-        df_items = self._generate_order_items(seed_date)
-        df_orders.createOrReplaceTempView("_seed_orders")
-        df_items.createOrReplaceTempView("_seed_order_items")
-        self.spark.sql(f"""
-            MERGE INTO {catalog}.{SCHEMA}.order AS t
-            USING _seed_orders AS s ON t.id = s.id
-            WHEN NOT MATCHED THEN INSERT *
-        """)
-        self.spark.sql(f"""
-            MERGE INTO {catalog}.{SCHEMA}.order_item AS t
-            USING _seed_order_items AS s ON t.id_order = s.id_order AND t.seq = s.seq
-            WHEN NOT MATCHED THEN INSERT *
-        """)
-        return df_orders.count(), df_items.count()
+        day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
+        self.logger.info(
+            "incremental seed complete date=%s orders=%d items=%d customers_updated=%d country=%s",
+            seed_date,
+            _INCREMENTAL_ORDERS,
+            _INCREMENTAL_ORDERS,
+            _INCREMENTAL_CUSTOMER_UPDATES,
+            _COUNTRIES[day_offset % len(_COUNTRIES)],
+        )
+
+    def _build_incremental_orders(self, seed_date: str):
+        day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
+        order_base = _INITIAL_ORDERS + day_offset * _INCREMENTAL_ORDERS
+        return self.spark.range(order_base + 1, order_base + _INCREMENTAL_ORDERS + 1).select(
+            F.col("id").cast(IntegerType()),
+            ((F.col("id") - 1) % _INITIAL_CUSTOMERS + 1).cast(IntegerType()).alias("id_customer"),
+            F.lit(100.0).cast(FloatType()).alias("total"),
+            F.lit(seed_date).alias("date"),
+        )
+
+    def _build_incremental_items(self, seed_date: str):
+        day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
+        order_base = _INITIAL_ORDERS + day_offset * _INCREMENTAL_ORDERS
+        return self.spark.range(order_base + 1, order_base + _INCREMENTAL_ORDERS + 1).select(
+            F.col("id").cast(IntegerType()).alias("id_order"),
+            F.lit(1).cast(IntegerType()).alias("seq"),
+            F.concat(F.lit("Item_incr_"), F.col("id")).alias("desc_item"),
+            F.lit(2).cast(IntegerType()).alias("qty"),
+            F.lit(50.0).cast(FloatType()).alias("total_item"),
+        )
+
+    def _build_customer_updates(self, seed_date: str):
+        day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
+        start = day_offset * _INCREMENTAL_CUSTOMER_UPDATES % _INITIAL_CUSTOMERS
+        customer_ids = [((start + i) % _INITIAL_CUSTOMERS) + 1 for i in range(_INCREMENTAL_CUSTOMER_UPDATES)]
+        new_country = _COUNTRIES[day_offset % len(_COUNTRIES)]
+        update_rows = [(cid, f"Customer_{cid}", new_country) for cid in customer_ids]
+        return self.spark.createDataFrame(update_rows, schema=customer_schema)

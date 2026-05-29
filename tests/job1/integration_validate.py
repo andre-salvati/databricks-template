@@ -28,14 +28,14 @@ class Validate(BaseTask):
             assertDataFrameEqual(df_out, df_expected)
 
     def _validate_load_test(self, catalog):
-        # Each of the 200 customers has exactly 1 order_item (qty=2, total_item=50.0),
-        # so the aggregation must produce 200 rows with total_qty=2 and total_value=50.0.
+        # 500 customers × 4000 orders each × 3 items × qty=2, total_item=50.0
+        # → total_qty=24_000 and total_value=600_000.0 per customer
         for table in (f"{catalog}.report.order_agg", f"{catalog}.report.order_agg_sdp"):
             df_out = self.spark.table(table)
             count = df_out.count()
-            if count != 200:
-                raise RuntimeError(f"Expected 200 rows in {table}, got {count}")
-            wrong = df_out.filter((F.col("total_qty") != 2) | (F.col("total_value") != 50.0)).count()
+            if count != 500:
+                raise RuntimeError(f"Expected 500 rows in {table}, got {count}")
+            wrong = df_out.filter((F.col("total_qty") != 24_000) | (F.col("total_value") != 600_000.0)).count()
             if wrong > 0:
                 raise RuntimeError(f"{wrong} rows in {table} have unexpected total_qty/total_value")
 

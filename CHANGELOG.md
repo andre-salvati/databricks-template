@@ -2,9 +2,21 @@
 
 ---
 
+## [#29](https://github.com/andre-salvati/databricks-template/pull/29) · 2026-05-29 · feat: scale load-test, rewrite seed_sources, add prod integration job
+
+Scaled load-test seed volumes from 200 customers / 500k orders / 200 order_items to 500 customers / 2M orders / 6M order_items (3 items per order) so the 3-way join in `GenerateOrders` is genuinely heavy and the batch vs incremental timing gap is measurable. Updated `_validate_load_test` assertions accordingly (500 rows, `total_qty=24_000`, `total_value=600_000.0`). Rewrote `seed_sources` with a two-phase design: when `external_source.customer` has fewer than 500 rows it performs a full initial load via `spark.range()`; on every subsequent run it appends 2000 new orders and 2000 order_items via `.write.mode("append")` and MERGEs `country` updates for 50 customers (cycling through all 500 every 10 days). Incremental orders and items use append (not MERGE) since IDs are unique per date. Logs `external_source` row totals after every run. Added `job1_prod_integration` job — `seed_sources` → (`run` + `run_sdp` in parallel), no validate — mirroring the staging integration test pattern; `seed_sources` removed from `job1_prod`'s task graph so the prod ETL job is now structurally identical to staging (`health_check` → extracts → transforms). Updated unit tests to use the new `_build_incremental_*` builder methods.
+
+---
+
 ## [#28](https://github.com/andre-salvati/databricks-template/pull/28) · 2026-05-29 · feat: add load-test mode to integration tests via job parameter
 
 Added a `load_test` job parameter (default `"false"`) to the integration test job in both dev and staging. When set to `"true"`, the existing `Setup` and `Validate` tasks branch into load-test mode: `Setup` seeds 200 customers, 500k orders, and 200 order_items using `spark.range()` (distributed generation, no driver-side Python loops), and `Validate` checks that both `report.order_agg` and `report.order_agg_sdp` produce exactly 200 rows with the expected deterministic aggregates (`total_qty=2`, `total_value=50.0` per customer). The parameter is threaded from the job definition through `_wheel_task(include_load_test=True)` and stored in `Config.params` via the same `getattr` pattern used by `seed_date`. No new task classes or job definitions were added — the existing integration test job handles both modes. Added a `## Keep It Simple` principle to `CLAUDE.md`.
+
+---
+
+## [#27](https://github.com/andre-salvati/databricks-template/pull/27) · 2026-05-29 · docs: add CHANGELOG and git workflow rules to CLAUDE.md
+
+Added `CHANGELOG.md` at the repo root with entries for the last 15 merged PRs, each with merge date, GitHub link, and a 3-sentence summary of what changed and why. Added a **Git Workflow** section to `CLAUDE.md` with two standing rules: no direct commits to `main` (enforced by a local hook), and always update the PR description before merging (the merge hook uses it as the commit message body). This was a bootstrapping PR — the CHANGELOG entry for #27 itself was omitted at the time and added retroactively in a follow-up.
 
 ---
 
