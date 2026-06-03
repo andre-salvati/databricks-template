@@ -15,11 +15,11 @@ class ExtractSource2(BaseTask):
 
     def validate_order(self, df_order):
         checks = [
-            # Warning if total > 150
+            # Warning if total > 1000
             DQRowRule(
                 column="total",
                 check_func=check_funcs.is_not_greater_than,
-                check_func_kwargs={"limit": 150},
+                check_func_kwargs={"limit": 1000},
                 criticality=Criticality.WARN.value,
             ),
             # Error if ids are not null or empty

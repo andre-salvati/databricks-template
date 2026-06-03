@@ -19,13 +19,6 @@ from pyspark.sql.functions import explode
 
 
 @pytest.fixture
-def spark() -> DataFrame:
-    # config = Config(profile = "DEV")
-    # return DatabricksSession.builder.sdkConfig(config).getOrCreate()
-    return SparkSession.builder.appName("unit-tests").getOrCreate()
-
-
-@pytest.fixture
 def config() -> TaskConfig:
     return TaskConfig(
         Namespace(
@@ -46,11 +39,11 @@ def spark(config) -> TaskConfig:
 @pytest.fixture
 def df_orders_from_source(spark) -> DataFrame:
     order_data = [
-        (1, 10, 100.0, "2023-01-01"),
-        (2, 20, 151.0, "2023-01-02"),
-        (None, 10, 100.0, "2023-01-01"),  # id is null
-        (3, 20, 100.0, "2023-01-02"),  # id is duplicated
-        (3, 20, 100.0, "2023-01-02"),  # id is duplicated
+        (1, 10, 100.0, "2023-01-01", 1, 1),
+        (2, 20, 1001.0, "2023-01-02", 2, 1),  # total > 1000 → WARN
+        (None, 10, 100.0, "2023-01-01", 1, 1),  # id is null
+        (3, 20, 100.0, "2023-01-02", 3, 2),  # id is duplicated
+        (3, 20, 100.0, "2023-01-02", 3, 2),  # id is duplicated
     ]
     return spark.createDataFrame(order_data, schema=order_schema)
 
@@ -58,9 +51,9 @@ def df_orders_from_source(spark) -> DataFrame:
 @pytest.fixture
 def df_orders(spark) -> DataFrame:
     orders_data = [
-        ("John Doe", 10, 1, 100.0, 1, "Item A", 2, 50.0),
-        ("John Doe", 10, 1, 100.0, 2, "Item B", 1, 50.0),
-        ("Jane Smith", 20, 2, 150.0, 1, "Item C", 3, 150.0),
+        ("John Doe", 10, 1, 100.0, "2023-01-01", 1, 1, 1, "Item A", 2, 50.0),
+        ("John Doe", 10, 1, 100.0, "2023-01-01", 1, 1, 2, "Item B", 1, 50.0),
+        ("Jane Smith", 20, 2, 150.0, "2023-01-02", 2, 2, 1, "Item C", 3, 150.0),
     ]
     orders_schema = StructType(
         [
@@ -68,6 +61,9 @@ def df_orders(spark) -> DataFrame:
             StructField("id_customer", IntegerType(), True),
             StructField("id_order", IntegerType(), True),
             StructField("total", FloatType(), True),
+            StructField("date", StringType(), True),
+            StructField("product_id", IntegerType(), True),
+            StructField("prod_category_id", IntegerType(), True),
             StructField("seq", IntegerType(), True),
             StructField("desc_item", StringType(), True),
             StructField("qty", IntegerType(), True),
@@ -163,7 +159,7 @@ def test_enrich_orders(spark, config, df_orders):
     customer_data = [(10, "John Doe", "USA"), (20, "Jane Smith", "UK")]
     df_customer = spark.createDataFrame(customer_data, schema=customer_schema)
 
-    order_data = [(1, 10, 100.0, "2023-01-01"), (2, 20, 150.0, "2023-01-02")]
+    order_data = [(1, 10, 100.0, "2023-01-01", 1, 1), (2, 20, 150.0, "2023-01-02", 2, 2)]
     df_order = spark.createDataFrame(order_data, schema=order_schema)
 
     order_item_data = [(1, 1, "Item A", 2, 50.0), (1, 2, "Item B", 1, 50.0), (2, 1, "Item C", 3, 150.0)]
@@ -184,12 +180,15 @@ def test_aggregate_orders(spark, config, df_orders):
     assert df_out.count() == 2
 
     expected_data = [
-        ("John Doe", 3, 100.0),
-        ("Jane Smith", 3, 150.0),
+        ("John Doe", "2023-01-01", 1, 1, 3, 100.0),
+        ("Jane Smith", "2023-01-02", 2, 2, 3, 150.0),
     ]
     expected_schema = StructType(
         [
             StructField("name", StringType(), True),
+            StructField("date", StringType(), True),
+            StructField("product_id", IntegerType(), True),
+            StructField("prod_category_id", IntegerType(), True),
             StructField("total_qty", LongType(), True),
             StructField("total_value", DoubleType(), True),
         ]

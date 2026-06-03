@@ -9,13 +9,13 @@ from ..commonSchemas import customer_schema, order_item_schema, order_schema
 SCHEMA = "external_source"
 
 _EPOCH = _date(2024, 1, 1)
-_COUNTRIES = ["US", "UK", "CA", "DE", "FR"]
+_COUNTRIES = ["US", "UK", "CA", "DE", "FR", "BR", "AU", "JP", "MX", "IN"]
 
 _INITIAL_CUSTOMERS = 500
 _INITIAL_ORDERS = 2_000_000
 _INITIAL_ITEMS = 6_000_000  # 3 per order
 
-_INCREMENTAL_ORDERS = 2_000
+_INCREMENTAL_ORDERS = 5_000
 _INCREMENTAL_CUSTOMER_UPDATES = 50
 
 
@@ -24,7 +24,7 @@ class SeedSources(BaseTask):
     Idempotent seeder for external_source tables.
 
     First run (empty tables): full initial load — 500 customers, 2M orders, 6M order_items.
-    Subsequent runs: append 2000 orders (+1 item each) and update 50 customers' country.
+    Subsequent runs: append 5 000 orders (+1 item each) and update 50 customers' country.
     Incremental IDs are anchored to seed_date so reruns of the same date are no-ops.
     """
 
@@ -42,7 +42,7 @@ class SeedSources(BaseTask):
                 _INITIAL_ORDERS,
                 _INITIAL_ITEMS,
             )
-            self._seed_initial(catalog)
+            self._seed_initial(catalog, seed_date)
             self.logger.info("initial load complete")
         else:
             self.logger.info("incremental seed date=%s", seed_date)
@@ -71,18 +71,23 @@ class SeedSources(BaseTask):
     # Initial load (first run only)
     # ------------------------------------------------------------------
 
-    def _seed_initial(self, catalog: str) -> None:
+    def _seed_initial(self, catalog: str, seed_date: str) -> None:
         self.spark.range(1, _INITIAL_CUSTOMERS + 1).select(
             F.col("id").cast(IntegerType()),
             F.concat(F.lit("Customer_"), F.col("id")).alias("name"),
-            F.lit("US").alias("country"),
+            F.element_at(
+                F.array(*[F.lit(c) for c in _COUNTRIES]),
+                (F.col("id") % len(_COUNTRIES)).cast(IntegerType()) + 1,
+            ).alias("country"),
         ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.customer")
 
         self.spark.range(1, _INITIAL_ORDERS + 1).select(
             F.col("id").cast(IntegerType()),
             ((F.col("id") - 1) % _INITIAL_CUSTOMERS + 1).cast(IntegerType()).alias("id_customer"),
-            F.lit(100.0).cast(FloatType()).alias("total"),
-            F.lit("2024-01-01").alias("date"),
+            ((F.col("id") % 99 + 1) * 10).cast(FloatType()).alias("total"),
+            F.date_sub(F.lit(seed_date), (F.col("id") % 365).cast(IntegerType())).cast("string").alias("date"),
+            (F.col("id") % 100 + 1).cast(IntegerType()).alias("product_id"),
+            (F.col("id") % 10 + 1).cast(IntegerType()).alias("prod_category_id"),
         ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.order")
 
         self.spark.range(1, _INITIAL_ITEMS + 1).select(
@@ -130,8 +135,10 @@ class SeedSources(BaseTask):
         return self.spark.range(order_base + 1, order_base + _INCREMENTAL_ORDERS + 1).select(
             F.col("id").cast(IntegerType()),
             ((F.col("id") - 1) % _INITIAL_CUSTOMERS + 1).cast(IntegerType()).alias("id_customer"),
-            F.lit(100.0).cast(FloatType()).alias("total"),
+            ((F.col("id") % 99 + 1) * 10).cast(FloatType()).alias("total"),
             F.lit(seed_date).alias("date"),
+            (F.col("id") % 100 + 1).cast(IntegerType()).alias("product_id"),
+            (F.col("id") % 10 + 1).cast(IntegerType()).alias("prod_category_id"),
         )
 
     def _build_incremental_items(self, seed_date: str):

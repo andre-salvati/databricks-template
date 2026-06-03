@@ -29,12 +29,12 @@ class Setup(BaseTask):
         )
 
         order_data = [
-            (1, 10, 100.0, "2023-01-01"),
-            (2, 20, 151.0, "2023-01-02"),
-            (None, 10, 100.0, "2023-01-01"),  # id is null
-            (3, 20, 150.0, "2023-01-02"),  # id is duplicated
-            (3, 20, 150.0, "2023-01-02"),
-        ]  # id is duplicated
+            (1, 10, 100.0, "2023-01-01", 1, 1),
+            (2, 20, 1001.0, "2023-01-02", 2, 1),  # total > 1000 → WARN
+            (None, 10, 100.0, "2023-01-01", 1, 1),  # id is null
+            (3, 20, 150.0, "2023-01-02", 3, 2),  # id is duplicated
+            (3, 20, 150.0, "2023-01-02", 3, 2),  # id is duplicated
+        ]
         self.spark.createDataFrame(order_data, schema=order_schema).write.saveAsTable(f"{catalog}.{SCHEMA}.order")
 
         order_item_data = [(1, 1, "Item A", 2, 50.0), (1, 2, "Item B", 1, 50.0), (2, 1, "Item C", 3, 151.0)]
@@ -56,6 +56,8 @@ class Setup(BaseTask):
             ((F.col("id") - 1) % 500 + 1).cast(IntegerType()).alias("id_customer"),
             F.lit(100.0).cast(FloatType()).alias("total"),
             F.lit("2024-01-01").alias("date"),
+            (F.col("id") % 100 + 1).cast(IntegerType()).alias("product_id"),
+            (F.col("id") % 10 + 1).cast(IntegerType()).alias("prod_category_id"),
         ).write.saveAsTable(f"{catalog}.{SCHEMA}.order")
 
         # 6M order_items — 3 items per order, covering all 2M orders

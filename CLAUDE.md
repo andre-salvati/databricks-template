@@ -10,7 +10,7 @@ A production-ready PySpark/Databricks ETL pipeline template using medallion arch
 
 This project is developed with the [Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit) installed at the user level (`~/.ai-dev-kit/`). It provides:
 
-- **Databricks MCP server** (`mcp__databricks__*` tools) — wired globally in `~/.claude.json`, authenticates via the `DEFAULT` profile in `~/.databrickscfg`.
+- **Databricks MCP server** (`mcp__databricks__*` tools) — wired globally in `~/.claude.json`, authenticates via the `dev` profile in `~/.databrickscfg`.
 - **Databricks skills** (`databricks-bundles`, `databricks-jobs`, `databricks-python-sdk`, `databricks-config`, `databricks-unity-catalog`, etc.) — invoke via the Skill tool when the task matches.
 
 ### When to use what
@@ -23,7 +23,7 @@ This project is developed with the [Databricks AI Dev Kit](https://github.com/da
 
 ### Conventions
 
-- Use the `DEFAULT` profile unless told otherwise. To check or switch, use the `databricks-config` skill.
+- Use the `dev` profile unless told otherwise. To check or switch, use the `databricks-config` skill.
 - Do **not** install the Dev Kit into this repo or commit MCP config — it's a user-level tool. `.claude/` is currently untracked.
 - If MCP tools are unavailable in a session, fall back to the `databricks` CLI or `databricks-sdk` directly, but flag it to the user.
 

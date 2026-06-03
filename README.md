@@ -1,6 +1,4 @@
-# databricks-template — production-ready ETL + agentic development for Databricks
-
-> A PySpark project template for Databricks built for both human and AI-assisted (agentic) development. Medallion architecture, Python packaging, unit + integration tests, CI/CD via Declarative Automation Bundles, DQX data quality, service-principal-based production deploys — and a curated [`CLAUDE.md`](CLAUDE.md) so AI assistants understand the project's conventions on the first session.
+# databricks-template — agentic development for Databricks + production-ready ETL
 
 ![Databricks](https://img.shields.io/badge/platform-Databricks-orange?logo=databricks)
 ![PySpark](https://img.shields.io/badge/pyspark-4.1+-brightgreen?logo=apache-spark)
@@ -10,11 +8,9 @@
 
 ## 🚀 Overview
 
-This project template is designed to boost productivity and promote maintainability when developing ETL pipelines on Databricks. It is **built for agentic development** and brings software engineering best practices—modular architecture, automated unit and integration testing, CI/CD, structured logging, service-principal-based production guardrails—into the world of data engineering. By combining a clean project structure with robust development and deployment jobs, it helps teams move faster with confidence.
+> Stop spending weeks on boilerplate. This PySpark project template for Databricks gives you medallion architecture, Python packaging, unit + integration + load tests, CI/CD via Declarative Automation Bundles, DQX data quality, and service-principal-based production deploys — all wired together and ready to ship. Whether you're starting a new Databricks ETL project or looking for a reference implementation of production-ready PySpark pipelines, fork this and go.
 
-You're encouraged to adapt the structure and tooling to suit your project's specific needs and environment.
-
-Let's [connect on LinkedIn](https://www.linkedin.com/in/andresalvati/).
+If this saves you time, a star helps others find it. Let's [connect on LinkedIn](https://www.linkedin.com/in/andresalvati/).
 
 ## 🧪 Technologies
 
@@ -37,26 +33,28 @@ Let's [connect on LinkedIn](https://www.linkedin.com/in/andresalvati/).
 
 This project template demonstrates how to:
 
-- use agentic development (with Databricks AI Dev Kit and Claude Code) in data projects. The template ships with a [`CLAUDE.md`](CLAUDE.md) that documents the project's conventions — CLI surface, catalog/schema model, runtime parameters, production guardrails, and a *constraints* section recording the gotchas we've hit. Design decisions made in collaboration with the agent are encoded as rules in `CLAUDE.md` so they survive across sessions.
-- structure PySpark code inside classes/packages and utilize a Python wheel package, instead of notebooks.
-- package and deploy code with [Declarative Automation Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to different environments (dev, staging, prod). Use a CI/CD pipeline with [GitHub Actions](https://docs.github.com/en/actions). Generate job definitions to run with environment-specific conditions using [Databricks SDK](https://docs.databricks.com/aws/en/dev-tools/sdk-python#create-a-job-that-uses-serverless-compute).
+- use agentic development (with Databricks AI Dev Kit and Claude Code) in data projects. The template ships with a [`CLAUDE.md`](CLAUDE.md) that documents the project's conventions.
+- structure PySpark code inside classes/packages, deploy it as a Python wheel (instead of notebooks), and manage the project with [uv](https://docs.astral.sh/uv/).
+- package and deploy code with [Declarative Automation Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to different environments (dev, staging, prod). Use [GitHub Actions](https://docs.github.com/en/actions) to automate CI/CD pipeline. 
+- utilize [Databricks Lakeflow Jobs](https://docs.databricks.com/en/workflows/index.html) to execute a DAG - Yes, you don't need Airflow to manage your DAGs here!!!. Generate job definitions to run with environment-specific conditions using [Databricks SDK](https://docs.databricks.com/aws/en/dev-tools/sdk-python#create-a-job-that-uses-serverless-compute).
 - isolate "dev" environments / catalogs to avoid concurrency issues between developer tests.
-- ships with a twin [Lakeflow Spark Declarative Pipeline](https://docs.databricks.com/aws/en/ldp/) that runs the same ETL logic side-by-side with the batch job, demonstrating both paradigms from one codebase.
+- separate deploy-time config (environment variables, CI secrets) from runtime config (job parameters overridable from the Databricks UI), keeping jobs flexible without coupling them to the build process.
+- utilize job tags to track issues, costs, and ownership.
+- use a [Lakeflow Spark Declarative Pipeline](https://docs.databricks.com/aws/en/ldp/) to run the same ETL logic side-by-side with the PySpark job, demonstrating both paradigms from one codebase.
+- use the [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) to organize your data.
 - run unit tests on transformations with the [pytest package](https://pypi.org/project/pytest/). Set up VS Code to run tests on your local machine.
 - run integration tests by setting the input data and validating the output data.
-- utilize job tags to track issues, costs, and ownership.
+- run load tests to exercise both the initial bulk load and incremental daily updates, validating that the pipeline handles production-scale data volumes without regressions.
 - utilize the [coverage package](https://pypi.org/project/coverage/) to generate test coverage reports.
-- utilize [uv](https://docs.astral.sh/uv/) as a project/package manager.
-- use the [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) pattern.
+- use structured logging with a per-run `log_level` override and run-scoped correlation ID on every line, giving you full observability during incidents without a code change.
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
 - use a Makefile to automate repetitive tasks.
-- utilize the [argparse package](https://pypi.org/project/argparse/) to build a flexible command-line interface to start the jobs.
 - utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation, and filter bad data into quarantine tables.
 - utilize [service principals](https://docs.databricks.com/aws/en/admin/users-groups/service-principals) to run production code.
-- utilize the [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage workspaces and accounts and analyze costs. Refer to the `scripts` folder for examples.
+- utilize the [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage catalogs, schemas, workspaces, and accounts. Refer to the `scripts` folder for examples.
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) to manage permissions and get data lineage.
-- utilize [Databricks Lakeflow Jobs](https://docs.databricks.com/en/workflows/index.html) to execute a DAG. Yes, you don't need Airflow to manage your DAGs here!!!
 - utilize serverless job clusters on [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
+- enforce production guardrails out of the box — identity-locked CI deploys, a health-check task that runs before any data is touched, wheel version pinning, per-task timeouts, schema-drift guards, queued runs, and on-call alerting that doesn't page on manual cancellations.
 
 ## 🧠 Resources
 
@@ -98,20 +96,20 @@ databricks-template/
 │       ├── config.py              # Configuration management
 │       ├── baseTask.py            # Base class for all tasks
 │       ├── commonSchemas.py       # Shared PySpark schemas
-│       ├── job1/                  # Job-specific tasks
-│       │   ├── extract_source1.py
-│       │   ├── extract_source2.py        # DQX validation + quarantine
-│       │   ├── generate_orders.py
-│       │   ├── generate_orders_agg.py
-│       │   ├── health_check.py           # Prod smoke task (runs first)
-│       │   ├── integration_setup.py
-│       │   └── integration_validate.py
-│       └── job2/                  # Additional job tasks
+│       └── job1/                  # Job-specific tasks
+│           ├── extract_source1.py
+│           ├── extract_source2.py        # DQX validation + quarantine
+│           ├── generate_orders.py
+│           ├── generate_orders_agg.py
+│           ├── health_check.py           # Prod smoke task (runs first)
+│           └── seed_sources.py           # Idempotent daily seeder (prod integration)
 │
-├── tests/                          # Unit tests
-│   ├── job1/
-│   │   └── unit_test.py            # Pytest unit tests
-│   └── job2/
+├── tests/                          # Unit and integration tests
+│   └── job1/
+│       ├── unit_test.py            # Pytest unit tests
+│       ├── unit_test_sdp.py        # SDP pipeline unit tests
+│       ├── integration_setup.py    # Integration test setup (seed data)
+│       └── integration_validate.py # Integration test validation
 │
 ├── resources/                      # Databricks workflow templates
 │   └── jobs.yml                    # Generated job definition (auto-created)
@@ -119,8 +117,10 @@ databricks-template/
 ├── scripts/                              # Helper scripts
 │   ├── sdk_generate_template_job.py      # Job definition generator (Databricks SDK)
 │   ├── sdk_init_workspace.py             # Workspace initialization (SP, catalogs, schemas, grants)
+│   ├── sdk_truncate_tables.py            # Truncate all medallion tables in a target environment
 │   ├── sdk_analyze_job_costs.py          # Cost analysis script
-│   └── sdk_workspace_and_account.py      # Workspace and account management
+│   ├── sdk_workspace_and_account.py      # Workspace and account management
+│   └── _sdk_sql.py                       # SQL warehouse helpers (used by other scripts)
 │
 ├── docs/                           # Documentation assets
 │   ├── dag.png
@@ -139,7 +139,7 @@ databricks-template/
 └── README.md                    # This file
 ```
 
-## CI/CD pipeline
+## Development Lifecycle
 
 <br>
 
@@ -155,7 +155,7 @@ databricks-template/
 
 <br>
 
-## Task Output
+## Logging
 
 <br>
 
@@ -183,7 +183,6 @@ databricks-template/
 
 ## Instructions
 
-
 1) (Optional) Install [Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit) and [Claude Code](https://code.claude.com/docs/en/vs-code).
 
 2) Create a [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) workspace.
@@ -196,7 +195,8 @@ databricks-template/
 
         make sync && make test
         
-5) Initialize the workspace. Create an external location in Databricks and update the `storage-root` parameter in the Makefile. This step will create the catalogs, schemas, service principal, and the required grants. For more details, see [Overview of external locations](https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage#external-locations). Then run:
+5) Initialize the workspace. Create an external location in Databricks and update the `storage-root` parameter in the Makefile. This step will create the catalogs, schemas, service principal, and the required grants. For more details, see [Overview of external locations](https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage#external-locations). Then 
+run:
 
         make init
 
@@ -219,7 +219,7 @@ databricks-template/
 7) Deploy and execute on the dev workspace.
 
         make deploy env=dev
-
+ Deploy-time environment variables (
 
 8) Configure CI/CD automation with the service principal ID and secret. Configure [GitHub Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST, DATABRICKS_PRINCIPAL_ID, DATABRICKS_SECRET).
 
