@@ -19,13 +19,6 @@ from pyspark.sql.functions import explode
 
 
 @pytest.fixture
-def spark() -> DataFrame:
-    # config = Config(profile = "DEV")
-    # return DatabricksSession.builder.sdkConfig(config).getOrCreate()
-    return SparkSession.builder.appName("unit-tests").getOrCreate()
-
-
-@pytest.fixture
 def config() -> TaskConfig:
     return TaskConfig(
         Namespace(

@@ -5,10 +5,9 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.catalog import TableType
 
 from _sdk_sql import get_warehouse_id, run_sql
+from template.config import MEDALLION_SCHEMAS
 
 _TRUNCATABLE = {TableType.MANAGED, TableType.EXTERNAL}
-
-SCHEMAS = ["external_source", "raw", "curated", "report", "ops"]
 
 
 def _resolve_catalog(workspace: WorkspaceClient, env: str) -> str:
@@ -40,7 +39,7 @@ def main():
 
     print(f"Truncating all tables in catalog '{catalog}'...")
     count = 0
-    for schema in SCHEMAS:
+    for schema in MEDALLION_SCHEMAS:
         for table in workspace.tables.list(catalog_name=catalog, schema_name=schema):
             if table.table_type not in _TRUNCATABLE:
                 print(f"  Skipping `{catalog}`.`{schema}`.`{table.name}` ({table.table_type})")

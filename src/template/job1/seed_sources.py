@@ -24,7 +24,7 @@ class SeedSources(BaseTask):
     Idempotent seeder for external_source tables.
 
     First run (empty tables): full initial load — 500 customers, 2M orders, 6M order_items.
-    Subsequent runs: append 2000 orders (+1 item each) and update 50 customers' country.
+    Subsequent runs: append 5 000 orders (+1 item each) and update 50 customers' country.
     Incremental IDs are anchored to seed_date so reruns of the same date are no-ops.
     """
 
