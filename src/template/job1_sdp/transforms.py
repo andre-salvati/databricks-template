@@ -26,12 +26,24 @@ def enrich_order(df_customer: DataFrame, df_order: DataFrame, df_order_item: Dat
 
     Returns:
         Enriched DataFrame with columns:
-        name, id_customer, id_order, total, seq, desc_item, qty, total_item
+        name, id_customer, id_order, total, date, product_id, prod_category_id, seq, desc_item, qty, total_item
     """
     return (
         df_order_item.join(df_order, df_order_item["id_order"] == df_order["id"])
         .join(df_customer, df_order["id_customer"] == df_customer["id"])
-        .select("name", "id_customer", "id_order", "total", "seq", "desc_item", "qty", "total_item")
+        .select(
+            "name",
+            "id_customer",
+            "id_order",
+            "total",
+            "date",
+            "product_id",
+            "prod_category_id",
+            "seq",
+            "desc_item",
+            "qty",
+            "total_item",
+        )
     )
 
 
@@ -45,9 +57,9 @@ def aggregate_orders(df_order_enriched: DataFrame) -> DataFrame:
         df_order_enriched: curated.order_enriched
 
     Returns:
-        DataFrame with columns: name, total_qty (LongType), total_value (DoubleType)
+        DataFrame with columns: name, date, product_id, prod_category_id, total_qty (LongType), total_value (DoubleType)
     """
-    return df_order_enriched.groupBy("name").agg(
+    return df_order_enriched.groupBy("name", "date", "product_id", "prod_category_id").agg(
         F.sum("qty").alias("total_qty"),
         F.sum("total_item").alias("total_value"),
     )

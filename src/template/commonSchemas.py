@@ -20,6 +20,8 @@ order_schema = StructType(
         StructField("id_customer", IntegerType(), True),
         StructField("total", FloatType(), True),
         StructField("date", StringType(), True),
+        StructField("product_id", IntegerType(), True),
+        StructField("prod_category_id", IntegerType(), True),
     ]
 )
 

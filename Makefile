@@ -1,4 +1,5 @@
 env ?= dev
+yes ?=
 
 sync:
 	uv sync --all-extras
@@ -28,4 +29,7 @@ deploy: whoami
 
 run: whoami
 	uv run databricks bundle run job1_integration_test --target $(env)
+
+truncate: whoami
+	uv run python ./scripts/sdk_truncate_tables.py $(env) $(yes)
 

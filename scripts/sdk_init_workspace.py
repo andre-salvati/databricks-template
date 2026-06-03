@@ -2,7 +2,8 @@ import argparse
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.iam import AccessControlRequest, PermissionLevel
-from databricks.sdk.service.sql import StatementState
+
+from _sdk_sql import get_warehouse_id, run_sql
 
 
 SP_DISPLAY_NAME = "template-sp"
@@ -13,45 +14,6 @@ CATALOGS = ["staging", "prod"]
 # Keep aligned with template.config.MEDALLION_SCHEMAS so staging/prod come up with
 # the same schema layout that dev creates on the fly.
 SCHEMAS = ["external_source", "raw", "curated", "report", "ops"]
-
-
-def _get_warehouse_id(workspace: WorkspaceClient, name: str | None = None) -> str:
-    """Resolve a SQL warehouse to use for DDL.
-
-    Picking warehouses[0] is fragile — the API returns warehouses in an
-    implementation-defined order, so on a workspace with multiple warehouses
-    we'd silently grab whichever one happens to be first. Instead:
-
-    - If `name` is provided, look it up by name (fail loudly if missing).
-    - Otherwise, succeed only if there's exactly one warehouse; fail with
-      a clear "ambiguous, pass --warehouse-name" error when there are many.
-    """
-    warehouses = list(workspace.warehouses.list())
-    if not warehouses:
-        raise ValueError("No SQL warehouse found. Please create one to run SQL statements.")
-
-    if name:
-        match = next((w for w in warehouses if w.name == name), None)
-        if match is None:
-            raise ValueError(f"SQL warehouse {name!r} not found. Available: {[w.name for w in warehouses]}")
-        return match.id
-
-    if len(warehouses) > 1:
-        raise ValueError(
-            f"Multiple SQL warehouses found ({[w.name for w in warehouses]}); pass --warehouse-name to disambiguate."
-        )
-    return warehouses[0].id
-
-
-def _run_sql(workspace: WorkspaceClient, warehouse_id: str, sql: str):
-    print(f"  Running: {sql}")
-    result = workspace.statement_execution.execute_statement(
-        warehouse_id=warehouse_id,
-        statement=sql,
-        wait_timeout="50s",
-    )
-    if result.status.state != StatementState.SUCCEEDED:
-        raise RuntimeError(f"Statement failed ({result.status.state}): {result.status.error}")
 
 
 # --- Service principal ---
@@ -93,7 +55,7 @@ def create_service_principal(workspace: WorkspaceClient, display_name: str, ware
     except Exception as e:
         print(f"  Warning: could not set CAN_USE on service principal ({e}). Continuing.")
 
-    _run_sql(workspace, warehouse_id, f"GRANT CREATE CATALOG ON Metastore TO `{sp_id}`")
+    run_sql(workspace, warehouse_id, f"GRANT CREATE CATALOG ON Metastore TO `{sp_id}`")
 
     print(f"\nSP_ID={sp_id}")
     return sp_id
@@ -124,7 +86,7 @@ def create_catalogs_and_schemas(workspace: WorkspaceClient, sp_id: str, storage_
             workspace.catalogs.create(**kwargs)
             print(f"  Created catalog '{catalog}'.")
 
-        _run_sql(workspace, warehouse_id, f"GRANT ALL PRIVILEGES ON CATALOG `{catalog}` TO `{sp_id}`")
+        run_sql(workspace, warehouse_id, f"GRANT ALL PRIVILEGES ON CATALOG `{catalog}` TO `{sp_id}`")
 
         existing_schs = _existing_schemas(workspace, catalog)
         for schema in SCHEMAS:
@@ -133,7 +95,7 @@ def create_catalogs_and_schemas(workspace: WorkspaceClient, sp_id: str, storage_
             else:
                 workspace.schemas.create(name=schema, catalog_name=catalog)
                 print(f"    Created schema '{catalog}.{schema}'.")
-            _run_sql(workspace, warehouse_id, f"GRANT MANAGE ON SCHEMA `{catalog}`.`{schema}` TO `{sp_id}`")
+            run_sql(workspace, warehouse_id, f"GRANT MANAGE ON SCHEMA `{catalog}`.`{schema}` TO `{sp_id}`")
 
 
 # --- Entry point ---
@@ -168,7 +130,7 @@ def main():
     workspace = WorkspaceClient(profile=args.profile)
     # Resolve once up-front so a missing/ambiguous warehouse fails before we
     # create any SP or catalogs.
-    warehouse_id = _get_warehouse_id(workspace, args.warehouse_name)
+    warehouse_id = get_warehouse_id(workspace, args.warehouse_name)
     print(f"Using SQL warehouse: {warehouse_id}")
 
     print("\n=== Step 1: Service principal ===")

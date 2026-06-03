@@ -2,6 +2,15 @@
 
 ---
 
+## [#30](https://github.com/andre-salvati/databricks-template/pull/30) · 2026-06-03 · feat: product dimensions, seed enrichment, truncate script, prod schedule
+
+Added `product_id` (100 distinct) and `prod_category_id` (10 distinct) to the order schema and propagated them through extract → enrich → aggregate → SDP transforms; `report.order_agg` now groups by `name`, `date`, `product_id`, `prod_category_id`.
+Enriched seed data: 2M orders spread over 365 days with varied totals ($10–$990), 10 countries, 500 customers, 5 000 incremental orders/day; raised DQX WARN limit to 1 000 to match the new range.
+Added `scripts/sdk_truncate_tables.py` (with `make truncate env=X yes=--yes`) and `scripts/_sdk_sql.py` (shared `get_warehouse_id`/`run_sql` helpers extracted from `sdk_init_workspace.py`).
+Added a 6 am BRT daily cron schedule to `job1_prod_integration`.
+
+---
+
 ## [#29](https://github.com/andre-salvati/databricks-template/pull/29) · 2026-05-29 · feat: scale load-test, rewrite seed_sources, add prod integration job
 
 Scaled load-test to 500 customers / 2M orders / 6M order_items so the batch vs incremental timing gap is measurable; updated `_validate_load_test` assertions accordingly.

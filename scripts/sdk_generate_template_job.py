@@ -410,6 +410,10 @@ def _build_job_prod_integration(sp_id: str | None) -> dict:
             no_alert_for_canceled_runs=True,
             no_alert_for_skipped_runs=True,
         ),
+        schedule=CronSchedule(
+            quartz_cron_expression="0 0 6 * * ?",
+            timezone_id="America/Sao_Paulo",
+        ),
         parameters=[
             JobParameterDefinition(name="log_level", default=DEFAULT_LOG_LEVEL),
             JobParameterDefinition(name="quarantine_fail_ratio", default=PROD_QUARANTINE_FAIL_RATIO),
