@@ -2,7 +2,7 @@
 
 ---
 
-## [Unreleased] · feat: AI/BI dashboard, country in gold layer
+## [#33](https://github.com/andre-salvati/databricks-template/pull/33) · 2026-06-04 · feat: AI/BI dashboard, country in gold layer, randomized seed data
 
 Added `country` to `curated.order_enriched` and `report.order_agg` (and their SDP equivalents) so the gold layer carries the full customer dimension needed for country-based reporting; unit tests updated accordingly.
 Added an AI/BI (Lakeview) dashboard with three line charts (total value by date × country, by date × product, by date × category) and a global filter page (date range, country, customer, product, category); uses `make truncate env=X yes=--yes` before first post-deploy run to handle the schema change to `report.order_agg`.
