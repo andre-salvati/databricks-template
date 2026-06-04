@@ -22,6 +22,7 @@ If this saves you time, a star helps others find it. Let's [connect on LinkedIn]
 - Databricks Python SDK
 - Databricks DQX
 - Databricks AI Dev Kit
+- Databricks Dashboards
 - Claude Code
 - PySpark 4.1
 - Spark Declarative Pipelines (SDP)
@@ -45,6 +46,7 @@ This project template demonstrates how to:
 - run unit tests on transformations with the [pytest package](https://pypi.org/project/pytest/). Set up VS Code to run tests on your local machine.
 - run integration tests by setting the input data and validating the output data.
 - run load tests to exercise both the initial bulk load and incremental daily updates, validating that the pipeline handles production-scale data volumes without regressions.
+- use [Databricks AI/BI Dashboards](https://docs.databricks.com/aws/en/dashboards) to visualize the gold layer.
 - utilize the [coverage package](https://pypi.org/project/coverage/) to generate test coverage reports.
 - use structured logging with a per-run `log_level` override and run-scoped correlation ID on every line, giving you full observability during incidents without a code change.
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
@@ -138,6 +140,14 @@ databricks-template/
 ├── .pre-commit-config.yaml      # Pre-commit hooks (ruff)
 └── README.md                    # This file
 ```
+## Dashboard
+
+<br>
+
+<img src="docs/dashboard.png">
+
+<br>
+
 
 ## Development Lifecycle
 
