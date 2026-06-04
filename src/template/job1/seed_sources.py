@@ -94,8 +94,8 @@ class SeedSources(BaseTask):
             (F.floor((F.col("id") - 1) / 3) + 1).cast(IntegerType()).alias("id_order"),
             ((F.col("id") - 1) % 3 + 1).cast(IntegerType()).alias("seq"),
             F.concat(F.lit("Item_"), F.col("id")).alias("desc_item"),
-            F.lit(2).cast(IntegerType()).alias("qty"),
-            F.lit(50.0).cast(FloatType()).alias("total_item"),
+            (F.floor(F.rand(seed=7) * 5) + 1).cast(IntegerType()).alias("qty"),
+            (F.rand(seed=42) * 190 + 10).cast(FloatType()).alias("total_item"),
         ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.order_item")
 
     # ------------------------------------------------------------------
@@ -148,8 +148,8 @@ class SeedSources(BaseTask):
             F.col("id").cast(IntegerType()).alias("id_order"),
             F.lit(1).cast(IntegerType()).alias("seq"),
             F.concat(F.lit("Item_incr_"), F.col("id")).alias("desc_item"),
-            F.lit(2).cast(IntegerType()).alias("qty"),
-            F.lit(50.0).cast(FloatType()).alias("total_item"),
+            (F.floor(F.rand(seed=7) * 5) + 1).cast(IntegerType()).alias("qty"),
+            (F.rand(seed=42) * 190 + 10).cast(FloatType()).alias("total_item"),
         )
 
     def _build_customer_updates(self, seed_date: str):
