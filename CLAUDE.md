@@ -95,6 +95,9 @@ Medallion schemas (`MEDALLION_SCHEMAS` in `config.py`):
 
 Each task's input/output tables are **hardcoded** in the task module (e.g. `raw.customer` → `curated.order_enriched`). The medallion layer is a semantic contract, not a runtime parameter — this is the dbt `ref()` pattern. Don't parameterize the layer; if a task genuinely needs a configurable target, that's a different task.
 
+`curated.order_enriched` columns: `name, country, id_customer, id_order, total, date, product_id, prod_category_id, seq, desc_item, qty, total_item`
+`report.order_agg` columns: `name, country, date, product_id, prod_category_id, total_qty, total_value`
+
 ### Job-level parameters (runtime, overridable per-run)
 
 Defined as `JobParameterDefinition` in `sdk_generate_template_job.py` and referenced in every task's `parameters` list via `{{job.parameters.*}}`. Operators can override them per-run from the Databricks Jobs UI "Run with different parameters" dialog by name — no need to rewrite the entire task parameters array.
@@ -135,6 +138,14 @@ On every push: install deps → unit tests → bundle validate → deploy to sta
 - The wheel filename in `JobEnvironment.dependencies` is pinned to `_project_version()` (reads `pyproject.toml`) so a forgotten rebuild can't silently deploy an old wheel.
 - Every job sets `max_concurrent_runs=1` + `queue.enabled=true`: late runs queue instead of getting silently skipped. Retries (staging/prod only) back off `MIN_RETRY_INTERVAL_MS` (60s). Per-task `timeout_seconds` (constants near the top of `sdk_generate_template_job.py`) prevent one hung task from eating the whole job budget. `notification_settings.no_alert_for_canceled_runs / _skipped_runs` keeps deliberate cancellations off the on-call pager.
 
+### AI/BI Dashboard
+
+`resources/orders_dashboard.lvdash.json` is generated at deploy time by `sdk_generate_template_job.py` with the target catalog name embedded in SQL. The dashboard is registered in `resources/jobs.yml` under `resources.dashboards.orders_dashboard` with the resolved `warehouse_id`. Both files are gitignored.
+
+The dashboard has one page with three line charts (total value over time by country, by product, by category) and a global filter page with date-range, country, customer, product, and category filters. The dataset `ds_orders` queries `{catalog}.report.order_agg` and groups by all five dimensions.
+
+If a workspace has multiple SQL warehouses, pass `--warehouse-name <name>` to `sdk_generate_template_job.py` (or equivalently add it to the `scripts/sdk_generate_template_job.py` call in `Makefile`).
+
 ### Adding a New Job
 
 1. Create task classes under `src/template/<jobN>/`, inheriting `BaseTask`.
@@ -166,5 +177,6 @@ Favor solutions with less code, fewer classes, and fewer abstractions. When two 
 - Don't add `funcy` (or any decorator-based timing utility) to the dependencies. Use the structured logger.
 - Don't add `CREATE CATALOG` or `CREATE SCHEMA` calls outside the `args.env == "dev"` branch in `config.py`. Staging/prod catalogs and schemas are owned by `make init`; runtime jobs run without those privileges.
 - Don't commit `resources/jobs.yml` (gitignored — regenerated on every deploy).
+- Don't commit `resources/orders_dashboard.lvdash.json` (gitignored — regenerated on every deploy with the catalog name embedded).
 - Don't commit `.databricks-resources.json` (gitignored — local provisioning state, diverges per developer).
-- Don't hand-edit `resources/jobs.yml` — it's overwritten on every deploy. Change `scripts/sdk_generate_template_job.py` instead (it generates both jobs and the SDP pipeline into one file).
+- Don't hand-edit `resources/jobs.yml` or `resources/orders_dashboard.lvdash.json` — both are overwritten on every deploy. Change `scripts/sdk_generate_template_job.py` instead (it generates jobs, the SDP pipeline, the dashboard JSON, and the dashboard resource definition into `resources/jobs.yml`).

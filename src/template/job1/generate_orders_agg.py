@@ -10,7 +10,7 @@ class GenerateOrdersAgg(BaseTask):
     def aggregate_orders(self, df_order):
         # TODO code your transformations here...
 
-        return df_order.groupBy("name", "date", "product_id", "prod_category_id").agg(
+        return df_order.groupBy("name", "country", "date", "product_id", "prod_category_id").agg(
             sum("qty").alias("total_qty"),
             sum("total_item").alias("total_value"),
         )

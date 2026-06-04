@@ -51,13 +51,14 @@ def df_orders_from_source(spark) -> DataFrame:
 @pytest.fixture
 def df_orders(spark) -> DataFrame:
     orders_data = [
-        ("John Doe", 10, 1, 100.0, "2023-01-01", 1, 1, 1, "Item A", 2, 50.0),
-        ("John Doe", 10, 1, 100.0, "2023-01-01", 1, 1, 2, "Item B", 1, 50.0),
-        ("Jane Smith", 20, 2, 150.0, "2023-01-02", 2, 2, 1, "Item C", 3, 150.0),
+        ("John Doe", "USA", 10, 1, 100.0, "2023-01-01", 1, 1, 1, "Item A", 2, 50.0),
+        ("John Doe", "USA", 10, 1, 100.0, "2023-01-01", 1, 1, 2, "Item B", 1, 50.0),
+        ("Jane Smith", "UK", 20, 2, 150.0, "2023-01-02", 2, 2, 1, "Item C", 3, 150.0),
     ]
     orders_schema = StructType(
         [
             StructField("name", StringType(), True),
+            StructField("country", StringType(), True),
             StructField("id_customer", IntegerType(), True),
             StructField("id_order", IntegerType(), True),
             StructField("total", FloatType(), True),
@@ -180,12 +181,13 @@ def test_aggregate_orders(spark, config, df_orders):
     assert df_out.count() == 2
 
     expected_data = [
-        ("John Doe", "2023-01-01", 1, 1, 3, 100.0),
-        ("Jane Smith", "2023-01-02", 2, 2, 3, 150.0),
+        ("John Doe", "USA", "2023-01-01", 1, 1, 3, 100.0),
+        ("Jane Smith", "UK", "2023-01-02", 2, 2, 3, 150.0),
     ]
     expected_schema = StructType(
         [
             StructField("name", StringType(), True),
+            StructField("country", StringType(), True),
             StructField("date", StringType(), True),
             StructField("product_id", IntegerType(), True),
             StructField("prod_category_id", IntegerType(), True),
