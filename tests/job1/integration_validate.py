@@ -10,14 +10,15 @@ class Validate(BaseTask):
         super().__init__(config)
 
     def _validate_standard(self, catalog):
-        # groupBy(name, date, product_id, prod_category_id) → still 2 rows (one per order)
+        # groupBy(name, country, date, product_id, prod_category_id) → still 2 rows (one per order)
         expected_data = [
-            ("John Doe", "2023-01-01", 1, 1, 3, 100.0),
-            ("Jane Smith", "2023-01-02", 2, 1, 3, 151.0),
+            ("John Doe", "USA", "2023-01-01", 1, 1, 3, 100.0),
+            ("Jane Smith", "UK", "2023-01-02", 2, 1, 3, 151.0),
         ]
         expected_schema = StructType(
             [
                 StructField("name", StringType(), True),
+                StructField("country", StringType(), True),
                 StructField("date", StringType(), True),
                 StructField("product_id", IntegerType(), True),
                 StructField("prod_category_id", IntegerType(), True),

@@ -1,4 +1,5 @@
 import argparse
+import json
 import os
 import re
 import tomllib
@@ -31,6 +32,8 @@ from databricks.bundles.pipelines import (
     PipelinesEnvironment,
 )
 from databricks.sdk import WorkspaceClient
+
+from _sdk_sql import get_warehouse_id
 
 JOB_NAME = "job1"
 PIPELINE_NAME = "job1_sdp"
@@ -468,9 +471,464 @@ def _build_pipeline(environment: str, catalog: str, sp_id: str | None) -> dict:
     return d
 
 
+def _build_dashboard_json(catalog: str) -> dict:
+    """Build the Lakeview (AI/BI) dashboard JSON with the resolved catalog embedded in SQL.
+
+    Single dataset `ds_orders` groups by all filter dimensions. Three line charts
+    break down total_value over time by country, product, and category. A global
+    filter page provides date-range, country, customer, product, and category filters.
+    """
+    return {
+        "datasets": [
+            {
+                "name": "ds_kpi",
+                "displayName": "KPIs",
+                "queryLines": [
+                    f"SELECT ROUND(SUM(total_item), 2) AS total_value, "
+                    f"COUNT(DISTINCT id_order) AS num_orders, "
+                    f"COUNT(DISTINCT id_customer) AS num_customers "
+                    f"FROM {catalog}.curated.order_enriched "
+                    f"WHERE date BETWEEN :date_range.min AND :date_range.max"
+                ],
+                "parameters": [
+                    {
+                        "keyword": "date_range",
+                        "displayName": "Date Range",
+                        "dataType": "DATE",
+                        "complexType": "RANGE",
+                        "defaultSelection": {
+                            "range": {
+                                "dataType": "DATE",
+                                "min": {"value": "now-1y"},
+                                "max": {"value": "now"},
+                            }
+                        },
+                    }
+                ],
+            },
+            {
+                "name": "ds_orders",
+                "displayName": "Orders",
+                "queryLines": [
+                    f"SELECT CAST(date AS DATE) AS order_date, country, name AS customer, "
+                    f"CAST(product_id AS STRING) AS product_id, CAST(prod_category_id AS STRING) AS category_id, "
+                    f"SUM(total_value) AS total_value "
+                    f"FROM {catalog}.report.order_agg "
+                    f"WHERE date BETWEEN :date_range.min AND :date_range.max "
+                    f"GROUP BY 1, 2, 3, 4, 5"
+                ],
+                "parameters": [
+                    {
+                        "keyword": "date_range",
+                        "displayName": "Date Range",
+                        "dataType": "DATE",
+                        "complexType": "RANGE",
+                        "defaultSelection": {
+                            "range": {
+                                "dataType": "DATE",
+                                "min": {"value": "now-1y"},
+                                "max": {"value": "now"},
+                            }
+                        },
+                    }
+                ],
+            },
+        ],
+        "pages": [
+            {
+                "name": "main",
+                "displayName": "Orders Overview",
+                "pageType": "PAGE_TYPE_CANVAS",
+                "layout": [
+                    {
+                        "widget": {
+                            "name": "title",
+                            "multilineTextboxSpec": {"lines": ["## Orders Dashboard"]},
+                        },
+                        "position": {"x": 0, "y": 0, "width": 6, "height": 1},
+                    },
+                    {
+                        "widget": {
+                            "name": "subtitle",
+                            "multilineTextboxSpec": {
+                                "lines": [
+                                    "Total value by date — segmented by country, product, and category. "
+                                    "Use the Filters tab to narrow the view."
+                                ]
+                            },
+                        },
+                        "position": {"x": 0, "y": 1, "width": 6, "height": 1},
+                    },
+                    {
+                        "widget": {
+                            "name": "kpi-total-value",
+                            "queries": [
+                                {
+                                    "name": "main_query",
+                                    "query": {
+                                        "datasetName": "ds_kpi",
+                                        "fields": [{"name": "total_value", "expression": "`total_value`"}],
+                                        "disaggregated": True,
+                                    },
+                                }
+                            ],
+                            "spec": {
+                                "version": 2,
+                                "widgetType": "counter",
+                                "encodings": {"value": {"fieldName": "total_value", "displayName": "Total Value"}},
+                                "frame": {"title": "Total Value", "showTitle": True},
+                            },
+                        },
+                        "position": {"x": 0, "y": 2, "width": 2, "height": 3},
+                    },
+                    {
+                        "widget": {
+                            "name": "kpi-num-orders",
+                            "queries": [
+                                {
+                                    "name": "main_query",
+                                    "query": {
+                                        "datasetName": "ds_kpi",
+                                        "fields": [{"name": "num_orders", "expression": "`num_orders`"}],
+                                        "disaggregated": True,
+                                    },
+                                }
+                            ],
+                            "spec": {
+                                "version": 2,
+                                "widgetType": "counter",
+                                "encodings": {"value": {"fieldName": "num_orders", "displayName": "Number of Orders"}},
+                                "frame": {"title": "Number of Orders", "showTitle": True},
+                            },
+                        },
+                        "position": {"x": 2, "y": 2, "width": 2, "height": 3},
+                    },
+                    {
+                        "widget": {
+                            "name": "kpi-num-customers",
+                            "queries": [
+                                {
+                                    "name": "main_query",
+                                    "query": {
+                                        "datasetName": "ds_kpi",
+                                        "fields": [{"name": "num_customers", "expression": "`num_customers`"}],
+                                        "disaggregated": True,
+                                    },
+                                }
+                            ],
+                            "spec": {
+                                "version": 2,
+                                "widgetType": "counter",
+                                "encodings": {
+                                    "value": {"fieldName": "num_customers", "displayName": "Number of Customers"}
+                                },
+                                "frame": {"title": "Number of Customers", "showTitle": True},
+                            },
+                        },
+                        "position": {"x": 4, "y": 2, "width": 2, "height": 3},
+                    },
+                    {
+                        "widget": {
+                            "name": "chart-by-country",
+                            "queries": [
+                                {
+                                    "name": "main_query",
+                                    "query": {
+                                        "datasetName": "ds_orders",
+                                        "fields": [
+                                            {
+                                                "name": "daily(order_date)",
+                                                "expression": 'DATE_TRUNC("DAY", `order_date`)',
+                                            },
+                                            {"name": "country", "expression": "`country`"},
+                                            {"name": "sum(total_value)", "expression": "SUM(`total_value`)"},
+                                        ],
+                                        "disaggregated": False,
+                                    },
+                                }
+                            ],
+                            "spec": {
+                                "version": 3,
+                                "widgetType": "line",
+                                "encodings": {
+                                    "x": {
+                                        "fieldName": "daily(order_date)",
+                                        "scale": {"type": "temporal"},
+                                        "displayName": "Date",
+                                    },
+                                    "y": {
+                                        "fieldName": "sum(total_value)",
+                                        "scale": {"type": "quantitative"},
+                                        "displayName": "Total Value",
+                                    },
+                                    "color": {
+                                        "fieldName": "country",
+                                        "scale": {"type": "categorical"},
+                                        "displayName": "Country",
+                                    },
+                                },
+                                "frame": {"title": "Total by Date & Country", "showTitle": True},
+                            },
+                        },
+                        "position": {"x": 0, "y": 5, "width": 6, "height": 6},
+                    },
+                    {
+                        "widget": {
+                            "name": "chart-by-product",
+                            "queries": [
+                                {
+                                    "name": "main_query",
+                                    "query": {
+                                        "datasetName": "ds_orders",
+                                        "fields": [
+                                            {
+                                                "name": "daily(order_date)",
+                                                "expression": 'DATE_TRUNC("DAY", `order_date`)',
+                                            },
+                                            {"name": "product_id", "expression": "`product_id`"},
+                                            {"name": "sum(total_value)", "expression": "SUM(`total_value`)"},
+                                        ],
+                                        "disaggregated": False,
+                                    },
+                                }
+                            ],
+                            "spec": {
+                                "version": 3,
+                                "widgetType": "line",
+                                "encodings": {
+                                    "x": {
+                                        "fieldName": "daily(order_date)",
+                                        "scale": {"type": "temporal"},
+                                        "displayName": "Date",
+                                    },
+                                    "y": {
+                                        "fieldName": "sum(total_value)",
+                                        "scale": {"type": "quantitative"},
+                                        "displayName": "Total Value",
+                                    },
+                                    "color": {
+                                        "fieldName": "product_id",
+                                        "scale": {"type": "categorical"},
+                                        "displayName": "Product",
+                                    },
+                                },
+                                "frame": {
+                                    "title": "Total by Date & Product (use Product filter to drill down)",
+                                    "showTitle": True,
+                                },
+                            },
+                        },
+                        "position": {"x": 0, "y": 11, "width": 6, "height": 6},
+                    },
+                    {
+                        "widget": {
+                            "name": "chart-by-category",
+                            "queries": [
+                                {
+                                    "name": "main_query",
+                                    "query": {
+                                        "datasetName": "ds_orders",
+                                        "fields": [
+                                            {
+                                                "name": "daily(order_date)",
+                                                "expression": 'DATE_TRUNC("DAY", `order_date`)',
+                                            },
+                                            {"name": "category_id", "expression": "`category_id`"},
+                                            {"name": "sum(total_value)", "expression": "SUM(`total_value`)"},
+                                        ],
+                                        "disaggregated": False,
+                                    },
+                                }
+                            ],
+                            "spec": {
+                                "version": 3,
+                                "widgetType": "line",
+                                "encodings": {
+                                    "x": {
+                                        "fieldName": "daily(order_date)",
+                                        "scale": {"type": "temporal"},
+                                        "displayName": "Date",
+                                    },
+                                    "y": {
+                                        "fieldName": "sum(total_value)",
+                                        "scale": {"type": "quantitative"},
+                                        "displayName": "Total Value",
+                                    },
+                                    "color": {
+                                        "fieldName": "category_id",
+                                        "scale": {"type": "categorical"},
+                                        "displayName": "Category",
+                                    },
+                                },
+                                "frame": {"title": "Total by Date & Category", "showTitle": True},
+                            },
+                        },
+                        "position": {"x": 0, "y": 17, "width": 6, "height": 6},
+                    },
+                ],
+            },
+            {
+                "name": "filters",
+                "displayName": "Filters",
+                "pageType": "PAGE_TYPE_GLOBAL_FILTERS",
+                "layout": [
+                    {
+                        "widget": {
+                            "name": "filter-date",
+                            "queries": [
+                                {
+                                    "name": "q_date",
+                                    "query": {
+                                        "datasetName": "ds_orders",
+                                        "parameters": [{"name": "date_range", "keyword": "date_range"}],
+                                        "disaggregated": False,
+                                    },
+                                },
+                                {
+                                    "name": "q_date_kpi",
+                                    "query": {
+                                        "datasetName": "ds_kpi",
+                                        "parameters": [{"name": "date_range", "keyword": "date_range"}],
+                                        "disaggregated": False,
+                                    },
+                                },
+                            ],
+                            "spec": {
+                                "version": 2,
+                                "widgetType": "filter-date-range-picker",
+                                "encodings": {
+                                    "fields": [
+                                        {"parameterName": "date_range", "queryName": "q_date"},
+                                        {"parameterName": "date_range", "queryName": "q_date_kpi"},
+                                    ]
+                                },
+                                "frame": {"showTitle": True, "title": "Date Range"},
+                            },
+                        },
+                        "position": {"x": 0, "y": 0, "width": 2, "height": 2},
+                    },
+                    {
+                        "widget": {
+                            "name": "filter-country",
+                            "queries": [
+                                {
+                                    "name": "q_country",
+                                    "query": {
+                                        "datasetName": "ds_orders",
+                                        "fields": [{"name": "country", "expression": "`country`"}],
+                                        "disaggregated": False,
+                                    },
+                                }
+                            ],
+                            "spec": {
+                                "version": 2,
+                                "widgetType": "filter-multi-select",
+                                "encodings": {
+                                    "fields": [
+                                        {"fieldName": "country", "displayName": "Country", "queryName": "q_country"}
+                                    ]
+                                },
+                                "frame": {"showTitle": True, "title": "Country"},
+                            },
+                        },
+                        "position": {"x": 2, "y": 0, "width": 2, "height": 2},
+                    },
+                    {
+                        "widget": {
+                            "name": "filter-customer",
+                            "queries": [
+                                {
+                                    "name": "q_customer",
+                                    "query": {
+                                        "datasetName": "ds_orders",
+                                        "fields": [{"name": "customer", "expression": "`customer`"}],
+                                        "disaggregated": False,
+                                    },
+                                }
+                            ],
+                            "spec": {
+                                "version": 2,
+                                "widgetType": "filter-multi-select",
+                                "encodings": {
+                                    "fields": [
+                                        {"fieldName": "customer", "displayName": "Customer", "queryName": "q_customer"}
+                                    ]
+                                },
+                                "frame": {"showTitle": True, "title": "Customer"},
+                            },
+                        },
+                        "position": {"x": 4, "y": 0, "width": 2, "height": 2},
+                    },
+                    {
+                        "widget": {
+                            "name": "filter-product",
+                            "queries": [
+                                {
+                                    "name": "q_product",
+                                    "query": {
+                                        "datasetName": "ds_orders",
+                                        "fields": [{"name": "product_id", "expression": "`product_id`"}],
+                                        "disaggregated": False,
+                                    },
+                                }
+                            ],
+                            "spec": {
+                                "version": 2,
+                                "widgetType": "filter-multi-select",
+                                "encodings": {
+                                    "fields": [
+                                        {"fieldName": "product_id", "displayName": "Product", "queryName": "q_product"}
+                                    ]
+                                },
+                                "frame": {"showTitle": True, "title": "Product"},
+                            },
+                        },
+                        "position": {"x": 0, "y": 2, "width": 2, "height": 2},
+                    },
+                    {
+                        "widget": {
+                            "name": "filter-category",
+                            "queries": [
+                                {
+                                    "name": "q_category",
+                                    "query": {
+                                        "datasetName": "ds_orders",
+                                        "fields": [{"name": "category_id", "expression": "`category_id`"}],
+                                        "disaggregated": False,
+                                    },
+                                }
+                            ],
+                            "spec": {
+                                "version": 2,
+                                "widgetType": "filter-multi-select",
+                                "encodings": {
+                                    "fields": [
+                                        {
+                                            "fieldName": "category_id",
+                                            "displayName": "Category",
+                                            "queryName": "q_category",
+                                        }
+                                    ]
+                                },
+                                "frame": {"showTitle": True, "title": "Category"},
+                            },
+                        },
+                        "position": {"x": 2, "y": 2, "width": 2, "height": 2},
+                    },
+                ],
+            },
+        ],
+    }
+
+
 def main():
     parser = argparse.ArgumentParser(description="Generate Databricks Jobs YAML")
     parser.add_argument("environment", choices=["dev", "staging", "prod"])
+    parser.add_argument(
+        "--warehouse-name",
+        default=None,
+        help="SQL warehouse name for the AI/BI dashboard (required when multiple warehouses exist)",
+    )
     args = parser.parse_args()
 
     env = args.environment
@@ -483,6 +941,10 @@ def main():
 
     catalog = _resolve_catalog(env)
 
+    profile = "dev" if env == "dev" else env
+    ws = WorkspaceClient(profile=profile)
+    warehouse_id = get_warehouse_id(ws, name=args.warehouse_name)
+
     jobs: dict = {JOB_NAME: _build_job(env, sp_id)}
     if env in ("dev", "staging"):
         jobs[f"{JOB_NAME}_integration_test"] = _build_job_integration_test(env, sp_id)
@@ -493,6 +955,13 @@ def main():
         "resources": {
             "jobs": jobs,
             "pipelines": {PIPELINE_NAME: _build_pipeline(env, catalog, sp_id)},
+            "dashboards": {
+                "orders_dashboard": {
+                    "display_name": f"[{env}] Orders Dashboard",
+                    "file_path": "orders_dashboard.lvdash.json",
+                    "warehouse_id": warehouse_id,
+                }
+            },
         }
     }
     if sp_id is not None:
@@ -501,8 +970,12 @@ def main():
     output_file = "./resources/jobs.yml"
     with open(output_file, "w") as f:
         yaml.dump(output, f, default_flow_style=False, allow_unicode=True, sort_keys=False)
-
     print(f"Generated {output_file}")
+
+    dashboard_file = "./resources/orders_dashboard.lvdash.json"
+    with open(dashboard_file, "w") as f:
+        json.dump(_build_dashboard_json(catalog), f, indent=2)
+    print(f"Generated {dashboard_file}")
 
 
 if __name__ == "__main__":

@@ -13,6 +13,7 @@ class GenerateOrders(BaseTask):
             .join(df_customer, df_order["id_customer"] == df_customer["id"])
             .select(
                 "name",
+                "country",
                 "id_customer",
                 "id_order",
                 "total",

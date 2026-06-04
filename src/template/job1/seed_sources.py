@@ -72,30 +72,47 @@ class SeedSources(BaseTask):
     # ------------------------------------------------------------------
 
     def _seed_initial(self, catalog: str, seed_date: str) -> None:
+        # Non-uniform country distribution so country chart lines are clearly separated.
+        # US=200, UK=100, DE=50, FR=50, BR=30, CA=25, AU=20, JP=15, MX=7, IN=3 (total=500)
         self.spark.range(1, _INITIAL_CUSTOMERS + 1).select(
             F.col("id").cast(IntegerType()),
             F.concat(F.lit("Customer_"), F.col("id")).alias("name"),
-            F.element_at(
-                F.array(*[F.lit(c) for c in _COUNTRIES]),
-                (F.col("id") % len(_COUNTRIES)).cast(IntegerType()) + 1,
-            ).alias("country"),
+            F.when(F.col("id") <= 200, "US")
+            .when(F.col("id") <= 300, "UK")
+            .when(F.col("id") <= 350, "DE")
+            .when(F.col("id") <= 400, "FR")
+            .when(F.col("id") <= 430, "BR")
+            .when(F.col("id") <= 455, "CA")
+            .when(F.col("id") <= 475, "AU")
+            .when(F.col("id") <= 490, "JP")
+            .when(F.col("id") <= 497, "MX")
+            .otherwise("IN")
+            .alias("country"),
         ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.customer")
 
         self.spark.range(1, _INITIAL_ORDERS + 1).select(
             F.col("id").cast(IntegerType()),
             ((F.col("id") - 1) % _INITIAL_CUSTOMERS + 1).cast(IntegerType()).alias("id_customer"),
             ((F.col("id") % 99 + 1) * 10).cast(FloatType()).alias("total"),
-            F.date_sub(F.lit(seed_date), (F.col("id") % 365).cast(IntegerType())).cast("string").alias("date"),
+            F.date_sub(F.lit(seed_date), (F.col("id") % 363).cast(IntegerType())).cast("string").alias("date"),
             (F.col("id") % 100 + 1).cast(IntegerType()).alias("product_id"),
             (F.col("id") % 10 + 1).cast(IntegerType()).alias("prod_category_id"),
         ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.order")
 
+        # total_item scales with category (category_id * $15 base + $10 noise) so category 1
+        # items cost ~$25 and category 10 items cost ~$160 — a 6x spread visible in charts.
+        # category_id is derived from id_order using the same formula as the order table.
         self.spark.range(1, _INITIAL_ITEMS + 1).select(
             (F.floor((F.col("id") - 1) / 3) + 1).cast(IntegerType()).alias("id_order"),
             ((F.col("id") - 1) % 3 + 1).cast(IntegerType()).alias("seq"),
             F.concat(F.lit("Item_"), F.col("id")).alias("desc_item"),
-            F.lit(2).cast(IntegerType()).alias("qty"),
-            F.lit(50.0).cast(FloatType()).alias("total_item"),
+            (F.floor(F.rand(seed=7) * 5) + 1).cast(IntegerType()).alias("qty"),
+            F.round(
+                ((F.floor((F.col("id") - 1) / 3) + 1) % 10 + 1).cast(FloatType()) * 15.0 + F.rand(seed=42) * 10.0,
+                2,
+            )
+            .cast(FloatType())
+            .alias("total_item"),
         ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.order_item")
 
     # ------------------------------------------------------------------
@@ -148,8 +165,13 @@ class SeedSources(BaseTask):
             F.col("id").cast(IntegerType()).alias("id_order"),
             F.lit(1).cast(IntegerType()).alias("seq"),
             F.concat(F.lit("Item_incr_"), F.col("id")).alias("desc_item"),
-            F.lit(2).cast(IntegerType()).alias("qty"),
-            F.lit(50.0).cast(FloatType()).alias("total_item"),
+            (F.floor(F.rand(seed=7) * 5) + 1).cast(IntegerType()).alias("qty"),
+            F.round(
+                (F.col("id") % 10 + 1).cast(FloatType()) * 15.0 + F.rand(seed=42) * 10.0,
+                2,
+            )
+            .cast(FloatType())
+            .alias("total_item"),
         )
 
     def _build_customer_updates(self, seed_date: str):
