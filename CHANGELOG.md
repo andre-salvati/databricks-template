@@ -2,6 +2,14 @@
 
 ---
 
+## [#34](https://github.com/andre-salvati/databricks-template/pull/34) · 2026-06-05 · feat: standardize silver/gold field names, fix dashboard KPIs, add total_orders
+
+Dropped `ds_kpi` from the dashboard — all three KPI counters (Total Value, Total Orders, Number of Customers) now bind to `ds_orders` with aggregate expressions so all five filters update them; added a third KPI tile for Total Orders (`COUNT DISTINCT order_id`).
+Standardized field names across silver (`curated.order_enriched`) and gold (`report.order_agg`) following four rules: `{entity}_id` suffix, entity-qualified names, `item_*` prefix for item-level fields, no abbreviations; `date` is now cast to `DateType` in silver.
+Added `order_enriched_schema` and `order_agg_schema` to `commonSchemas.py` as canonical schemas for silver and gold; all tests and the integration validator import from there instead of inlining definitions.
+
+---
+
 ## [#33](https://github.com/andre-salvati/databricks-template/pull/33) · 2026-06-04 · feat: AI/BI dashboard, country in gold layer, randomized seed data
 
 Added `country` to `curated.order_enriched` and `report.order_agg` (and their SDP equivalents) so the gold layer carries the full customer dimension needed for country-based reporting; unit tests updated accordingly.
