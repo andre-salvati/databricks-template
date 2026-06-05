@@ -14,15 +14,6 @@ from datetime import date
 
 import pytest
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import (
-    DoubleType,
-    FloatType,
-    IntegerType,
-    LongType,
-    StringType,
-    StructField,
-    StructType,
-)
 from pyspark.testing import assertDataFrameEqual
 
 from template.commonSchemas import (

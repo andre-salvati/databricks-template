@@ -1,5 +1,3 @@
-from pyspark.sql import functions as F
-
 from ..baseTask import BaseTask
 
 
@@ -19,7 +17,7 @@ class GenerateOrders(BaseTask):
                 df_order["id_customer"].alias("customer_id"),
                 df_order_item["id_order"].alias("order_id"),
                 df_order["total"].alias("order_total"),
-                F.col("date").cast("date").alias("order_date"),
+                df_order["date"].cast("date").alias("order_date"),
                 "product_id",
                 df_order["prod_category_id"].alias("product_category_id"),
                 df_order_item["seq"].alias("item_seq"),

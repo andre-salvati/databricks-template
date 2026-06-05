@@ -28,16 +28,19 @@ class Validate(BaseTask):
 
     def _validate_load_test(self, catalog):
         # 500 customers × 100 products × 1 date = 50,000 rows
-        # Each (customer, product): 40 orders × 3 items × qty=2 → total_qty=240
+        # Each (customer, product): 40 orders × 3 items × qty=2 → total_quantity=240
         # Each (customer, product): 40 orders × 3 items × total_item=50.0 → total_value=6,000.0
+        # Each (customer, product): 40 distinct orders → total_orders=40
         for table in (f"{catalog}.report.order_agg", f"{catalog}.report.order_agg_sdp"):
             df_out = self.spark.table(table)
             count = df_out.count()
             if count != 50_000:
                 raise RuntimeError(f"Expected 50,000 rows in {table}, got {count}")
-            wrong = df_out.filter((F.col("total_quantity") != 240) | (F.col("total_value") != 6_000.0)).count()
+            wrong = df_out.filter(
+                (F.col("total_quantity") != 240) | (F.col("total_value") != 6_000.0) | (F.col("total_orders") != 40)
+            ).count()
             if wrong > 0:
-                raise RuntimeError(f"{wrong} rows in {table} have unexpected total_qty/total_value")
+                raise RuntimeError(f"{wrong} rows in {table} have unexpected total_quantity/total_value/total_orders")
 
     def run(self):
         load_test = self.config.get_value("load_test") == "true"
