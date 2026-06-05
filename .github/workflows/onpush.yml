@@ -9,6 +9,7 @@ on:
     paths-ignore:
       - 'README.md'
       - 'CLAUDE.md'
+      - 'CHANGELOG.md'
       - 'docs/**'
   # Manual trigger for re-running CI without a new commit (e.g. after a transient
   # GitHub Actions hiccup that silently drops a push event):

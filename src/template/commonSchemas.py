@@ -1,6 +1,9 @@
 from pyspark.sql.types import (
+    DateType,
+    DoubleType,
     FloatType,
     IntegerType,
+    LongType,
     StringType,
     StructField,
     StructType,
@@ -32,5 +35,35 @@ order_item_schema = StructType(
         StructField("desc_item", StringType(), True),
         StructField("qty", IntegerType(), True),
         StructField("total_item", FloatType(), True),
+    ]
+)
+
+order_enriched_schema = StructType(
+    [
+        StructField("customer_name", StringType(), True),
+        StructField("country", StringType(), True),
+        StructField("customer_id", IntegerType(), True),
+        StructField("order_id", IntegerType(), True),
+        StructField("order_total", FloatType(), True),
+        StructField("order_date", DateType(), True),
+        StructField("product_id", IntegerType(), True),
+        StructField("product_category_id", IntegerType(), True),
+        StructField("item_seq", IntegerType(), True),
+        StructField("item_description", StringType(), True),
+        StructField("item_quantity", IntegerType(), True),
+        StructField("item_total", FloatType(), True),
+    ]
+)
+
+order_agg_schema = StructType(
+    [
+        StructField("customer_name", StringType(), True),
+        StructField("country", StringType(), True),
+        StructField("order_date", DateType(), True),
+        StructField("product_id", IntegerType(), True),
+        StructField("product_category_id", IntegerType(), True),
+        StructField("total_quantity", LongType(), True),
+        StructField("total_value", DoubleType(), True),
+        StructField("total_orders", LongType(), True),
     ]
 )

@@ -1,4 +1,5 @@
 from argparse import Namespace
+from datetime import date
 
 import pytest
 from pyspark.sql import *
@@ -9,7 +10,13 @@ from template.config import Config as TaskConfig
 from template.job1.generate_orders import GenerateOrders
 from template.job1.generate_orders_agg import GenerateOrdersAgg
 from template.job1.seed_sources import SeedSources, _INCREMENTAL_ORDERS, _INCREMENTAL_CUSTOMER_UPDATES
-from template.commonSchemas import customer_schema, order_schema, order_item_schema
+from template.commonSchemas import (
+    customer_schema,
+    order_schema,
+    order_item_schema,
+    order_enriched_schema,
+    order_agg_schema,
+)
 
 from pyspark.testing import assertDataFrameEqual
 from pyspark.sql.functions import explode
@@ -51,27 +58,11 @@ def df_orders_from_source(spark) -> DataFrame:
 @pytest.fixture
 def df_orders(spark) -> DataFrame:
     orders_data = [
-        ("John Doe", "USA", 10, 1, 100.0, "2023-01-01", 1, 1, 1, "Item A", 2, 50.0),
-        ("John Doe", "USA", 10, 1, 100.0, "2023-01-01", 1, 1, 2, "Item B", 1, 50.0),
-        ("Jane Smith", "UK", 20, 2, 150.0, "2023-01-02", 2, 2, 1, "Item C", 3, 150.0),
+        ("John Doe", "USA", 10, 1, 100.0, date(2023, 1, 1), 1, 1, 1, "Item A", 2, 50.0),
+        ("John Doe", "USA", 10, 1, 100.0, date(2023, 1, 1), 1, 1, 2, "Item B", 1, 50.0),
+        ("Jane Smith", "UK", 20, 2, 150.0, date(2023, 1, 2), 2, 2, 1, "Item C", 3, 150.0),
     ]
-    orders_schema = StructType(
-        [
-            StructField("name", StringType(), True),
-            StructField("country", StringType(), True),
-            StructField("id_customer", IntegerType(), True),
-            StructField("id_order", IntegerType(), True),
-            StructField("total", FloatType(), True),
-            StructField("date", StringType(), True),
-            StructField("product_id", IntegerType(), True),
-            StructField("prod_category_id", IntegerType(), True),
-            StructField("seq", IntegerType(), True),
-            StructField("desc_item", StringType(), True),
-            StructField("qty", IntegerType(), True),
-            StructField("total_item", FloatType(), True),
-        ]
-    )
-    return spark.createDataFrame(orders_data, schema=orders_schema)
+    return spark.createDataFrame(orders_data, schema=order_enriched_schema)
 
 
 def test_arg_parser():
@@ -181,21 +172,10 @@ def test_aggregate_orders(spark, config, df_orders):
     assert df_out.count() == 2
 
     expected_data = [
-        ("John Doe", "USA", "2023-01-01", 1, 1, 3, 100.0),
-        ("Jane Smith", "UK", "2023-01-02", 2, 2, 3, 150.0),
+        ("John Doe", "USA", date(2023, 1, 1), 1, 1, 3, 100.0, 1),
+        ("Jane Smith", "UK", date(2023, 1, 2), 2, 2, 3, 150.0, 1),
     ]
-    expected_schema = StructType(
-        [
-            StructField("name", StringType(), True),
-            StructField("country", StringType(), True),
-            StructField("date", StringType(), True),
-            StructField("product_id", IntegerType(), True),
-            StructField("prod_category_id", IntegerType(), True),
-            StructField("total_qty", LongType(), True),
-            StructField("total_value", DoubleType(), True),
-        ]
-    )
-    df_expected = spark.createDataFrame(expected_data, schema=expected_schema)
+    df_expected = spark.createDataFrame(expected_data, schema=order_agg_schema)
 
     assertDataFrameEqual(df_out, df_expected)
 
