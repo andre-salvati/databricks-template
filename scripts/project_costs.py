@@ -12,36 +12,47 @@ from datetime import date, timedelta
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.sql import StatementState
 
+_POLL_TERMINAL = {StatementState.SUCCEEDED, StatementState.FAILED, StatementState.CANCELED, StatementState.CLOSED}
+
 
 def aws_daily_costs(days: int) -> None:
     end = date.today()
     start = end - timedelta(days=days)
 
-    result = subprocess.run(
-        [
-            "aws",
-            "ce",
-            "get-cost-and-usage",
-            "--time-period",
-            f"Start={start},End={end}",
-            "--granularity",
-            "DAILY",
-            "--metrics",
-            "BlendedCost",
-            "--group-by",
-            "Type=DIMENSION,Key=SERVICE",
-            "--output",
-            "json",
-        ],
-        capture_output=True,
-        text=True,
-    )
-
-    if result.returncode != 0:
-        print(f"AWS error: {result.stderr.strip()}")
+    try:
+        result = subprocess.run(
+            [
+                "aws",
+                "ce",
+                "get-cost-and-usage",
+                "--time-period",
+                f"Start={start},End={end}",
+                "--granularity",
+                "DAILY",
+                "--metrics",
+                "BlendedCost",
+                "--group-by",
+                "Type=DIMENSION,Key=SERVICE",
+                "--output",
+                "json",
+            ],
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        print("AWS error: AWS CLI not found — install it or ensure it is on PATH.\n")
         return
 
-    data = json.loads(result.stdout)
+    if result.returncode != 0:
+        # Don't echo raw stderr — AWS error messages can include caller ARNs with account IDs.
+        print("AWS error: unable to retrieve cost data (check AWS credentials and ce:GetCostAndUsage permission).\n")
+        return
+
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        print("AWS error: unexpected response from AWS CLI (pager or credential helper output?).\n")
+        return
 
     print(f"\nAWS Daily Costs — last {days} days")
     print(f"{'Date':<12} {'Total USD':>10}  Services")
@@ -70,7 +81,8 @@ def databricks_daily_costs(profile: str, days: int) -> None:
     try:
         w = WorkspaceClient(profile=profile)
     except Exception as e:
-        print(f"Could not connect to Databricks ({profile} profile): {e}\n")
+        # Avoid printing the exception directly — SDK exceptions can include the workspace URL.
+        print(f"Could not connect to Databricks ({profile} profile): {type(e).__name__}\n")
         return
 
     warehouses = list(w.warehouses.list())
@@ -97,16 +109,13 @@ def databricks_daily_costs(profile: str, days: int) -> None:
             statement=sql,
             wait_timeout="30s",
         )
-        while stmt.status.state not in [
-            StatementState.SUCCEEDED,
-            StatementState.FAILED,
-            StatementState.CANCELED,
-        ]:
+        while stmt.status.state not in _POLL_TERMINAL:
             time.sleep(1)
             stmt = w.statement_execution.get_statement(stmt.statement_id)
 
         if stmt.status.state != StatementState.SUCCEEDED:
-            raise RuntimeError(stmt.status.error.message)
+            error_msg = stmt.status.error.message if stmt.status.error else stmt.status.state.value
+            raise RuntimeError(error_msg)
 
         rows = stmt.result.data_array or []
         if not rows:
@@ -129,6 +138,9 @@ def main() -> None:
     parser.add_argument("--days", type=int, default=30, help="Number of days to look back (default: 30)")
     parser.add_argument("--profile", default="dev", help="Databricks CLI profile (default: dev)")
     args = parser.parse_args()
+
+    if args.days < 1:
+        parser.error("--days must be a positive integer")
 
     aws_daily_costs(args.days)
     databricks_daily_costs(args.profile, args.days)
