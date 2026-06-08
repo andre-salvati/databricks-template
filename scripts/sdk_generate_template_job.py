@@ -481,40 +481,14 @@ def _build_dashboard_json(catalog: str) -> dict:
     return {
         "datasets": [
             {
-                "name": "ds_kpi",
-                "displayName": "KPIs",
-                "queryLines": [
-                    f"SELECT ROUND(SUM(total_item), 2) AS total_value, "
-                    f"COUNT(DISTINCT id_order) AS num_orders, "
-                    f"COUNT(DISTINCT id_customer) AS num_customers "
-                    f"FROM {catalog}.curated.order_enriched "
-                    f"WHERE date BETWEEN :date_range.min AND :date_range.max"
-                ],
-                "parameters": [
-                    {
-                        "keyword": "date_range",
-                        "displayName": "Date Range",
-                        "dataType": "DATE",
-                        "complexType": "RANGE",
-                        "defaultSelection": {
-                            "range": {
-                                "dataType": "DATE",
-                                "min": {"value": "now-1y"},
-                                "max": {"value": "now"},
-                            }
-                        },
-                    }
-                ],
-            },
-            {
                 "name": "ds_orders",
                 "displayName": "Orders",
                 "queryLines": [
-                    f"SELECT CAST(date AS DATE) AS order_date, country, name AS customer, "
-                    f"CAST(product_id AS STRING) AS product_id, CAST(prod_category_id AS STRING) AS category_id, "
-                    f"SUM(total_value) AS total_value "
+                    f"SELECT order_date, country, customer_name AS customer, "
+                    f"CAST(product_id AS STRING) AS product_id, CAST(product_category_id AS STRING) AS category_id, "
+                    f"SUM(total_value) AS total_value, SUM(total_orders) AS total_orders "
                     f"FROM {catalog}.report.order_agg "
-                    f"WHERE date BETWEEN :date_range.min AND :date_range.max "
+                    f"WHERE order_date BETWEEN :date_range.min AND :date_range.max "
                     f"GROUP BY 1, 2, 3, 4, 5"
                 ],
                 "parameters": [
@@ -566,9 +540,9 @@ def _build_dashboard_json(catalog: str) -> dict:
                                 {
                                     "name": "main_query",
                                     "query": {
-                                        "datasetName": "ds_kpi",
-                                        "fields": [{"name": "total_value", "expression": "`total_value`"}],
-                                        "disaggregated": True,
+                                        "datasetName": "ds_orders",
+                                        "fields": [{"name": "total_value", "expression": "SUM(`total_value`)"}],
+                                        "disaggregated": False,
                                     },
                                 }
                             ],
@@ -583,22 +557,22 @@ def _build_dashboard_json(catalog: str) -> dict:
                     },
                     {
                         "widget": {
-                            "name": "kpi-num-orders",
+                            "name": "kpi-total-orders",
                             "queries": [
                                 {
                                     "name": "main_query",
                                     "query": {
-                                        "datasetName": "ds_kpi",
-                                        "fields": [{"name": "num_orders", "expression": "`num_orders`"}],
-                                        "disaggregated": True,
+                                        "datasetName": "ds_orders",
+                                        "fields": [{"name": "total_orders", "expression": "SUM(`total_orders`)"}],
+                                        "disaggregated": False,
                                     },
                                 }
                             ],
                             "spec": {
                                 "version": 2,
                                 "widgetType": "counter",
-                                "encodings": {"value": {"fieldName": "num_orders", "displayName": "Number of Orders"}},
-                                "frame": {"title": "Number of Orders", "showTitle": True},
+                                "encodings": {"value": {"fieldName": "total_orders", "displayName": "Total Orders"}},
+                                "frame": {"title": "Total Orders", "showTitle": True},
                             },
                         },
                         "position": {"x": 2, "y": 2, "width": 2, "height": 3},
@@ -610,9 +584,11 @@ def _build_dashboard_json(catalog: str) -> dict:
                                 {
                                     "name": "main_query",
                                     "query": {
-                                        "datasetName": "ds_kpi",
-                                        "fields": [{"name": "num_customers", "expression": "`num_customers`"}],
-                                        "disaggregated": True,
+                                        "datasetName": "ds_orders",
+                                        "fields": [
+                                            {"name": "num_customers", "expression": "COUNT(DISTINCT `customer`)"}
+                                        ],
+                                        "disaggregated": False,
                                     },
                                 }
                             ],
@@ -784,14 +760,6 @@ def _build_dashboard_json(catalog: str) -> dict:
                                         "disaggregated": False,
                                     },
                                 },
-                                {
-                                    "name": "q_date_kpi",
-                                    "query": {
-                                        "datasetName": "ds_kpi",
-                                        "parameters": [{"name": "date_range", "keyword": "date_range"}],
-                                        "disaggregated": False,
-                                    },
-                                },
                             ],
                             "spec": {
                                 "version": 2,
@@ -799,7 +767,6 @@ def _build_dashboard_json(catalog: str) -> dict:
                                 "encodings": {
                                     "fields": [
                                         {"parameterName": "date_range", "queryName": "q_date"},
-                                        {"parameterName": "date_range", "queryName": "q_date_kpi"},
                                     ]
                                 },
                                 "frame": {"showTitle": True, "title": "Date Range"},

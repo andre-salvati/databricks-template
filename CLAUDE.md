@@ -95,8 +95,8 @@ Medallion schemas (`MEDALLION_SCHEMAS` in `config.py`):
 
 Each task's input/output tables are **hardcoded** in the task module (e.g. `raw.customer` → `curated.order_enriched`). The medallion layer is a semantic contract, not a runtime parameter — this is the dbt `ref()` pattern. Don't parameterize the layer; if a task genuinely needs a configurable target, that's a different task.
 
-`curated.order_enriched` columns: `name, country, id_customer, id_order, total, date, product_id, prod_category_id, seq, desc_item, qty, total_item`
-`report.order_agg` columns: `name, country, date, product_id, prod_category_id, total_qty, total_value`
+`curated.order_enriched` columns: `customer_name, country, customer_id, order_id, order_total, order_date (DateType), product_id, product_category_id, item_seq, item_description, item_quantity, item_total`
+`report.order_agg` columns: `customer_name, country, order_date (DateType), product_id, product_category_id, total_quantity, total_value, total_orders`
 
 ### Job-level parameters (runtime, overridable per-run)
 

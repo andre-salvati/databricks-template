@@ -12,18 +12,18 @@ class GenerateOrders(BaseTask):
             df_order_item.join(df_order, df_order_item["id_order"] == df_order["id"])
             .join(df_customer, df_order["id_customer"] == df_customer["id"])
             .select(
-                "name",
+                df_customer["name"].alias("customer_name"),
                 "country",
-                "id_customer",
-                "id_order",
-                "total",
-                "date",
+                df_order["id_customer"].alias("customer_id"),
+                df_order_item["id_order"].alias("order_id"),
+                df_order["total"].alias("order_total"),
+                df_order["date"].cast("date").alias("order_date"),
                 "product_id",
-                "prod_category_id",
-                "seq",
-                "desc_item",
-                "qty",
-                "total_item",
+                df_order["prod_category_id"].alias("product_category_id"),
+                df_order_item["seq"].alias("item_seq"),
+                df_order_item["desc_item"].alias("item_description"),
+                df_order_item["qty"].alias("item_quantity"),
+                df_order_item["total_item"].alias("item_total"),
             )
         )
 
