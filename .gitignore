@@ -2,7 +2,9 @@ notes/
 .databricks/
 .vscode/
 .venv/
-.claude/
+.claude/*
+!.claude/commands/
+!.claude/commands/**
 .pytest_cache/
 dist/
 build/

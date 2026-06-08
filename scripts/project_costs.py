@@ -1,0 +1,150 @@
+"""
+Show AWS and Databricks spend for the last 30 days, day by day.
+Usage: uv run python scripts/project_costs.py [--days N] [--profile PROFILE]
+"""
+
+import argparse
+import json
+import subprocess
+import time
+from datetime import date, timedelta
+
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.sql import StatementState
+
+_POLL_TERMINAL = {StatementState.SUCCEEDED, StatementState.FAILED, StatementState.CANCELED, StatementState.CLOSED}
+
+
+def aws_daily_costs(days: int) -> None:
+    end = date.today()
+    start = end - timedelta(days=days)
+
+    try:
+        result = subprocess.run(
+            [
+                "aws",
+                "ce",
+                "get-cost-and-usage",
+                "--time-period",
+                f"Start={start},End={end}",
+                "--granularity",
+                "DAILY",
+                "--metrics",
+                "BlendedCost",
+                "--group-by",
+                "Type=DIMENSION,Key=SERVICE",
+                "--output",
+                "json",
+            ],
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        print("AWS error: AWS CLI not found — install it or ensure it is on PATH.\n")
+        return
+
+    if result.returncode != 0:
+        # Don't echo raw stderr — AWS error messages can include caller ARNs with account IDs.
+        print("AWS error: unable to retrieve cost data (check AWS credentials and ce:GetCostAndUsage permission).\n")
+        return
+
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        print("AWS error: unexpected response from AWS CLI (pager or credential helper output?).\n")
+        return
+
+    print(f"\nAWS Daily Costs — last {days} days")
+    print(f"{'Date':<12} {'Total USD':>10}  Services")
+    print("-" * 80)
+
+    grand_total = 0.0
+    for period in data["ResultsByTime"]:
+        day = period["TimePeriod"]["Start"]
+        estimated = "*" if period.get("Estimated") else " "
+        groups = [(g["Keys"][0], float(g["Metrics"]["BlendedCost"]["Amount"])) for g in period["Groups"]]
+        total = sum(amt for _, amt in groups)
+        grand_total += total
+        services = ", ".join(
+            f"{svc.split()[-1]} ${amt:.4f}" for svc, amt in sorted(groups, key=lambda x: -x[1]) if amt > 0
+        )
+        print(f"{day}{estimated} {total:>10.4f}  {services or '—'}")
+
+    print("-" * 80)
+    print(f"{'Total':<13} {grand_total:>10.4f}")
+    print("* = estimated\n")
+
+
+def databricks_daily_costs(profile: str, days: int) -> None:
+    print(f"Databricks Daily Costs — last {days} days")
+
+    try:
+        w = WorkspaceClient(profile=profile)
+    except Exception as e:
+        # Avoid printing the exception directly — SDK exceptions can include the workspace URL.
+        print(f"Could not connect to Databricks ({profile} profile): {type(e).__name__}\n")
+        return
+
+    warehouses = list(w.warehouses.list())
+    if not warehouses:
+        print("No SQL warehouse available.\n")
+        return
+    warehouse_id = warehouses[0].id
+
+    sql = f"""
+    SELECT
+      usage_date,
+      sku_name,
+      ROUND(SUM(usage_quantity), 4) AS total_quantity,
+      usage_unit
+    FROM system.billing.usage
+    WHERE usage_date >= CURRENT_DATE() - INTERVAL {days} DAYS
+    GROUP BY usage_date, sku_name, usage_unit
+    ORDER BY usage_date DESC, total_quantity DESC
+    """
+
+    try:
+        stmt = w.statement_execution.execute_statement(
+            warehouse_id=warehouse_id,
+            statement=sql,
+            wait_timeout="30s",
+        )
+        while stmt.status.state not in _POLL_TERMINAL:
+            time.sleep(1)
+            stmt = w.statement_execution.get_statement(stmt.statement_id)
+
+        if stmt.status.state != StatementState.SUCCEEDED:
+            error_msg = stmt.status.error.message if stmt.status.error else stmt.status.state.value
+            raise RuntimeError(error_msg)
+
+        rows = stmt.result.data_array or []
+        if not rows:
+            print("No usage data found.\n")
+            return
+
+        print(f"{'Date':<12} {'SKU':<55} {'Quantity':>10}  Unit")
+        print("-" * 85)
+        for row in rows:
+            print(f"{str(row[0]):<12} {str(row[1]):<55.55} {float(row[2]):>10.4f}  {row[3]}")
+        print()
+
+    except Exception as e:
+        print(f"system.billing.usage not available: {e}")
+        print("Free-tier workspaces don't expose system.billing (requires Premium).\n")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Show AWS and Databricks spend day by day")
+    parser.add_argument("--days", type=int, default=30, help="Number of days to look back (default: 30)")
+    parser.add_argument("--profile", default="dev", help="Databricks CLI profile (default: dev)")
+    args = parser.parse_args()
+
+    if args.days < 1:
+        parser.error("--days must be a positive integer")
+
+    aws_daily_costs(args.days)
+    databricks_daily_costs(args.profile, args.days)
+
+
+if __name__ == "__main__":
+    main()

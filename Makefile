@@ -33,3 +33,5 @@ run: whoami
 truncate: whoami
 	uv run python ./scripts/sdk_truncate_tables.py $(env) $(yes)
 
+project-costs:
+	uv run python ./scripts/project_costs.py
