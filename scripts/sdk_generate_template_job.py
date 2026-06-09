@@ -485,7 +485,7 @@ def _build_dashboard_json(catalog: str) -> dict:
                 "displayName": "Orders",
                 "queryLines": [
                     f"SELECT order_date, country, customer_name AS customer, "
-                    f"CAST(product_id AS STRING) AS product_id, CAST(product_category_id AS STRING) AS category_id, "
+                    f"product_name AS product, category_name AS category, "
                     f"SUM(total_value) AS total_value, SUM(total_orders) AS total_orders "
                     f"FROM {catalog}.report.order_agg "
                     f"WHERE order_date BETWEEN :date_range.min AND :date_range.max "
@@ -661,7 +661,7 @@ def _build_dashboard_json(catalog: str) -> dict:
                                                 "name": "daily(order_date)",
                                                 "expression": 'DATE_TRUNC("DAY", `order_date`)',
                                             },
-                                            {"name": "product_id", "expression": "`product_id`"},
+                                            {"name": "product", "expression": "`product`"},
                                             {"name": "sum(total_value)", "expression": "SUM(`total_value`)"},
                                         ],
                                         "disaggregated": False,
@@ -683,7 +683,7 @@ def _build_dashboard_json(catalog: str) -> dict:
                                         "displayName": "Total Value",
                                     },
                                     "color": {
-                                        "fieldName": "product_id",
+                                        "fieldName": "product",
                                         "scale": {"type": "categorical"},
                                         "displayName": "Product",
                                     },
@@ -709,7 +709,7 @@ def _build_dashboard_json(catalog: str) -> dict:
                                                 "name": "daily(order_date)",
                                                 "expression": 'DATE_TRUNC("DAY", `order_date`)',
                                             },
-                                            {"name": "category_id", "expression": "`category_id`"},
+                                            {"name": "category", "expression": "`category`"},
                                             {"name": "sum(total_value)", "expression": "SUM(`total_value`)"},
                                         ],
                                         "disaggregated": False,
@@ -731,7 +731,7 @@ def _build_dashboard_json(catalog: str) -> dict:
                                         "displayName": "Total Value",
                                     },
                                     "color": {
-                                        "fieldName": "category_id",
+                                        "fieldName": "category",
                                         "scale": {"type": "categorical"},
                                         "displayName": "Category",
                                     },
@@ -834,7 +834,7 @@ def _build_dashboard_json(catalog: str) -> dict:
                                     "name": "q_product",
                                     "query": {
                                         "datasetName": "ds_orders",
-                                        "fields": [{"name": "product_id", "expression": "`product_id`"}],
+                                        "fields": [{"name": "product", "expression": "`product`"}],
                                         "disaggregated": False,
                                     },
                                 }
@@ -844,7 +844,7 @@ def _build_dashboard_json(catalog: str) -> dict:
                                 "widgetType": "filter-multi-select",
                                 "encodings": {
                                     "fields": [
-                                        {"fieldName": "product_id", "displayName": "Product", "queryName": "q_product"}
+                                        {"fieldName": "product", "displayName": "Product", "queryName": "q_product"}
                                     ]
                                 },
                                 "frame": {"showTitle": True, "title": "Product"},
@@ -860,7 +860,7 @@ def _build_dashboard_json(catalog: str) -> dict:
                                     "name": "q_category",
                                     "query": {
                                         "datasetName": "ds_orders",
-                                        "fields": [{"name": "category_id", "expression": "`category_id`"}],
+                                        "fields": [{"name": "category", "expression": "`category`"}],
                                         "disaggregated": False,
                                     },
                                 }
@@ -871,7 +871,7 @@ def _build_dashboard_json(catalog: str) -> dict:
                                 "encodings": {
                                     "fields": [
                                         {
-                                            "fieldName": "category_id",
+                                            "fieldName": "category",
                                             "displayName": "Category",
                                             "queryName": "q_category",
                                         }

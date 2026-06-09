@@ -40,7 +40,9 @@ path = "src/template/__init__.py"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-python_files = ["test_*.py", "*_test.py"]
+# "unit_test_*.py" catches unit_test_sdp.py — the SDP suite ends in "_sdp.py" and
+# would otherwise match neither "test_*.py" nor "*_test.py" and be silently skipped.
+python_files = ["test_*.py", "*_test.py", "unit_test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "--cov=. --cov-report=term --cov-report=xml:coverage_reports/coverage.xml --cov-report=html:coverage_reports/html"

@@ -9,11 +9,17 @@ from template.main import *
 from template.config import Config as TaskConfig
 from template.job1.generate_orders import GenerateOrders
 from template.job1.generate_orders_agg import GenerateOrdersAgg
-from template.job1.seed_sources import SeedSources, _INCREMENTAL_ORDERS, _INCREMENTAL_CUSTOMER_UPDATES
+from template.job1.seed_sources import (
+    SeedSources,
+    _INCREMENTAL_ORDERS,
+    _INCREMENTAL_CUSTOMER_UPDATES,
+    _INCREMENTAL_PRICE_UPDATES,
+)
 from template.commonSchemas import (
     customer_schema,
     order_schema,
     order_item_schema,
+    product_schema,
     order_enriched_schema,
     order_agg_schema,
 )
@@ -57,10 +63,63 @@ def df_orders_from_source(spark) -> DataFrame:
 
 @pytest.fixture
 def df_orders(spark) -> DataFrame:
+    # Enriched output of enrich_order: line_revenue = item_quantity × unit_price-at-sale.
+    # product 1 = "Product 1" priced 10.0, product 2 = "Product 2" priced 25.0.
     orders_data = [
-        ("John Doe", "USA", 10, 1, 100.0, date(2023, 1, 1), 1, 1, 1, "Item A", 2, 50.0),
-        ("John Doe", "USA", 10, 1, 100.0, date(2023, 1, 1), 1, 1, 2, "Item B", 1, 50.0),
-        ("Jane Smith", "UK", 20, 2, 150.0, date(2023, 1, 2), 2, 2, 1, "Item C", 3, 150.0),
+        (
+            "John Doe",
+            "USA",
+            10,
+            1,
+            100.0,
+            date(2023, 1, 1),
+            1,
+            "Product 1",
+            1,
+            "Category 1",
+            1,
+            "Item A",
+            2,
+            50.0,
+            20.0,
+            10.0,
+        ),
+        (
+            "John Doe",
+            "USA",
+            10,
+            1,
+            100.0,
+            date(2023, 1, 1),
+            1,
+            "Product 1",
+            1,
+            "Category 1",
+            2,
+            "Item B",
+            1,
+            50.0,
+            10.0,
+            10.0,
+        ),
+        (
+            "Jane Smith",
+            "UK",
+            20,
+            2,
+            150.0,
+            date(2023, 1, 2),
+            2,
+            "Product 2",
+            2,
+            "Category 2",
+            1,
+            "Item C",
+            3,
+            150.0,
+            75.0,
+            25.0,
+        ),
     ]
     return spark.createDataFrame(orders_data, schema=order_enriched_schema)
 
@@ -157,7 +216,10 @@ def test_enrich_orders(spark, config, df_orders):
     order_item_data = [(1, 1, "Item A", 2, 50.0), (1, 2, "Item B", 1, 50.0), (2, 1, "Item C", 3, 150.0)]
     df_order_item = spark.createDataFrame(order_item_data, schema=order_item_schema)
 
-    df_out = task.enrich_order(df_customer, df_order, df_order_item)
+    product_data = [(1, "Product 1", 10.0), (2, "Product 2", 25.0)]
+    df_product = spark.createDataFrame(product_data, schema=product_schema)
+
+    df_out = task.enrich_order(df_customer, df_order, df_order_item, df_product)
 
     assert df_out.count() == 3
 
@@ -171,9 +233,10 @@ def test_aggregate_orders(spark, config, df_orders):
 
     assert df_out.count() == 2
 
+    # total_value = sum(line_revenue): John 20+10=30, Jane 75
     expected_data = [
-        ("John Doe", "USA", date(2023, 1, 1), 1, 1, 3, 100.0, 1),
-        ("Jane Smith", "UK", date(2023, 1, 2), 2, 2, 3, 150.0, 1),
+        ("John Doe", "USA", date(2023, 1, 1), 1, "Product 1", 1, "Category 1", 3, 30.0, 1),
+        ("Jane Smith", "UK", date(2023, 1, 2), 2, "Product 2", 2, "Category 2", 3, 75.0, 1),
     ]
     df_expected = spark.createDataFrame(expected_data, schema=order_agg_schema)
 
@@ -206,6 +269,21 @@ def test_seed_sources_customer_updates_schema(spark, config):
     df = task._build_customer_updates("2024-01-01")
     assert df.count() == _INCREMENTAL_CUSTOMER_UPDATES
     assert df.columns == [f.name for f in customer_schema]
+
+
+def test_seed_sources_price_updates_schema(spark, config):
+    task = SeedSources(config)
+    df = task._build_price_updates("2024-01-01")
+    assert df.count() == _INCREMENTAL_PRICE_UPDATES
+    assert df.columns == [f.name for f in product_schema]
+
+
+def test_seed_sources_price_updates_deterministic_per_date(spark, config):
+    """Same seed_date must produce identical price updates (idempotent reruns)."""
+    task = SeedSources(config)
+    a = {(r.product_id, r.unit_price) for r in task._build_price_updates("2024-01-05").collect()}
+    b = {(r.product_id, r.unit_price) for r in task._build_price_updates("2024-01-05").collect()}
+    assert a == b
 
 
 def test_seed_sources_incremental_ids_unique_across_days(spark, config):

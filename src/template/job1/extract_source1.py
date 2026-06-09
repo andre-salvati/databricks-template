@@ -1,7 +1,13 @@
 from ..baseTask import BaseTask
 
-INPUT_TABLE = "external_source.customer"
-OUTPUT_TABLE = "raw.customer"
+# Bronze dimension copies. Both are full overwrites of small dimension tables, so
+# they are intentionally not liquid-clustered (clustering can't amortise under a
+# daily full rewrite). The mutable attribute (product.unit_price) is carried
+# faithfully so the silver layer sees the current price on each run.
+DIMENSIONS = [
+    ("external_source.customer", "raw.customer"),
+    ("external_source.product", "raw.product"),
+]
 
 
 class ExtractSource1(BaseTask):
@@ -11,7 +17,7 @@ class ExtractSource1(BaseTask):
     def run(self):
         self.logger.info("extracting data from Source1")
 
-        df = self.spark.read.table(INPUT_TABLE)
-
-        # overwriteSchema=false: fail loudly on upstream schema drift instead of silently propagating it.
-        (df.write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(OUTPUT_TABLE))
+        for input_table, output_table in DIMENSIONS:
+            df = self.spark.read.table(input_table)
+            # overwriteSchema=false: fail loudly on upstream schema drift instead of silently propagating it.
+            (df.write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(output_table))
