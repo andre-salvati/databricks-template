@@ -11,6 +11,14 @@ Fixed pytest collection so `unit_test_sdp.py` is actually picked up (it matched 
 
 ---
 
+## [#35](https://github.com/andre-salvati/databricks-template/pull/35) · 2026-06-08 · feat: add /project-costs Claude command and make target
+
+Added `scripts/project_costs.py`, which queries AWS Cost Explorer (daily, last 30 days) and the Databricks `system.billing.usage` system table via the SDK and prints two formatted cost tables, exposed through a `make project-costs` runner.
+Added a `/project-costs` Claude slash command (`.claude/commands/project-costs.md`) that runs the script and analyzes the output for anomalies, spikes, period comparisons, and cross-cloud S3/egress-vs-DBU correlation; `.gitignore` now tracks `.claude/commands/` so project slash commands are shared with the team while personal settings stay local.
+Hardened the script against credential leakage and runtime failures: sanitized AWS/SDK error messages (which can embed caller ARNs or the workspace URL), `FileNotFoundError` and JSON-decode guards, `StatementState.CLOSED` in the poll-exit set, a null-guard on `stmt.status.error` for canceled statements, and `--days >= 1` validation.
+
+---
+
 ## [#34](https://github.com/andre-salvati/databricks-template/pull/34) · 2026-06-05 · feat: standardize silver/gold field names, fix dashboard KPIs, add total_orders
 
 Dropped `ds_kpi` from the dashboard — all three KPI counters (Total Value, Total Orders, Number of Customers) now bind to `ds_orders` with aggregate expressions so all five filters update them; added a third KPI tile for Total Orders (`COUNT DISTINCT order_id`).
@@ -27,7 +35,7 @@ Improved seed data chart visibility with a non-uniform country distribution and 
 
 ---
 
-## [#30](https://github.com/andre-salvati/databricks-template/pull/30) · 2026-06-03 · feat: product dimensions, seed enrichment, truncate script, prod schedule
+## [#31](https://github.com/andre-salvati/databricks-template/pull/31) · 2026-06-03 · feat: product dimensions, seed enrichment, truncate script, prod schedule
 
 Added `product_id` (100 distinct) and `prod_category_id` (10 distinct) to the order schema and propagated them through extract → enrich → aggregate → SDP transforms; `report.order_agg` now groups by `name`, `date`, `product_id`, `prod_category_id`.
 Enriched seed data: 2M orders spread over 365 days with varied totals ($10–$990), 10 countries, 500 customers, 5 000 incremental orders/day; raised DQX WARN limit to 1 000 to match the new range.
