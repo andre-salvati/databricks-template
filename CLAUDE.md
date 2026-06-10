@@ -95,8 +95,23 @@ Medallion schemas (`MEDALLION_SCHEMAS` in `config.py`):
 
 Each task's input/output tables are **hardcoded** in the task module (e.g. `raw.customer` → `curated.order_enriched`). The medallion layer is a semantic contract, not a runtime parameter — this is the dbt `ref()` pattern. Don't parameterize the layer; if a task genuinely needs a configurable target, that's a different task.
 
-`curated.order_enriched` columns: `customer_name, country, customer_id, order_id, order_total, order_date (DateType), product_id, product_category_id, item_seq, item_description, item_quantity, item_total`
-`report.order_agg` columns: `customer_name, country, order_date (DateType), product_id, product_category_id, total_quantity, total_value, total_orders`
+`curated.order_enriched` columns: `customer_name, country, customer_id, order_id, order_total, order_date (DateType), product_id, product_name, product_category_id, category_name, item_seq, item_description, item_quantity, item_total, line_revenue, unit_price_at_sale`
+`report.order_agg` columns: `customer_name, country, order_date (DateType), product_id, product_name, product_category_id, category_name, total_quantity, total_value, total_orders`
+
+`total_value` in gold is `SUM(line_revenue)`, **not** `SUM(item_total)`. `line_revenue = item_quantity × unit_price_at_sale` is computed in silver by joining the `external_source.product` dimension and is **frozen** at first processing (see "Incremental silver: price freeze"). `product_name` (`"Product 1"`, from the product dimension) and `category_name` (`"Category 2"`, derived as `concat('Category ', product_category_id)`) are human-readable labels carried alongside the numeric ids; the AI/BI dashboard displays the labels instead of the ids. Canonical schemas live in `commonSchemas.py` (`order_enriched_schema`, `order_agg_schema`, `product_schema`).
+
+### Incremental silver: price freeze (load-bearing)
+
+`external_source.product` is a mutable dimension — the daily seed bumps `unit_price` for a handful of products each run (`_build_price_updates`). The pipeline freezes the price at sale time so a later price change never restates already-booked revenue. **Both** pipelines freeze, by different mechanisms:
+
+- **`job1` (batch)** — `generate_orders` does a **first-run-full / incremental-after** split. First run (silver empty): full overwrite of all backfilled orders. Every subsequent run: enrich only `date = seed_date` orders (raw layer keeps the source string `date`) and **`MERGE … WHEN NOT MATCHED THEN INSERT`** (insert-only, never update) keyed on `(order_id, item_seq)`. Existing rows keep their frozen `line_revenue`. Gold (`generate_orders_agg`) mirrors this: first-run full overwrite, then `replaceWhere order_date = DATE'<seed_date>'` on just that day's slice.
+- **`job1_sdp` (declarative)** — silver (`curated.order_enriched_sdp`) and bronze `raw.order_item_sdp` are **streaming tables** (`@dp.table` + `spark.readStream`), not materialized views. A stream–static join (streaming `order_item` fact ⨝ static `order`/`customer`/`product` dims) appends each row once and never reprocesses it, so `line_revenue` is frozen on append. **A materialized view would restate** the price on every refresh — that is why silver had to become a streaming table. Gold (`report.order_agg_sdp`) stays a materialized view because it re-sums already-frozen silver.
+
+Why an MV restates but a streaming table freezes: an MV is *defined as a query over current inputs* and recomputes from scratch; a streaming table consumes new input rows once and appends. "Incremental" (Enzyme re-reading only changed Delta files) is about efficiency, not semantics — an incrementally-refreshed MV still produces latest-wins. Known limitations (acceptable for a template): the first-run backfill freezes at the *current* price; freeze is at *processing* time, not strictly *order date* (equivalent under the daily cadence); country is frozen at append time too in the SDP path.
+
+### Liquid clustering
+
+Clustering keys are set on the **accumulating** tables only (clustering can't amortize under a daily full overwrite, so `raw.*` are intentionally left unclustered): `external_source.order` (`date`), `external_source.order_item` (`id_order`), `external_source.product` (`product_id`), `curated.order_enriched` (`order_date`), `report.order_agg` (`order_date, product_id`). Batch tasks call `BaseTask.cluster_by(table, *cols)` (idempotent `ALTER TABLE … CLUSTER BY`) after writing; SDP tables pass `cluster_by=[...]` to the `@dp.table` / `@dp.materialized_view` decorator.
 
 ### Job-level parameters (runtime, overridable per-run)
 

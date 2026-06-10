@@ -2,7 +2,7 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import FloatType, IntegerType
 
 from template.baseTask import BaseTask
-from template.commonSchemas import customer_schema, order_item_schema, order_schema
+from template.commonSchemas import customer_schema, order_item_schema, order_schema, product_schema
 from template.config import MEDALLION_SCHEMAS
 
 SCHEMA = "external_source"
@@ -28,6 +28,10 @@ class Setup(BaseTask):
             f"{catalog}.{SCHEMA}.customer"
         )
 
+        # Products referenced by the orders below (product_id 1, 2, 3).
+        product_data = [(1, "Product 1", 10.0), (2, "Product 2", 20.0), (3, "Product 3", 30.0)]
+        self.spark.createDataFrame(product_data, schema=product_schema).write.saveAsTable(f"{catalog}.{SCHEMA}.product")
+
         order_data = [
             (1, 10, 100.0, "2023-01-01", 1, 1),
             (2, 20, 1001.0, "2023-01-02", 2, 1),  # total > 1000 → WARN
@@ -49,6 +53,14 @@ class Setup(BaseTask):
             F.concat(F.lit("Customer_"), F.col("id")).alias("name"),
             F.lit("USA").alias("country"),
         ).write.saveAsTable(f"{catalog}.{SCHEMA}.customer")
+
+        # 100 products (ids 1–100). unit_price=25.0 so line_revenue = qty(2) × 25 = 50,
+        # keeping the per-group total_value (120 items × 50 = 6,000) that _validate_load_test asserts.
+        self.spark.range(1, 101).select(
+            F.col("id").cast(IntegerType()).alias("product_id"),
+            F.concat(F.lit("Product "), F.col("id")).alias("name"),
+            F.lit(25.0).cast(FloatType()).alias("unit_price"),
+        ).write.saveAsTable(f"{catalog}.{SCHEMA}.product")
 
         # 2M orders — customer_id round-robins through 1–500
         self.spark.range(1, 2_000_001).select(
@@ -80,3 +92,7 @@ class Setup(BaseTask):
             self._seed_load_test(catalog)
         else:
             self._seed_standard(catalog)
+
+        self.cluster_by(f"{catalog}.{SCHEMA}.order", "date")
+        self.cluster_by(f"{catalog}.{SCHEMA}.order_item", "id_order")
+        self.cluster_by(f"{catalog}.{SCHEMA}.product", "product_id")

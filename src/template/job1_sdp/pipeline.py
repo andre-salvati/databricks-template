@@ -7,17 +7,28 @@ job1 tables in the same catalog without overwriting each other.
 Data flow:
 
   external_source.customer   ──►  raw.customer_sdp    (@dp.materialized_view, simple copy)
+  external_source.product    ──►  raw.product_sdp     (@dp.materialized_view, dimension copy)
   external_source.order      ──►  raw.order_sdp       (@dp.materialized_view, simple copy)
-  external_source.order_item ──►  raw.order_item_sdp  (@dp.materialized_view, simple copy)
+  external_source.order_item ──►  raw.order_item_sdp  (@dp.table STREAMING, append-only)
 
-  raw.customer_sdp ─┐
-  raw.order_sdp     ├──► curated.order_enriched_sdp   (@dp.materialized_view)
-  raw.order_item_sdp┘
+  raw.customer_sdp  ─┐ (static dim)
+  raw.order_sdp      ├──► curated.order_enriched_sdp  (@dp.table STREAMING — freezes price)
+  raw.product_sdp    │ (static dim)
+  raw.order_item_sdp ┘ (streaming fact)
 
   curated.order_enriched_sdp ──► report.order_agg_sdp  (@dp.materialized_view)
 
-All tables are @dp.materialized_view so Enzyme can track Delta version watermarks
-end-to-end and perform incremental refresh on every layer.
+Freeze semantics (mirrors job1's INSERT-only MERGE)
+---------------------------------------------------
+Silver is a STREAMING table fed by a stream–static join: the order_item fact streams,
+while order / customer / product are read static. Each order_item is appended exactly
+once and never reprocessed, so the line_revenue (item_quantity × unit_price) computed at
+append time is frozen — a later product price change in raw.product_sdp only affects NEW
+rows, it does not restate already-booked revenue. A materialized view, by contrast,
+recomputes from current inputs on every refresh and WOULD restate price; that is why
+silver had to become a streaming table for the freeze to hold. Because customer is read
+static, its country attribute is captured at append time too — the whole enriched row is
+frozen. Gold stays a materialized_view: it re-sums already-frozen silver, so it is stable.
 
 DQX is intentionally absent from this pipeline — apply_checks() stamps run_time
 timestamps on violation structs, which Enzyme treats as non-deterministic and
@@ -82,6 +93,19 @@ def raw_customer_sdp():
     return spark.read.table(f"{_catalog}.external_source.customer")
 
 
+# ── Bronze: raw.product_sdp (dimension) ───────────────────────────────────────
+
+
+@dp.materialized_view(
+    name=f"{_catalog}.raw.product_sdp",
+    comment="Bronze: full copy of external_source.product (mirrors ExtractSource1). "
+    "Static dimension joined into silver; its mutable unit_price is what silver freezes.",
+    cluster_by=["product_id"],
+)
+def raw_product_sdp():
+    return spark.read.table(f"{_catalog}.external_source.product")
+
+
 # ── Bronze: raw.order_sdp ─────────────────────────────────────────────────────
 
 
@@ -89,34 +113,40 @@ def raw_customer_sdp():
     name=f"{_catalog}.raw.order_sdp",
     comment="Bronze: external_source.order with null id/id_customer rows excluded. "
     "Duplicate ids are not filtered (requires full-dataset scan, blocks Enzyme incremental refresh).",
+    cluster_by=["date"],
 )
 def raw_order_sdp():
     return spark.read.table(f"{_catalog}.external_source.order").filter("id IS NOT NULL AND id_customer IS NOT NULL")
 
 
-# ── Bronze: raw.order_item_sdp ────────────────────────────────────────────────
+# ── Bronze: raw.order_item_sdp (STREAMING fact) ───────────────────────────────
 
 
-@dp.materialized_view(
+@dp.table(
     name=f"{_catalog}.raw.order_item_sdp",
-    comment="Bronze: full copy of external_source.order_item (mirrors ExtractSource2).",
+    comment="Bronze: streaming append of external_source.order_item. Streaming (not a "
+    "materialized view) so silver can be a streaming table and freeze price on append.",
+    cluster_by=["id_order"],
 )
 def raw_order_item_sdp():
-    return spark.read.table(f"{_catalog}.external_source.order_item")
+    return spark.readStream.table(f"{_catalog}.external_source.order_item")
 
 
-# ── Silver: curated.order_enriched_sdp ───────────────────────────────────────
+# ── Silver: curated.order_enriched_sdp (STREAMING — freezes price) ────────────
 
 
-@dp.materialized_view(
+@dp.table(
     name=f"{_catalog}.curated.order_enriched_sdp",
-    comment="Silver: order_item ⨝ order ⨝ customer join (mirrors GenerateOrders).",
+    comment="Silver: order_item ⨝ order ⨝ customer ⨝ product (mirrors GenerateOrders). "
+    "Streaming fact + static dims: each row appended once, so line_revenue is frozen.",
+    cluster_by=["order_date"],
 )
 def curated_order_enriched_sdp():
     return enrich_order(
-        spark.read.table(f"{_catalog}.raw.customer_sdp"),
-        spark.read.table(f"{_catalog}.raw.order_sdp"),
-        spark.read.table(f"{_catalog}.raw.order_item_sdp"),
+        spark.read.table(f"{_catalog}.raw.customer_sdp"),  # static dim
+        spark.read.table(f"{_catalog}.raw.order_sdp"),  # static dim
+        spark.readStream.table(f"{_catalog}.raw.order_item_sdp"),  # streaming fact
+        spark.read.table(f"{_catalog}.raw.product_sdp"),  # static dim (current price)
     )
 
 
@@ -125,7 +155,9 @@ def curated_order_enriched_sdp():
 
 @dp.materialized_view(
     name=f"{_catalog}.report.order_agg_sdp",
-    comment="Gold: total qty and value per customer name (mirrors GenerateOrdersAgg).",
+    comment="Gold: total qty and frozen value per report dimension (mirrors GenerateOrdersAgg). "
+    "Aggregates already-frozen silver, so the matview re-sum is stable.",
+    cluster_by=["order_date", "product_id"],
 )
 def report_order_agg_sdp():
     return aggregate_orders(spark.read.table(f"{_catalog}.curated.order_enriched_sdp"))

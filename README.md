@@ -43,6 +43,8 @@ This project template demonstrates how to:
 - utilize job tags to track issues, costs, and ownership.
 - use a [Lakeflow Spark Declarative Pipeline](https://docs.databricks.com/aws/en/ldp/) to run the same ETL logic side-by-side with the PySpark job, demonstrating both paradigms from one codebase.
 - use the [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) to organize your data.
+- freeze a mutable dimension (`product.unit_price`) at sale time so a later price change never restates historical revenue — demonstrated **two ways**: an insert-only `MERGE` on the batch path and a streaming-table silver (`@dp.table` + `spark.readStream`) on the SDP path. A materialized view would *restate* the price; a streaming table appends each row once and *freezes* it.
+- apply [Delta liquid clustering](https://docs.databricks.com/aws/en/delta/clustering) to the accumulating tables (append / `MERGE` / `replaceWhere`), where it amortizes — full-overwrite `raw.*` tables are intentionally left unclustered.
 - run unit tests on transformations with the [pytest package](https://pypi.org/project/pytest/). Set up VS Code to run tests on your local machine.
 - run integration tests by setting the input data and validating the output data.
 - run load tests to exercise both the initial bulk load and incremental daily updates, validating that the pipeline handles production-scale data volumes without regressions.
@@ -99,10 +101,10 @@ databricks-template/
 │       ├── baseTask.py            # Base class for all tasks
 │       ├── commonSchemas.py       # Shared PySpark schemas
 │       └── job1/                  # Job-specific tasks
-│           ├── extract_source1.py
+│           ├── extract_source1.py          # Bronze dimensions: customer, product
 │           ├── extract_source2.py        # DQX validation + quarantine
-│           ├── generate_orders.py
-│           ├── generate_orders_agg.py
+│           ├── generate_orders.py           # Silver: enrich + freeze price (insert-only MERGE)
+│           ├── generate_orders_agg.py       # Gold: aggregate (replaceWhere per day)
 │           ├── health_check.py           # Prod smoke task (runs first)
 │           └── seed_sources.py           # Idempotent daily seeder (prod integration)
 │
@@ -140,14 +142,6 @@ databricks-template/
 ├── .pre-commit-config.yaml      # Pre-commit hooks (ruff)
 └── README.md                    # This file
 ```
-## Dashboard
-
-<br>
-
-<img src="docs/dashboard.png">
-
-<br>
-
 
 ## Development Lifecycle
 
@@ -162,6 +156,19 @@ databricks-template/
 <br>
 
 <img src="docs/dag.png">
+
+<br>
+
+## Medallion data flow
+
+The pipeline runs two parallel paths from the same source tables:
+
+- **Batch (`job1`)** — imperative PySpark tasks orchestrated by a Lakeflow Job. Raw tables are fully overwritten on every run. Silver uses an insert-only `MERGE` (first run: full overwrite; incremental: insert new rows only, keyed on `order_id + item_seq`). Gold uses `replaceWhere order_date` to atomically replace one day's slice. Liquid clustering is applied via `ALTER TABLE … CLUSTER BY` after each write.
+- **Spark Declarative Pipelines(`job1_sdp`)** — Spark Declarative Pipeline (Lakeflow). Raw bronze tables are materialized views except `order_item`, which is a streaming table. Silver is also a streaming table fed by a stream–static join (streaming fact ⨝ static dims), so each row is appended once and never reprocessed. Gold is a materialized view that re-sums the already-frozen silver. Clustering keys are set in the `@dp.table` / `@dp.materialized_view` decorator and applied at table creation.
+
+<br>
+
+<img src="docs/medallion_data_flow.png">
 
 <br>
 
@@ -189,6 +196,16 @@ databricks-template/
 <img src="docs/data_quality.png">
 
 <br>
+
+
+## Dashboard
+
+<br>
+
+<img src="docs/dashboard.png">
+
+<br>
+
 
 
 ## Instructions

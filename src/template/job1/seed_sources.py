@@ -4,7 +4,7 @@ from pyspark.sql import functions as F
 from pyspark.sql.types import FloatType, IntegerType
 
 from ..baseTask import BaseTask
-from ..commonSchemas import customer_schema, order_item_schema, order_schema
+from ..commonSchemas import customer_schema, order_item_schema, order_schema, product_schema
 
 SCHEMA = "external_source"
 
@@ -12,11 +12,13 @@ _EPOCH = _date(2024, 1, 1)
 _COUNTRIES = ["US", "UK", "CA", "DE", "FR", "BR", "AU", "JP", "MX", "IN"]
 
 _INITIAL_CUSTOMERS = 500
+_INITIAL_PRODUCTS = 100  # product_id range matches order.product_id = id % 100 + 1
 _INITIAL_ORDERS = 2_000_000
 _INITIAL_ITEMS = 6_000_000  # 3 per order
 
 _INCREMENTAL_ORDERS = 5_000
 _INCREMENTAL_CUSTOMER_UPDATES = 50
+_INCREMENTAL_PRICE_UPDATES = 5  # products whose unit_price changes each day
 
 
 class SeedSources(BaseTask):
@@ -62,10 +64,17 @@ class SeedSources(BaseTask):
     def _ensure_tables(self, catalog: str) -> None:
         for name, schema in (
             ("customer", customer_schema),
+            ("product", product_schema),
             ("order", order_schema),
             ("order_item", order_item_schema),
         ):
             self.spark.createDataFrame([], schema).write.mode("ignore").saveAsTable(f"{catalog}.{SCHEMA}.{name}")
+
+        # Liquid clustering on the accumulating source tables. order grows by date
+        # (append), order_item by id_order (append), product by product_id (MERGE).
+        self.cluster_by(f"{catalog}.{SCHEMA}.order", "date")
+        self.cluster_by(f"{catalog}.{SCHEMA}.order_item", "id_order")
+        self.cluster_by(f"{catalog}.{SCHEMA}.product", "product_id")
 
     # ------------------------------------------------------------------
     # Initial load (first run only)
@@ -89,6 +98,16 @@ class SeedSources(BaseTask):
             .otherwise("IN")
             .alias("country"),
         ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.customer")
+
+        # Product dimension: 100 products. unit_price starts category-banded
+        # (category = (product_id-1) % 10 + 1, so price spreads $10–$55) and is bumped
+        # over time by the incremental seed — that mutation is what the silver freeze
+        # vs. restate behaviour is demonstrated against. name is the readable label.
+        self.spark.range(1, _INITIAL_PRODUCTS + 1).select(
+            F.col("id").cast(IntegerType()).alias("product_id"),
+            F.concat(F.lit("Product "), F.col("id")).alias("name"),
+            (((F.col("id") - 1) % 10 + 1) * 5.0 + 4.99).cast(FloatType()).alias("unit_price"),
+        ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.product")
 
         self.spark.range(1, _INITIAL_ORDERS + 1).select(
             F.col("id").cast(IntegerType()),
@@ -136,13 +155,22 @@ class SeedSources(BaseTask):
             WHEN MATCHED THEN UPDATE SET t.country = s.country
         """)
 
+        df_prices = self._build_price_updates(seed_date)
+        df_prices.createOrReplaceTempView("_seed_price_updates")
+        self.spark.sql(f"""
+            MERGE INTO {catalog}.{SCHEMA}.product AS t
+            USING _seed_price_updates AS s ON t.product_id = s.product_id
+            WHEN MATCHED THEN UPDATE SET t.unit_price = s.unit_price
+        """)
+
         day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
         self.logger.info(
-            "incremental seed complete date=%s orders=%d items=%d customers_updated=%d country=%s",
+            "incremental seed complete date=%s orders=%d items=%d customers_updated=%d prices_updated=%d country=%s",
             seed_date,
             _INCREMENTAL_ORDERS,
             _INCREMENTAL_ORDERS,
             _INCREMENTAL_CUSTOMER_UPDATES,
+            _INCREMENTAL_PRICE_UPDATES,
             _COUNTRIES[day_offset % len(_COUNTRIES)],
         )
 
@@ -181,3 +209,15 @@ class SeedSources(BaseTask):
         new_country = _COUNTRIES[day_offset % len(_COUNTRIES)]
         update_rows = [(cid, f"Customer_{cid}", new_country) for cid in customer_ids]
         return self.spark.createDataFrame(update_rows, schema=customer_schema)
+
+    def _build_price_updates(self, seed_date: str):
+        # Bump 5 products' unit_price each day by a day-anchored factor. Anchoring the
+        # factor to seed_date keeps reruns of the same date idempotent (same result).
+        day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
+        start = day_offset * _INCREMENTAL_PRICE_UPDATES % _INITIAL_PRODUCTS
+        product_ids = [((start + i) % _INITIAL_PRODUCTS) + 1 for i in range(_INCREMENTAL_PRICE_UPDATES)]
+        factor = 1.0 + ((day_offset % 5) - 2) * 0.05  # -10% .. +10%
+        update_rows = [
+            (pid, f"Product {pid}", round(((pid - 1) % 10 + 1) * 5.0 + 4.99) * factor) for pid in product_ids
+        ]
+        return self.spark.createDataFrame(update_rows, schema=product_schema)
