@@ -4,10 +4,9 @@
 
 ## [#36](https://github.com/andre-salvati/databricks-template/pull/36) · 2026-06-09 · feat: price-freeze incremental silver, liquid clustering, readable labels
 
-Added a mutable `external_source.product` dimension (100 products seeded, daily `unit_price` MERGE) and changed gold `total_value` to `SUM(line_revenue)` where `line_revenue = item_quantity × unit_price_at_sale` is computed in silver and **frozen** at sale time so a later price change never restates booked revenue; `curated.order_enriched` gains `line_revenue`, `unit_price_at_sale`, plus human-readable `product_name` (`"Product 1"`) and `category_name` (`"Category 2"`) labels that the dashboard now displays in place of numeric ids.
-Both pipelines freeze by different mechanisms: `job1` silver uses a first-run-full / incremental insert-only `MERGE` (gold uses `replaceWhere` per day), while `job1_sdp` silver and `raw.order_item_sdp` become streaming tables (`@dp.table` + `spark.readStream`) so a stream-static join appends each row once instead of restating like a materialized view would.
-Applied Delta liquid clustering to the accumulating tables (`external_source` order/order_item/product, `curated.order_enriched`, `report.order_agg`) via a `BaseTask.cluster_by` helper and the SDP `cluster_by=` decorator arg; full-overwrite `raw.*` are left unclustered.
-Fixed pytest collection so `unit_test_sdp.py` is actually picked up (it matched neither default pattern and was silently skipped), and extended the canonical schemas + all four test surfaces to the new columns.
+Added a mutable `external_source.product` dimension (daily `unit_price` MERGE) and frozen `line_revenue` in silver (`item_quantity × unit_price_at_sale`) so a later price change never restates booked revenue; `job1` freezes via an insert-only `MERGE`, `job1_sdp` via a streaming table + stream-static join — both carrying `product_name` and `category_name` labels through to gold.
+Applied Delta liquid clustering to all accumulating tables via `BaseTask.cluster_by` (batch) and the `cluster_by=` decorator (SDP); full-overwrite `raw.*` are intentionally left unclustered, and `integration_setup.py` now matches the prod clustering layout set by `seed_sources`.
+Added a medallion data flow diagram (`docs/medallion_data_flow.png`, also in README) showing both pipeline paths with write modes and clustering keys per table.
 
 ---
 
