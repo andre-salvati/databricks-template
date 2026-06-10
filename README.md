@@ -142,14 +142,6 @@ databricks-template/
 ├── .pre-commit-config.yaml      # Pre-commit hooks (ruff)
 └── README.md                    # This file
 ```
-## Dashboard
-
-<br>
-
-<img src="docs/dashboard.png">
-
-<br>
-
 
 ## Development Lifecycle
 
@@ -164,6 +156,19 @@ databricks-template/
 <br>
 
 <img src="docs/dag.png">
+
+<br>
+
+## Medallion data flow
+
+The pipeline runs two parallel paths from the same source tables:
+
+- **Batch (`job1`)** — imperative PySpark tasks orchestrated by a Lakeflow Job. Raw tables are fully overwritten on every run. Silver uses an insert-only `MERGE` (first run: full overwrite; incremental: insert new rows only, keyed on `order_id + item_seq`). Gold uses `replaceWhere order_date` to atomically replace one day's slice. Liquid clustering is applied via `ALTER TABLE … CLUSTER BY` after each write.
+- **Spark Declarative Pipelines(`job1_sdp`)** — Spark Declarative Pipeline (Lakeflow). Raw bronze tables are materialized views except `order_item`, which is a streaming table. Silver is also a streaming table fed by a stream–static join (streaming fact ⨝ static dims), so each row is appended once and never reprocessed. Gold is a materialized view that re-sums the already-frozen silver. Clustering keys are set in the `@dp.table` / `@dp.materialized_view` decorator and applied at table creation.
+
+<br>
+
+<img src="docs/medallion_data_flow.png">
 
 <br>
 
@@ -191,6 +196,16 @@ databricks-template/
 <img src="docs/data_quality.png">
 
 <br>
+
+
+## Dashboard
+
+<br>
+
+<img src="docs/dashboard.png">
+
+<br>
+
 
 
 ## Instructions

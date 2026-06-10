@@ -92,3 +92,7 @@ class Setup(BaseTask):
             self._seed_load_test(catalog)
         else:
             self._seed_standard(catalog)
+
+        self.cluster_by(f"{catalog}.{SCHEMA}.order", "date")
+        self.cluster_by(f"{catalog}.{SCHEMA}.order_item", "id_order")
+        self.cluster_by(f"{catalog}.{SCHEMA}.product", "product_id")
