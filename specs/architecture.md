@@ -65,35 +65,31 @@ action versions are pinned. Staging/prod deploy **and run as the service princip
 (identity-locked); the local dev loop runs as the developer against a per-developer catalog.
 
 ```mermaid
-flowchart TB
-    dev["developer / Claude Code"]
+flowchart LR
+    dev["👤 developer /<br/>Claude Code"]
 
-    subgraph LOCAL["Local loop (runs as the developer)"]
-        direction LR
-        proto["prototype — make unit-test"]
-        devdeploy["make deploy env=dev<br/>make run env=dev"]
-        devcat[("dev_&lt;user&gt; catalog")]
-        devdeploy --> devcat
-    end
-
-    subgraph CI["CI — .github/workflows/onpush.yml (every push, any branch)"]
-        direction LR
-        sync["make sync"] --> unit["make unit-test"] --> cov["upload coverage artifact"]
-        cov --> cli["install Databricks CLI (pinned)"] --> stg["make deploy env=staging"]
-        stg --> stgrun["make run env=staging<br/>(integration test)"] --> gate{"ref == main?"}
-        gate -->|yes| proddeploy["make deploy env=prod"]
-        gate -->|no| done["done — branch CI only"]
-    end
-
+    vscode["VS Code &amp; notebooks"]
+    devcat[("dev_&lt;user&gt; catalog")]
     stgcat[("staging catalog")]
     prodcat[("prod catalog")]
 
-    dev --> proto
-    dev --> devdeploy
-    dev -->|"git push / open PR"| sync
-    stgrun --> stgcat
-    proddeploy --> prodcat
+    subgraph CI["CI · onpush.yml — every push, any branch"]
+        direction LR
+        u["4 · make unit-test"] --> ds["5 · make deploy<br/>env=staging"] --> is["6 · make run env=staging<br/>(integration test)"] --> gate{"ref == main?"}
+        gate -->|yes| dp["7 · make deploy<br/>env=prod"]
+        gate -->|no| stop["branch CI ends"]
+    end
+
+    dev -->|"1 · prototype · make unit-test"| vscode
+    dev -->|"2 · make deploy env=dev<br/>+ make run env=dev"| devcat
+    dev -->|"3 · git push / open PR"| u
+    is --> stgcat
+    dp --> prodcat
 ```
+
+Steps **1–2** run locally as the **developer** against a per-developer `dev_<user>` catalog;
+**3** opens the PR; CI steps **4–7** run on every push, with **7** (prod) gated on `ref == main`.
+Staging and prod (**5–7**) deploy **and run as the service principal** — identity-locked.
 
 ## Job-level parameters (runtime, overridable per-run)
 
