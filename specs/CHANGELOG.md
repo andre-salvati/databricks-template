@@ -4,7 +4,7 @@
 
 ## [#40](https://github.com/andre-salvati/databricks-template/pull/40) · 2026-06-11 · docs: reorganize specs into specs/ folder, slim README and CLAUDE.md
 
-Extracted the deep technical documentation out of `README.md` and `CLAUDE.md` into a dedicated `specs/` folder (`architecture.md`, `data-model.md`, `test-plan.md` + an index), leaving the README a landing page and `CLAUDE.md` working rules plus load-bearing invariants and pointers.
+Extracted the deep technical documentation out of `README.md` and `CLAUDE.md` into a dedicated `specs/` folder (`architecture.md`, `data-model.md`, `test-plan.md`, an index, and `CHANGELOG.md` itself), leaving the README a landing page and `CLAUDE.md` working rules plus load-bearing invariants and pointers.
 Converted the medallion and CI/CD diagrams to inline Mermaid (GitHub-rendered, diffable) and deleted the now-superseded `docs/medallion_data_flow.png`, `docs/ci_cd.png`, and `docs/ci_cd.drawio`; real UI screenshots stay as PNGs.
 Added `specs/**` to the `onpush.yml` `paths-ignore` so docs-only changes don't trigger a CI run.
 

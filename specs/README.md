@@ -10,6 +10,7 @@ relevant spec before working in that area.
 | [architecture.md](architecture.md) | the wheel/CLI surface, jobs DAG, job generation, CI/CD, job-level params, deploy-time env vars, logging, or production guardrails. |
 | [data-model.md](data-model.md) | the catalog/schema model, medallion flow, table schemas, the price-freeze semantics, liquid clustering, DQX/quarantine, or lineage. |
 | [test-plan.md](test-plan.md) | unit, integration, or load tests. |
+| [CHANGELOG.md](CHANGELOG.md) | the per-PR change history (add an entry before every merge). |
 
 Diagrams are inline Mermaid (rendered by GitHub) — edit the fenced block, not an image. The
 remaining PNGs in `../docs/` are real UI screenshots.
