@@ -1,6 +1,6 @@
 """
 Show AWS and Databricks spend for the last 30 days, day by day.
-Usage: uv run python scripts/project_costs.py [--days N] [--profile PROFILE]
+Usage: uv run python scripts/project_costs.py [--days N] [--profile PROFILE] [--aws-profile PROFILE]
 """
 
 import argparse
@@ -15,30 +15,30 @@ from databricks.sdk.service.sql import StatementState
 _POLL_TERMINAL = {StatementState.SUCCEEDED, StatementState.FAILED, StatementState.CANCELED, StatementState.CLOSED}
 
 
-def aws_daily_costs(days: int) -> None:
+def aws_daily_costs(days: int, profile: str | None = None) -> None:
     end = date.today()
     start = end - timedelta(days=days)
 
+    cmd = [
+        "aws",
+        "ce",
+        "get-cost-and-usage",
+        "--time-period",
+        f"Start={start},End={end}",
+        "--granularity",
+        "DAILY",
+        "--metrics",
+        "BlendedCost",
+        "--group-by",
+        "Type=DIMENSION,Key=SERVICE",
+        "--output",
+        "json",
+    ]
+    if profile:
+        cmd += ["--profile", profile]
+
     try:
-        result = subprocess.run(
-            [
-                "aws",
-                "ce",
-                "get-cost-and-usage",
-                "--time-period",
-                f"Start={start},End={end}",
-                "--granularity",
-                "DAILY",
-                "--metrics",
-                "BlendedCost",
-                "--group-by",
-                "Type=DIMENSION,Key=SERVICE",
-                "--output",
-                "json",
-            ],
-            capture_output=True,
-            text=True,
-        )
+        result = subprocess.run(cmd, capture_output=True, text=True)
     except FileNotFoundError:
         print("AWS error: AWS CLI not found — install it or ensure it is on PATH.\n")
         return
@@ -137,12 +137,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Show AWS and Databricks spend day by day")
     parser.add_argument("--days", type=int, default=30, help="Number of days to look back (default: 30)")
     parser.add_argument("--profile", default="dev", help="Databricks CLI profile (default: dev)")
+    parser.add_argument(
+        "--aws-profile",
+        default=None,
+        help="AWS CLI profile for Cost Explorer (default: AWS default credential chain)",
+    )
     args = parser.parse_args()
 
     if args.days < 1:
         parser.error("--days must be a positive integer")
 
-    aws_daily_costs(args.days)
+    aws_daily_costs(args.days, args.aws_profile)
     databricks_daily_costs(args.profile, args.days)
 
 
