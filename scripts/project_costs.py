@@ -9,6 +9,7 @@ import subprocess
 import time
 from datetime import date, timedelta
 
+import pandas as pd
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.sql import StatementState
 
@@ -53,6 +54,23 @@ def aws_daily_costs(days: int, profile: str | None = None) -> None:
     except json.JSONDecodeError:
         print("AWS error: unexpected response from AWS CLI (pager or credential helper output?).\n")
         return
+
+    # Raw data as a DataFrame (one row per day/service), printed before the formatted report.
+    aws_df = pd.DataFrame(
+        [
+            {
+                "date": period["TimePeriod"]["Start"],
+                "service": group["Keys"][0],
+                "blended_cost_usd": float(group["Metrics"]["BlendedCost"]["Amount"]),
+                "estimated": bool(period.get("Estimated")),
+            }
+            for period in data["ResultsByTime"]
+            for group in period["Groups"]
+        ],
+        columns=["date", "service", "blended_cost_usd", "estimated"],
+    )
+    print(f"\nAWS raw data — last {days} days (DataFrame, {len(aws_df)} rows)")
+    print(aws_df.to_string(index=False))
 
     print(f"\nAWS Daily Costs — last {days} days")
     print(f"{'Date':<12} {'Total USD':>10}  Services")
@@ -121,6 +139,12 @@ def databricks_daily_costs(profile: str, days: int) -> None:
         if not rows:
             print("No usage data found.\n")
             return
+
+        # Raw data as a DataFrame, printed before the formatted report.
+        usage_df = pd.DataFrame(rows, columns=["usage_date", "sku_name", "total_quantity", "usage_unit"])
+        print(f"\nDatabricks raw data — last {days} days (DataFrame, {len(usage_df)} rows)")
+        print(usage_df.to_string(index=False))
+        print()
 
         print(f"{'Date':<12} {'SKU':<55} {'Quantity':>10}  Unit")
         print("-" * 85)
