@@ -29,15 +29,19 @@ class Setup(BaseTask):
         )
 
         # Products referenced by the orders below (product_id 1, 2, 3).
-        product_data = [(1, "Product 1", 10.0), (2, "Product 2", 20.0), (3, "Product 3", 30.0)]
+        product_data = [
+            (1, "Product 1", 10.0, 1, "Category 1"),
+            (2, "Product 2", 20.0, 2, "Category 2"),
+            (3, "Product 3", 30.0, 3, "Category 3"),
+        ]
         self.spark.createDataFrame(product_data, schema=product_schema).write.saveAsTable(f"{catalog}.{SCHEMA}.product")
 
         order_data = [
-            (1, 10, 100.0, "2023-01-01", 1, 1),
-            (2, 20, 1001.0, "2023-01-02", 2, 1),  # total > 1000 → WARN
-            (None, 10, 100.0, "2023-01-01", 1, 1),  # id is null
-            (3, 20, 150.0, "2023-01-02", 3, 2),  # id is duplicated
-            (3, 20, 150.0, "2023-01-02", 3, 2),  # id is duplicated
+            (1, 10, 100.0, "2023-01-01", 1),
+            (2, 20, 1001.0, "2023-01-02", 2),  # total > 1000 → WARN
+            (None, 10, 100.0, "2023-01-01", 1),  # id is null
+            (3, 20, 150.0, "2023-01-02", 3),  # id is duplicated
+            (3, 20, 150.0, "2023-01-02", 3),  # id is duplicated
         ]
         self.spark.createDataFrame(order_data, schema=order_schema).write.saveAsTable(f"{catalog}.{SCHEMA}.order")
 
@@ -60,6 +64,8 @@ class Setup(BaseTask):
             F.col("id").cast(IntegerType()).alias("product_id"),
             F.concat(F.lit("Product "), F.col("id")).alias("name"),
             F.lit(25.0).cast(FloatType()).alias("unit_price"),
+            ((F.col("id") - 1) % 10 + 1).cast(IntegerType()).alias("category_id"),
+            F.concat(F.lit("Category "), ((F.col("id") - 1) % 10 + 1).cast("string")).alias("category_name"),
         ).write.saveAsTable(f"{catalog}.{SCHEMA}.product")
 
         # 2M orders — customer_id round-robins through 1–500
@@ -69,7 +75,6 @@ class Setup(BaseTask):
             F.lit(100.0).cast(FloatType()).alias("total"),
             F.lit("2024-01-01").alias("date"),
             (F.col("id") % 100 + 1).cast(IntegerType()).alias("product_id"),
-            (F.col("id") % 10 + 1).cast(IntegerType()).alias("prod_category_id"),
         ).write.saveAsTable(f"{catalog}.{SCHEMA}.order")
 
         # 6M order_items — 3 items per order, covering all 2M orders

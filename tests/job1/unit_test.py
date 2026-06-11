@@ -52,11 +52,11 @@ def spark(config) -> TaskConfig:
 @pytest.fixture
 def df_orders_from_source(spark) -> DataFrame:
     order_data = [
-        (1, 10, 100.0, "2023-01-01", 1, 1),
-        (2, 20, 1001.0, "2023-01-02", 2, 1),  # total > 1000 → WARN
-        (None, 10, 100.0, "2023-01-01", 1, 1),  # id is null
-        (3, 20, 100.0, "2023-01-02", 3, 2),  # id is duplicated
-        (3, 20, 100.0, "2023-01-02", 3, 2),  # id is duplicated
+        (1, 10, 100.0, "2023-01-01", 1),
+        (2, 20, 1001.0, "2023-01-02", 2),  # total > 1000 → WARN
+        (None, 10, 100.0, "2023-01-01", 1),  # id is null
+        (3, 20, 100.0, "2023-01-02", 3),  # id is duplicated
+        (3, 20, 100.0, "2023-01-02", 3),  # id is duplicated
     ]
     return spark.createDataFrame(order_data, schema=order_schema)
 
@@ -210,13 +210,13 @@ def test_enrich_orders(spark, config, df_orders):
     customer_data = [(10, "John Doe", "USA"), (20, "Jane Smith", "UK")]
     df_customer = spark.createDataFrame(customer_data, schema=customer_schema)
 
-    order_data = [(1, 10, 100.0, "2023-01-01", 1, 1), (2, 20, 150.0, "2023-01-02", 2, 2)]
+    order_data = [(1, 10, 100.0, "2023-01-01", 1), (2, 20, 150.0, "2023-01-02", 2)]
     df_order = spark.createDataFrame(order_data, schema=order_schema)
 
     order_item_data = [(1, 1, "Item A", 2, 50.0), (1, 2, "Item B", 1, 50.0), (2, 1, "Item C", 3, 150.0)]
     df_order_item = spark.createDataFrame(order_item_data, schema=order_item_schema)
 
-    product_data = [(1, "Product 1", 10.0), (2, "Product 2", 25.0)]
+    product_data = [(1, "Product 1", 10.0, 1, "Category 1"), (2, "Product 2", 25.0, 2, "Category 2")]
     df_product = spark.createDataFrame(product_data, schema=product_schema)
 
     df_out = task.enrich_order(df_customer, df_order, df_order_item, df_product)

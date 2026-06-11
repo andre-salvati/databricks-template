@@ -107,7 +107,7 @@ def test_enrich_order_row_count(spark, df_orders_enriched):
         schema=customer_schema,
     )
     df_order = spark.createDataFrame(
-        [(1, 10, 100.0, "2023-01-01", 1, 1), (2, 20, 150.0, "2023-01-02", 2, 2)],
+        [(1, 10, 100.0, "2023-01-01", 1), (2, 20, 150.0, "2023-01-02", 2)],
         schema=order_schema,
     )
     df_order_item = spark.createDataFrame(
@@ -115,7 +115,7 @@ def test_enrich_order_row_count(spark, df_orders_enriched):
         schema=order_item_schema,
     )
     df_product = spark.createDataFrame(
-        [(1, "Product 1", 10.0), (2, "Product 2", 25.0)],
+        [(1, "Product 1", 10.0, 1, "Category 1"), (2, "Product 2", 25.0, 2, "Category 2")],
         schema=product_schema,
     )
 
@@ -147,9 +147,9 @@ def test_enrich_order_columns(spark):
     }
 
     df_customer = spark.createDataFrame([(10, "Alice", "US")], schema=customer_schema)
-    df_order = spark.createDataFrame([(1, 10, 50.0, "2024-01-01", 1, 1)], schema=order_schema)
+    df_order = spark.createDataFrame([(1, 10, 50.0, "2024-01-01", 1)], schema=order_schema)
     df_order_item = spark.createDataFrame([(1, 1, "Widget", 1, 50.0)], schema=order_item_schema)
-    df_product = spark.createDataFrame([(1, "Product 1", 9.99)], schema=product_schema)
+    df_product = spark.createDataFrame([(1, "Product 1", 9.99, 1, "Category 1")], schema=product_schema)
 
     df_out = enrich_order(df_customer, df_order, df_order_item, df_product)
     assert set(df_out.columns) == expected_cols

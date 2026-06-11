@@ -107,6 +107,8 @@ class SeedSources(BaseTask):
             F.col("id").cast(IntegerType()).alias("product_id"),
             F.concat(F.lit("Product "), F.col("id")).alias("name"),
             (((F.col("id") - 1) % 10 + 1) * 5.0 + 4.99).cast(FloatType()).alias("unit_price"),
+            ((F.col("id") - 1) % 10 + 1).cast(IntegerType()).alias("category_id"),
+            F.concat(F.lit("Category "), ((F.col("id") - 1) % 10 + 1).cast("string")).alias("category_name"),
         ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.product")
 
         self.spark.range(1, _INITIAL_ORDERS + 1).select(
@@ -115,7 +117,6 @@ class SeedSources(BaseTask):
             ((F.col("id") % 99 + 1) * 10).cast(FloatType()).alias("total"),
             F.date_sub(F.lit(seed_date), (F.col("id") % 363).cast(IntegerType())).cast("string").alias("date"),
             (F.col("id") % 100 + 1).cast(IntegerType()).alias("product_id"),
-            (F.col("id") % 10 + 1).cast(IntegerType()).alias("prod_category_id"),
         ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.order")
 
         # total_item scales with category (category_id * $15 base + $10 noise) so category 1
@@ -183,7 +184,6 @@ class SeedSources(BaseTask):
             ((F.col("id") % 99 + 1) * 10).cast(FloatType()).alias("total"),
             F.lit(seed_date).alias("date"),
             (F.col("id") % 100 + 1).cast(IntegerType()).alias("product_id"),
-            (F.col("id") % 10 + 1).cast(IntegerType()).alias("prod_category_id"),
         )
 
     def _build_incremental_items(self, seed_date: str):
@@ -218,6 +218,13 @@ class SeedSources(BaseTask):
         product_ids = [((start + i) % _INITIAL_PRODUCTS) + 1 for i in range(_INCREMENTAL_PRICE_UPDATES)]
         factor = 1.0 + ((day_offset % 5) - 2) * 0.05  # -10% .. +10%
         update_rows = [
-            (pid, f"Product {pid}", round(((pid - 1) % 10 + 1) * 5.0 + 4.99) * factor) for pid in product_ids
+            (
+                pid,
+                f"Product {pid}",
+                round(((pid - 1) % 10 + 1) * 5.0 + 4.99) * factor,
+                (pid - 1) % 10 + 1,
+                f"Category {(pid - 1) % 10 + 1}",
+            )
+            for pid in product_ids
         ]
         return self.spark.createDataFrame(update_rows, schema=product_schema)
