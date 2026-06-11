@@ -2,6 +2,14 @@
 
 ---
 
+## [#39](https://github.com/andre-salvati/databricks-template/pull/39) · 2026-06-11 · feat: add --aws-profile flag to project_costs.py
+
+Added an `--aws-profile` flag to `scripts/project_costs.py` so the AWS Cost Explorer query can target a dedicated AWS CLI profile (`aws_daily_costs` appends `--profile` only when set) instead of relying solely on the default credential chain.
+This unblocks headless runs and lets the script use a scoped read-only Cost Explorer user rather than the expiry-prone browser `aws login` session that this workspace defaults to.
+The flag defaults to `None`, so behavior is unchanged for anyone who does not pass it.
+
+---
+
 ## [#36](https://github.com/andre-salvati/databricks-template/pull/36) · 2026-06-09 · feat: price-freeze incremental silver, liquid clustering, readable labels
 
 Added a mutable `external_source.product` dimension (daily `unit_price` MERGE) and frozen `line_revenue` in silver (`item_quantity × unit_price_at_sale`) so a later price change never restates booked revenue; `job1` freezes via an insert-only `MERGE`, `job1_sdp` via a streaming table + stream-static join — both carrying `product_name` and `category_name` labels through to gold.
