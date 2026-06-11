@@ -2,6 +2,14 @@
 
 ---
 
+## [#37] · feat/category-on-product · 2026-06-11 · feat: move category to the product dimension, commit dashboard JSON
+
+Moved product category off the order fact onto the product dimension — `external_source.product` now carries `category_id`/`category_name` and silver pulls them from the product join (both `job1` batch and `job1_sdp` paths) instead of deriving `"Category " + id` inline on the order, so a category rename flows correctly to gold and the dashboard.
+Committed `resources/orders_dashboard.lvdash.json` as the canonical dashboard definition (dropping the `_build_dashboard_json` generator); since DABs 0.298.0 does not substitute `${var.catalog}` inside `.lvdash.json` content, the generator now writes a gitignored deploy copy with the catalog resolved at deploy time.
+Verified end-to-end across unit, dev, staging, and prod — the prod schema change required dropping and rebuilding all medallion data tables because the `external_source` schemas shifted under `overwriteSchema=false`.
+
+---
+
 ## [#36](https://github.com/andre-salvati/databricks-template/pull/36) · feat/price-freeze-incremental-silver · 2026-06-09 · feat: price-freeze incremental silver, liquid clustering, readable labels
 
 Added a mutable `external_source.product` dimension (daily `unit_price` MERGE) and frozen `line_revenue` in silver (`item_quantity × unit_price_at_sale`) so a later price change never restates booked revenue; `job1` freezes via an insert-only `MERGE`, `job1_sdp` via a streaming table + stream-static join — both carrying `product_name` and `category_name` labels through to gold.
