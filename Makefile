@@ -4,7 +4,7 @@ yes ?=
 sync:
 	uv sync --all-extras
 
-test:
+unit-test:
 	uv run pytest
 
 pre-commit:
@@ -30,8 +30,8 @@ deploy: whoami
 run: whoami
 	uv run databricks bundle run job1_integration_test --target $(env)
 
-truncate: whoami
-	uv run python ./scripts/sdk_truncate_tables.py $(env) $(yes)
+drop: whoami
+	uv run python ./scripts/sdk_drop_tables.py $(env) $(yes)
 
 project-costs:
 	uv run python ./scripts/project_costs.py

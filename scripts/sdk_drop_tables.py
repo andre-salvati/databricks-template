@@ -2,12 +2,9 @@ import argparse
 import re
 
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.catalog import TableType
 
 from _sdk_sql import get_warehouse_id, run_sql
 from template.config import MEDALLION_SCHEMAS
-
-_TRUNCATABLE = {TableType.MANAGED, TableType.EXTERNAL}
 
 
 def _resolve_catalog(workspace: WorkspaceClient, env: str) -> str:
@@ -19,9 +16,15 @@ def _resolve_catalog(workspace: WorkspaceClient, env: str) -> str:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Truncate all medallion tables in a target environment.")
+    parser = argparse.ArgumentParser(
+        description=(
+            "Drop ALL medallion tables in a target environment. Unlike TRUNCATE, this "
+            "removes the table definitions too, so the next pipeline run recreates them "
+            "with the current schema — the supported way to apply a schema migration."
+        )
+    )
     parser.add_argument("env", choices=["dev", "staging", "prod"])
-    parser.add_argument("--yes", "-y", action="store_true", help="Confirm truncation (required for staging/prod).")
+    parser.add_argument("--yes", "-y", action="store_true", help="Confirm drop (required for staging/prod).")
     parser.add_argument(
         "--warehouse-name",
         default=None,
@@ -30,24 +33,21 @@ def main():
     args = parser.parse_args()
 
     if args.env in ("staging", "prod") and not args.yes:
-        print(f"This will truncate ALL tables in '{args.env}'. Pass --yes to confirm.")
+        print(f"This will DROP ALL tables in '{args.env}'. Pass --yes to confirm.")
         raise SystemExit(1)
 
     workspace = WorkspaceClient(profile=args.env)
     warehouse_id = get_warehouse_id(workspace, args.warehouse_name)
     catalog = _resolve_catalog(workspace, args.env)
 
-    print(f"Truncating all tables in catalog '{catalog}'...")
+    print(f"Dropping all tables in catalog '{catalog}'...")
     count = 0
     for schema in MEDALLION_SCHEMAS:
         for table in workspace.tables.list(catalog_name=catalog, schema_name=schema):
-            if table.table_type not in _TRUNCATABLE:
-                print(f"  Skipping `{catalog}`.`{schema}`.`{table.name}` ({table.table_type})")
-                continue
-            run_sql(workspace, warehouse_id, f"TRUNCATE TABLE `{catalog}`.`{schema}`.`{table.name}`")
+            run_sql(workspace, warehouse_id, f"DROP TABLE IF EXISTS `{catalog}`.`{schema}`.`{table.name}`")
             count += 1
 
-    print(f"Done. {count} table(s) truncated.")
+    print(f"Done. {count} table(s) dropped.")
 
 
 if __name__ == "__main__":

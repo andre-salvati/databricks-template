@@ -31,12 +31,13 @@ This project is developed with the [Databricks AI Dev Kit](https://github.com/da
 
 ```bash
 make sync              # Install all dependencies via uv
-make test              # Run pytest with coverage
+make unit-test         # Run pytest with coverage
 make pre-commit        # Update and run pre-commit hooks (ruff lint/format)
 make init              # One-time workspace bootstrap (SP, catalogs, schemas, grants). Edit S3 path first.
                        # If workspace has >1 SQL warehouse, pass --warehouse-name to the underlying script.
 make deploy env=dev    # Generate resources/jobs.yml (jobs + SDP pipeline) + deploy bundle to target env (dev/staging/prod)
 make run env=dev       # Run integration test job on a target env (dev or staging)
+make drop env=dev      # Drop all medallion tables in a target env (schema migrations; staging/prod need yes=--yes)
 ```
 
 Run a single test file:
