@@ -13,11 +13,6 @@ artifacts:
 include:
   - resources/*.yml
 
-variables:
-  catalog:
-    description: Unity Catalog name for this environment (dev_<user>, staging, prod) — set per-target by sdk_generate_template_job.py
-
-
 # Here is a good reference on how to structure your catalogs, workspaces, and groups:
 # https://youtu.be/CLBq4fBE2Ro
 #

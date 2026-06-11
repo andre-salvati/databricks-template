@@ -500,6 +500,17 @@ def main():
     if env == "prod":
         jobs[f"{JOB_NAME}_prod_integration"] = _build_job_prod_integration(sp_id)
 
+    # Substitute catalog into the dashboard JSON at deploy time. DABs does not perform
+    # bundle variable substitution inside .lvdash.json file content, so we do it here
+    # and write a gitignored deploy copy. The committed JSON keeps ${var.catalog} as
+    # the canonical template so the dashboard definition is version-controlled.
+    dashboard_template = "./resources/orders_dashboard.lvdash.json"
+    dashboard_deploy = "./resources/orders_dashboard_deploy.lvdash.json"
+    with open(dashboard_template) as f:
+        dashboard_content = f.read()
+    with open(dashboard_deploy, "w") as f:
+        f.write(dashboard_content.replace("${var.catalog}", catalog))
+
     output: dict = {
         "resources": {
             "jobs": jobs,
@@ -507,13 +518,13 @@ def main():
             "dashboards": {
                 "orders_dashboard": {
                     "display_name": f"[{env}] Orders Dashboard",
-                    "file_path": "orders_dashboard.lvdash.json",
+                    "file_path": "orders_dashboard_deploy.lvdash.json",
                     "warehouse_id": warehouse_id,
                 }
             },
         }
     }
-    target_overrides: dict = {"variables": {"catalog": catalog}}
+    target_overrides: dict = {}
     if sp_id is not None:
         target_overrides.update(_target_overrides(env, sp_id))
     output["targets"] = {env: target_overrides}
