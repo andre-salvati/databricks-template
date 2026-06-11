@@ -12,5 +12,6 @@ relevant spec before working in that area.
 | [test-plan.md](test-plan.md) | unit, integration, or load tests. |
 | [CHANGELOG.md](CHANGELOG.md) | the per-PR change history (add an entry before every merge). |
 
-Diagrams are inline Mermaid (rendered by GitHub) — edit the fenced block, not an image. The
-remaining PNGs in `../docs/` are real UI screenshots.
+The medallion diagram is inline Mermaid (rendered by GitHub) — edit the fenced block. The CI/CD
+diagram is a draw.io export (`docs/ci_cd.drawio` → `docs/ci_cd.png`, edit in https://app.diagrams.net);
+the other PNGs in `../docs/` are real UI screenshots.

@@ -64,29 +64,13 @@ integration test on staging → (only on `main`) deploy to prod. Requires `DATAB
 action versions are pinned. Staging/prod deploy **and run as the service principal**
 (identity-locked); the local dev loop runs as the developer against a per-developer catalog.
 
-```mermaid
-flowchart LR
-    dev["👤 developer /<br/>Claude Code"]
+<!-- Diagram source: docs/ci_cd.drawio (edit in https://app.diagrams.net, then export over docs/ci_cd.png) -->
+<img src="../docs/ci_cd.png" alt="CI/CD: local dev loop and the onpush.yml GitHub Actions pipeline">
 
-    %% fan-out declared 1→2→3 so they rank top-to-bottom (no subgraph box,
-    %% which would otherwise hoist the CI lane above 1 and 2)
-    dev -->|"1 · prototype · make unit-test"| vscode["VS Code &amp; notebooks"]
-    dev -->|"2 · make deploy env=dev<br/>+ make run env=dev"| devcat[("dev_&lt;user&gt; catalog")]
-    dev -->|"3 · git push / open PR"| u["4 · make unit-test"]
-
-    u --> ds["5 · make deploy env=staging"] --> is["6 · make run env=staging<br/>(integration test)"] --> gate{"ref == main?"}
-    gate -->|yes| dp["7 · make deploy env=prod"] --> prodcat[("prod catalog")]
-    gate -->|no| stop["branch CI ends"]
-    is --> stgcat[("staging catalog")]
-
-    %% CI steps (run on every push via onpush.yml) tinted yellow
-    classDef ci fill:#fcfcbf,stroke:#c9c945,color:#000
-    class u,ds,is,gate,dp,stop ci
-```
-
-Steps **1–2** run locally as the **developer** against a per-developer `dev_<user>` catalog;
-**3** opens the PR; CI steps **4–7** run on every push, with **7** (prod) gated on `ref == main`.
-Staging and prod (**5–7**) deploy **and run as the service principal** — identity-locked.
+Local steps **1–2** run as the **developer** against a per-developer `dev_<user>` catalog; **3**
+pushes / opens a PR, triggering **GitHub Actions** (`onpush.yml`) — which runs on every push and
+deploys to prod only when `ref == main`. Staging and prod deploy **and run as the service
+principal** — identity-locked.
 
 ## Job-level parameters (runtime, overridable per-run)
 

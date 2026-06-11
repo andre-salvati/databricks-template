@@ -34,31 +34,32 @@ If this saves you time, a star helps others find it. Let's [connect on LinkedIn]
 
 This project template demonstrates how to:
 
-- use agentic development (with Databricks AI Dev Kit and Claude Code) in data projects. The template ships with a [`CLAUDE.md`](CLAUDE.md) that documents the project's conventions.
+- use agentic development (with [Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit) and [Claude Code](https://claude.com/product/claude-code)) in data projects. The template ships with a [`CLAUDE.md`](CLAUDE.md) and a [`specs/`](specs/) folder documenting the project's conventions.
 - structure PySpark code inside classes/packages, deploy it as a Python wheel (instead of notebooks), and manage the project with [uv](https://docs.astral.sh/uv/).
 - package and deploy code with [Declarative Automation Bundles](https://docs.databricks.com/en/dev-tools/bundles/index.html) to different environments (dev, staging, prod). Use [GitHub Actions](https://docs.github.com/en/actions) to automate CI/CD pipeline. 
 - utilize [Databricks Lakeflow Jobs](https://docs.databricks.com/en/workflows/index.html) to execute a DAG - Yes, you don't need Airflow to manage your DAGs here!!!. Generate job definitions to run with environment-specific conditions using [Databricks SDK](https://docs.databricks.com/aws/en/dev-tools/sdk-python#create-a-job-that-uses-serverless-compute).
 - isolate "dev" environments / catalogs to avoid concurrency issues between developer tests.
 - separate deploy-time config (environment variables, CI secrets) from runtime config (job parameters overridable from the Databricks UI), keeping jobs flexible without coupling them to the build process.
 - utilize job tags to track issues, costs, and ownership.
-- use a [Lakeflow Spark Declarative Pipeline](https://docs.databricks.com/aws/en/ldp/) to run the same ETL logic side-by-side with the PySpark job, demonstrating both paradigms from one codebase.
 - use the [medallion architecture](https://www.databricks.com/glossary/medallion-architecture) to organize your data.
-- freeze a mutable dimension (`product.unit_price`) at sale time so a later price change never restates historical revenue — demonstrated **two ways**: an insert-only `MERGE` on the batch path and a streaming-table silver (`@dp.table` + `spark.readStream`) on the SDP path. A materialized view would *restate* the price; a streaming table appends each row once and *freezes* it.
-- apply [Delta liquid clustering](https://docs.databricks.com/aws/en/delta/clustering) to the accumulating tables (append / `MERGE` / `replaceWhere`), where it amortizes — full-overwrite `raw.*` tables are intentionally left unclustered.
+- use a [Lakeflow Spark Declarative Pipeline](https://docs.databricks.com/aws/en/ldp/) to run the same ETL logic side-by-side with the PySpark job, demonstrating both paradigms from one codebase.
+- apply [Delta liquid clustering](https://docs.databricks.com/aws/en/delta/clustering) and incremental load to build more efficient pipelines.
 - run unit tests on transformations with the [pytest package](https://pypi.org/project/pytest/). Set up VS Code to run tests on your local machine.
 - run integration tests by setting the input data and validating the output data.
-- run load tests to exercise both the initial bulk load and incremental daily updates, validating that the pipeline handles production-scale data volumes without regressions.
+- run load tests to exercise both the initial bulk load and incremental daily updates, validating that the pipeline handles production-scale data.
 - use [Databricks AI/BI Dashboards](https://docs.databricks.com/aws/en/dashboards) to visualize the gold layer.
 - utilize the [coverage package](https://pypi.org/project/coverage/) to generate test coverage reports.
-- use structured logging with a per-run `log_level` override and run-scoped correlation ID on every line, giving you full observability during incidents without a code change.
+- use structured logging giving you full observability during incidents without a code change.
 - lint and format code with [ruff](https://docs.astral.sh/ruff/) and [pre-commit](https://pre-commit.com/).
 - use a Makefile to automate repetitive tasks.
 - utilize [Databricks DQX](https://databrickslabs.github.io/dqx/) to enforce data quality rules, such as null checks, uniqueness, thresholds, and schema validation, and filter bad data into quarantine tables.
 - utilize [service principals](https://docs.databricks.com/aws/en/admin/users-groups/service-principals) to run production code.
 - utilize the [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage catalogs, schemas, workspaces, and accounts. Refer to the `scripts` folder for examples.
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) to manage permissions and get data lineage.
+- enforce production guardrails out of the box — identity-locked CI deploys, a health-check task, wheel version pinning, per-task timeouts, schema-drift guards, queued runs, and on-call alerting.
+- track project cloud spend with cost reports from AWS (Cost Explorer) and Databricks (`system.billing.usage`).
 - utilize serverless job clusters on [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
-- enforce production guardrails out of the box — identity-locked CI deploys, a health-check task that runs before any data is touched, wheel version pinning, per-task timeouts, schema-drift guards, queued runs, and on-call alerting that doesn't page on manual cancellations.
+
 
 ## 📐 Specs
 
