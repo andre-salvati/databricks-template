@@ -60,6 +60,14 @@ This project template demonstrates how to:
 - utilize serverless job clusters on [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
 - enforce production guardrails out of the box — identity-locked CI deploys, a health-check task that runs before any data is touched, wheel version pinning, per-task timeouts, schema-drift guards, queued runs, and on-call alerting that doesn't page on manual cancellations.
 
+## 📐 Specs
+
+Deep technical detail lives in [`specs/`](specs/) (the README stays a landing page):
+
+- [**Architecture**](specs/architecture.md) — wheel/CLI surface, jobs DAG, job generation, CI/CD, job-level params, deploy-time env vars, logging, production guardrails, folder structure.
+- [**Data model**](specs/data-model.md) — catalog/schema isolation, medallion data flow (diagram), table schemas, price-freeze semantics, liquid clustering, DQX/quarantine, lineage.
+- [**Test plan**](specs/test-plan.md) — unit, integration, and load tests.
+
 ## 🧠 Resources
 
 Agentic development:
@@ -83,121 +91,6 @@ Other resources:
 - [Goodbye Pip and Poetry. Why UV Might Be All You Need](https://codecut.ai/why-uv-might-all-you-need/)
 - [The Spark Revolution You Didn’t See Coming: How Apache Spark 4.0 in Databricks Just Changed Everything](https://medium.com/@matiasmaquieira96/the-spark-revolution-you-didnt-see-coming-how-apache-spark-4-0-2a6422144f67)
 
-
-
-## 📁 Folder Structure
-
-```
-databricks-template/
-│
-├── .github/                       # CI/CD automation
-│   └── workflows/
-│       └── onpush.yml             # GitHub Actions pipeline
-│
-├── src/                           # Main source code
-│   └── template/                  # Python package
-│       ├── main.py                # Entry point with CLI (argparse)
-│       ├── config.py              # Configuration management
-│       ├── baseTask.py            # Base class for all tasks
-│       ├── commonSchemas.py       # Shared PySpark schemas
-│       └── job1/                  # Job-specific tasks
-│           ├── extract_source1.py          # Bronze dimensions: customer, product
-│           ├── extract_source2.py        # DQX validation + quarantine
-│           ├── generate_orders.py           # Silver: enrich + freeze price (insert-only MERGE)
-│           ├── generate_orders_agg.py       # Gold: aggregate (replaceWhere per day)
-│           ├── health_check.py           # Prod smoke task (runs first)
-│           └── seed_sources.py           # Idempotent daily seeder (prod integration)
-│
-├── tests/                          # Unit and integration tests
-│   └── job1/
-│       ├── unit_test.py            # Pytest unit tests
-│       ├── unit_test_sdp.py        # SDP pipeline unit tests
-│       ├── integration_setup.py    # Integration test setup (seed data)
-│       └── integration_validate.py # Integration test validation
-│
-├── resources/                      # Databricks workflow templates
-│   └── jobs.yml                    # Generated job definition (auto-created)
-│
-├── scripts/                              # Helper scripts
-│   ├── sdk_generate_template_job.py      # Job definition generator (Databricks SDK)
-│   ├── sdk_init_workspace.py             # Workspace initialization (SP, catalogs, schemas, grants)
-│   ├── sdk_drop_tables.py                # Drop all medallion tables in a target environment (schema migrations)
-│   ├── sdk_analyze_job_costs.py          # Cost analysis script
-│   ├── sdk_workspace_and_account.py      # Workspace and account management
-│   └── _sdk_sql.py                       # SQL warehouse helpers (used by other scripts)
-│
-├── docs/                           # Documentation assets
-│   ├── dag.png
-│   ├── task_output.png
-│   ├── data_lineage.png
-│   ├── data_quality.png
-│   └── ci_cd.png
-│
-├── dist/                        # Build artifacts (Python wheel)
-├── coverage_reports/            # Test coverage reports
-│
-├── databricks.yml               # Declarative Automation Bundle config
-├── pyproject.toml               # Python project configuration (uv)
-├── Makefile                     # Build automation
-├── .pre-commit-config.yaml      # Pre-commit hooks (ruff)
-└── README.md                    # This file
-```
-
-## Development Lifecycle
-
-<br>
-
-<img src="docs/ci_cd.png">
-
-<br>
-
-## Databricks Jobs
-
-<br>
-
-<img src="docs/dag.png">
-
-<br>
-
-## Medallion data flow
-
-The pipeline runs two parallel paths from the same source tables:
-
-- **Batch (`job1`)** — imperative PySpark tasks orchestrated by a Lakeflow Job. Raw tables are fully overwritten on every run. Silver uses an insert-only `MERGE` (first run: full overwrite; incremental: insert new rows only, keyed on `order_id + item_seq`). Gold uses `replaceWhere order_date` to atomically replace one day's slice. Liquid clustering is applied via `ALTER TABLE … CLUSTER BY` after each write.
-- **Spark Declarative Pipelines(`job1_sdp`)** — Spark Declarative Pipeline (Lakeflow). Raw bronze tables are materialized views except `order_item`, which is a streaming table. Silver is also a streaming table fed by a stream–static join (streaming fact ⨝ static dims), so each row is appended once and never reprocessed. Gold is a materialized view that re-sums the already-frozen silver. Clustering keys are set in the `@dp.table` / `@dp.materialized_view` decorator and applied at table creation.
-
-<br>
-
-<img src="docs/medallion_data_flow.png">
-
-<br>
-
-## Logging
-
-<br>
-
-<img src="docs/task_output.png">
-
-<br>
-
-## Data Lineage (Unity Catalog)
-
-<br>
-
-
-<img src="docs/data_lineage.png">
-
-<br>
-
-## Quarantine table (generated by Databricks DQX)
-
-<br>
-
-<img src="docs/data_quality.png">
-
-<br>
-
-
 ## Dashboard
 
 <br>
@@ -205,8 +98,6 @@ The pipeline runs two parallel paths from the same source tables:
 <img src="docs/dashboard.png">
 
 <br>
-
-
 
 ## Instructions
 
@@ -246,46 +137,12 @@ run:
 7) Deploy and execute on the dev workspace.
 
         make deploy env=dev
- Deploy-time environment variables (
 
 8) Configure CI/CD automation with the service principal ID and secret. Configure [GitHub Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST, DATABRICKS_PRINCIPAL_ID, DATABRICKS_SECRET).
 
 9) (Optional) You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
 - <img src="docs/vscode.png">
-
-## Job-level parameters (runtime, overridable per-run)
-
-These are defined as `JobParameterDefinition` in `scripts/sdk_generate_template_job.py` and threaded into every task as CLI args via `{{job.parameters.*}}`. Operators can override them for a single run using the Databricks Jobs UI "Run with different parameters" dialog — no code change or redeployment needed.
-
-| Parameter | CLI arg | Purpose | Default (dev/staging) | Default (prod) |
-|---|---|---|---|---|
-| `log_level` | `--log-level` | `DEBUG` / `INFO` / `WARNING`. Bump to `DEBUG` for a single prod run during incident response. | `INFO` | `INFO` |
-| `quarantine_fail_ratio` | `--quarantine-fail-ratio` | Hard-fail `extract_source2` if more than this fraction of rows are quarantined by DQX. Defaults to disabled so demo seed data still ingests. | `1.0` | `0.1` |
-| `seed_date` | `--seed-date` | ISO-8601 date (e.g. `2024-03-15`) for the `seed_sources` task. Empty string (default) resolves to today's date at runtime. Override per-run to backfill a specific day. | `""` → today | `""` → today |
-
-## Deploy-time environment variables (CI/build machine only)
-
-Read by `scripts/sdk_generate_template_job.py` when generating `resources/jobs.yml` — never on Databricks serverless compute.
-
-| Variable | Purpose | Default |
-|---|---|---|
-| `TEMPLATE_ALERT_EMAILS` | Comma-separated recipients for prod `JobEmailNotifications` (on_failure + on_duration_warning). Wired from CI secret of the same name. | `data-platform-oncall@example.com` |
-| `TEMPLATE_SP_APP_ID` | Override the service principal `application_id` looked up by display name. Used by CI to avoid the SCIM lookup. | resolved from `SP_DISPLAY_NAME` |
-
-## Production guardrails
-
-- **`databricks.yml`** sets `mode: production` on the prod target — DABs enforces that the deployer identity equals the run-as identity (the SP). `make deploy env=prod` from a developer's local machine will fail by design; only CI can push prod.
-- **`run_as` and `permissions`** on every staging/prod job are pinned to the service principal's `application_id` (not `${workspace.current_user.userName}`), wired by `scripts/sdk_generate_template_job.py`.
-- **`health_check` task** runs first in prod and fails fast on a broken wheel, missing grant, or unreachable SQL warehouse — before any medallion table is touched.
-- **Wheel version pinning**: `_project_version()` reads `pyproject.toml` to produce the exact wheel filename in the bundle's `JobEnvironment.dependencies`, so a forgotten rebuild can't silently deploy an old wheel.
-- **Per-environment retries**: 0 in dev (fast feedback), 2 in staging/prod (transient failure resilience). Retries on staging/prod back off `MIN_RETRY_INTERVAL_MS` (60s) before re-attempting, giving transient lock/metastore blips time to clear.
-- **Per-task timeouts**: each task has its own `timeout_seconds` (300s for health-check, 900s for extracts, 1800s for transforms) so a single hung task can't consume the whole job budget.
-- **Schema-drift guard**: all writes use `overwriteSchema=false` so an upstream change in column type or order fails the task loudly instead of silently propagating bad data.
-- **Queued runs, not skipped**: prod has `max_concurrent_runs=1` paired with `queue.enabled=true` — if a run is still in flight when the next 5 a.m. tick arrives, the new run queues rather than getting silently dropped.
-- **Health-rule-backed duration alert**: the `on_duration_warning_threshold_exceeded` email is wired to a `JobsHealthRule` on `RUN_DURATION_SECONDS > 1800` (30 min). Without that rule, the email would be wired to an event that can never fire.
-- **Cancelled/skipped runs don't page**: `notification_settings.no_alert_for_canceled_runs` and `no_alert_for_skipped_runs` are both `true`, so manual cancellations or upstream-condition skips don't generate failure alerts.
-
 
 ## Star History
 

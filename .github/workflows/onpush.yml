@@ -11,6 +11,7 @@ on:
       - 'CLAUDE.md'
       - 'CHANGELOG.md'
       - 'docs/**'
+      - 'specs/**'
   # Manual trigger for re-running CI without a new commit (e.g. after a transient
   # GitHub Actions hiccup that silently drops a push event):
   #   gh workflow run "CI pipeline" --ref <branch>
