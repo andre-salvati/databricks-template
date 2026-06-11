@@ -2,7 +2,15 @@
 
 ---
 
-## [#38](https://github.com/andre-salvati/databricks-template/pull/38) · feat/category-on-product · 2026-06-11 · feat: move category to the product dimension, commit dashboard JSON
+## [#39](https://github.com/andre-salvati/databricks-template/pull/39) · 2026-06-11 · feat: add --aws-profile flag to project_costs.py
+
+Added an `--aws-profile` flag to `scripts/project_costs.py` so the AWS Cost Explorer query can target a dedicated AWS CLI profile (`aws_daily_costs` appends `--profile` only when set) instead of relying solely on the default credential chain.
+This unblocks headless runs and lets the script use a scoped read-only Cost Explorer user rather than the expiry-prone browser `aws login` session that this workspace defaults to.
+The flag defaults to `None`, so behavior is unchanged for anyone who does not pass it.
+
+---
+
+## [#38](https://github.com/andre-salvati/databricks-template/pull/38) · 2026-06-11 · feat: move category to the product dimension, commit dashboard JSON
 
 Moved product category off the order fact onto the product dimension — `external_source.product` now carries `category_id`/`category_name` and silver pulls them from the product join (both `job1` batch and `job1_sdp` paths) instead of deriving `"Category " + id` inline on the order, so a category rename flows correctly to gold and the dashboard.
 Committed `resources/orders_dashboard.lvdash.json` as the canonical dashboard definition (dropping the `_build_dashboard_json` generator); since DABs 0.298.0 does not substitute `${var.catalog}` inside `.lvdash.json` content, the generator now writes a gitignored deploy copy with the catalog resolved at deploy time.
@@ -10,15 +18,15 @@ Verified end-to-end across unit, dev, staging, and prod; since the schema change
 
 ---
 
-## [#36](https://github.com/andre-salvati/databricks-template/pull/36) · feat/price-freeze-incremental-silver · 2026-06-09 · feat: price-freeze incremental silver, liquid clustering, readable labels
+## [#36](https://github.com/andre-salvati/databricks-template/pull/36) · 2026-06-09 · feat: price-freeze incremental silver, liquid clustering, readable labels
 
 Added a mutable `external_source.product` dimension (daily `unit_price` MERGE) and frozen `line_revenue` in silver (`item_quantity × unit_price_at_sale`) so a later price change never restates booked revenue; `job1` freezes via an insert-only `MERGE`, `job1_sdp` via a streaming table + stream-static join — both carrying `product_name` and `category_name` labels through to gold.
 Applied Delta liquid clustering to all accumulating tables via `BaseTask.cluster_by` (batch) and the `cluster_by=` decorator (SDP); full-overwrite `raw.*` are intentionally left unclustered, and `integration_setup.py` now matches the prod clustering layout set by `seed_sources`.
-Added a medallion data flow diagram (`docs/medalliocommandn_data_flow.png`, also in README) showing both pipeline paths with write modes and clustering keys per table.
+Added a medallion data flow diagram (`docs/medallion_data_flow.png`, also in README) showing both pipeline paths with write modes and clustering keys per table.
 
 ---
 
-## [#35](https://github.com/andre-salvati/databricks-template/pull/35) · feat/project-costs-command · 2026-06-08 · feat: add /project-costs Claude command and make target
+## [#35](https://github.com/andre-salvati/databricks-template/pull/35) · 2026-06-08 · feat: add /project-costs Claude command and make target
 
 Added `scripts/project_costs.py`, which queries AWS Cost Explorer (daily, last 30 days) and the Databricks `system.billing.usage` system table via the SDK and prints two formatted cost tables, exposed through a `make project-costs` runner.
 Added a `/project-costs` Claude slash command (`.claude/commands/project-costs.md`) that runs the script and analyzes the output for anomalies, spikes, period comparisons, and cross-cloud S3/egress-vs-DBU correlation; `.gitignore` now tracks `.claude/commands/` so project slash commands are shared with the team while personal settings stay local.
@@ -26,7 +34,7 @@ Hardened the script against credential leakage and runtime failures: sanitized A
 
 ---
 
-## [#34](https://github.com/andre-salvati/databricks-template/pull/34) · feat/field-standardization-and-dashboard-kpi · 2026-06-05 · feat: standardize silver/gold field names, fix dashboard KPIs, add total_orders
+## [#34](https://github.com/andre-salvati/databricks-template/pull/34) · 2026-06-05 · feat: standardize silver/gold field names, fix dashboard KPIs, add total_orders
 
 Dropped `ds_kpi` from the dashboard — all three KPI counters (Total Value, Total Orders, Number of Customers) now bind to `ds_orders` with aggregate expressions so all five filters update them; added a third KPI tile for Total Orders (`COUNT DISTINCT order_id`).
 Standardized field names across silver (`curated.order_enriched`) and gold (`report.order_agg`) following four rules: `{entity}_id` suffix, entity-qualified names, `item_*` prefix for item-level fields, no abbreviations; `date` is now cast to `DateType` in silver.
@@ -34,7 +42,7 @@ Added `order_enriched_schema` and `order_agg_schema` to `commonSchemas.py` as ca
 
 ---
 
-## [#33](https://github.com/andre-salvati/databricks-template/pull/33) · feat/dashboard-and-country · 2026-06-04 · feat: AI/BI dashboard, country in gold layer, randomized seed data
+## [#33](https://github.com/andre-salvati/databricks-template/pull/33) · 2026-06-04 · feat: AI/BI dashboard, country in gold layer, randomized seed data
 
 Added `country` to `curated.order_enriched` and `report.order_agg` (and SDP equivalents) so the gold layer carries the full customer dimension needed for country-based reporting.
 Added an AI/BI (Lakeview) dashboard with three line charts (total value by date × country, product, and category) and a global filter page; dashboard JSON is generated by `sdk_generate_template_job.py` at deploy time with the target catalog embedded and is gitignored.
@@ -42,7 +50,7 @@ Improved seed data chart visibility with a non-uniform country distribution and 
 
 ---
 
-## [#31](https://github.com/andre-salvati/databricks-template/pull/31) · feat/add-product-dimensions · 2026-06-03 · feat: product dimensions, seed enrichment, truncate script, prod schedule
+## [#31](https://github.com/andre-salvati/databricks-template/pull/31) · 2026-06-03 · feat: product dimensions, seed enrichment, truncate script, prod schedule
 
 Added `product_id` (100 distinct) and `prod_category_id` (10 distinct) to the order schema and propagated them through extract → enrich → aggregate → SDP transforms; `report.order_agg` now groups by `name`, `date`, `product_id`, `prod_category_id`.
 Enriched seed data: 2M orders spread over 365 days with varied totals ($10–$990), 10 countries, 500 customers, 5 000 incremental orders/day; raised DQX WARN limit to 1 000 to match the new range.
@@ -51,7 +59,7 @@ Added a 6 am BRT daily cron schedule to `job1_prod_integration`.
 
 ---
 
-## [#29](https://github.com/andre-salvati/databricks-template/pull/29) · feat/load-test-scale · 2026-05-29 · feat: scale load-test, rewrite seed_sources, add prod integration job
+## [#29](https://github.com/andre-salvati/databricks-template/pull/29) · 2026-05-29 · feat: scale load-test, rewrite seed_sources, add prod integration job
 
 Scaled load-test to 500 customers / 2M orders / 6M order_items so the batch vs incremental timing gap is measurable; updated `_validate_load_test` assertions accordingly.
 Rewrote `seed_sources`: initial load when `customer` count < 500, then daily append of 2000 orders + items and MERGE of 50 customer country updates; logs table totals after each run.
@@ -59,7 +67,7 @@ Added `job1_prod_integration` job (seed → run + run_sdp in parallel, no valida
 
 ---
 
-## [#28](https://github.com/andre-salvati/databricks-template/pull/28) · feat/load-test-mode · 2026-05-29 · feat: add load-test mode to integration tests via job parameter
+## [#28](https://github.com/andre-salvati/databricks-template/pull/28) · 2026-05-29 · feat: add load-test mode to integration tests via job parameter
 
 Added a `load_test` job parameter (default `"false"`) to the integration test job.
 When `"true"`, `Setup` seeds 200 customers / 500k orders / 200 order_items via `spark.range()` and `Validate` checks both `report.order_agg` and `report.order_agg_sdp` for deterministic aggregates.
@@ -67,25 +75,25 @@ No new task classes — the existing integration test job handles both modes.
 
 ---
 
-## [#27](https://github.com/andre-salvati/databricks-template/pull/27) · feat/changelog-and-workflow-rules · 2026-05-29 · docs: add CHANGELOG and git workflow rules to CLAUDE.md
+## [#27](https://github.com/andre-salvati/databricks-template/pull/27) · 2026-05-29 · docs: add CHANGELOG and git workflow rules to CLAUDE.md
 
 Added `CHANGELOG.md` at the repo root with entries for the last 15 merged PRs, each with merge date, GitHub link, and a 3-sentence summary of what changed and why. Added a **Git Workflow** section to `CLAUDE.md` with two standing rules: no direct commits to `main` (enforced by a local hook), and always update the PR description before merging (the merge hook uses it as the commit message body). This was a bootstrapping PR — the CHANGELOG entry for #27 itself was omitted at the time and added retroactively in a follow-up.
 
 ---
 
-## [#26](https://github.com/andre-salvati/databricks-template/pull/26) · feat/ci-parallel-integration-tests · 2026-05-28 · refactor: convert SDP bronze tables to materialized_view, remove DQX from pipeline
+## [#26](https://github.com/andre-salvati/databricks-template/pull/26) · 2026-05-28 · refactor: convert SDP bronze tables to materialized_view, remove DQX from pipeline
 
 Converted all bronze table functions in `job1_sdp/pipeline.py` from `@dp.table` to `@dp.materialized_view` so Enzyme can track Delta version watermarks end-to-end without forcing full recomputes. Removed DQX from the SDP pipeline entirely because DQX's non-deterministic `run_time` timestamp caused Enzyme to treat annotated tables as changed on every run, propagating recomputes to all downstream materialized views. Data quality validation for order data is retained in the batch `job1`'s `ExtractSource2` task where DQX runs safely outside the incremental engine.
 
 ---
 
-## [#25](https://github.com/andre-salvati/databricks-template/pull/25) · feat/ci-parallel-integration-tests · 2026-05-28 · feat: add job1_sdp Lakeflow pipeline with parallel CI integration tests
+## [#25](https://github.com/andre-salvati/databricks-template/pull/25) · 2026-05-28 · feat: add job1_sdp Lakeflow pipeline with parallel CI integration tests
 
 Added a twin Lakeflow Spark Declarative Pipeline (`job1_sdp`) that runs the same medallion ETL as the existing batch `job1` using `@dp.table` and `@dp.materialized_view` decorators, demonstrating both paradigms from a single codebase. Consolidated job and SDP pipeline generation into a single `sdk_generate_template_job.py` script that produces one `resources/jobs.yml`, replacing the separate `sdk_generate_sdp_pipeline.py`. The CI integration test DAG was unified so `setup → (run + run_sdp in parallel) → validate` covers both pipelines in a single test run.
 
 ---
 
-## [#24](https://github.com/andre-salvati/databricks-template/pull/24) · feat/seed-sources · 2026-05-27 · feat: add seed_sources task with --seed-date parameter
+## [#24](https://github.com/andre-salvati/databricks-template/pull/24) · 2026-05-27 · feat: add seed_sources task with --seed-date parameter
 
 Added a `SeedSources` task that creates and daily-updates `external_source` tables in production, closing a gap where prod ETL jobs would fail with table-not-found errors because no seeding mechanism existed outside of the destructive integration test setup. Introduced a `--seed-date` job-level parameter allowing operators to backfill a specific day by overriding the default (today at runtime). The task is intentionally prod-only since dev/staging use the integration test `setup` task to own `external_source` with controlled data.
 
