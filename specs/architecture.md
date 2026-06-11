@@ -68,23 +68,20 @@ action versions are pinned. Staging/prod deploy **and run as the service princip
 flowchart LR
     dev["👤 developer /<br/>Claude Code"]
 
-    vscode["VS Code &amp; notebooks"]
-    devcat[("dev_&lt;user&gt; catalog")]
-    stgcat[("staging catalog")]
-    prodcat[("prod catalog")]
+    %% fan-out declared 1→2→3 so they rank top-to-bottom (no subgraph box,
+    %% which would otherwise hoist the CI lane above 1 and 2)
+    dev -->|"1 · prototype · make unit-test"| vscode["VS Code &amp; notebooks"]
+    dev -->|"2 · make deploy env=dev<br/>+ make run env=dev"| devcat[("dev_&lt;user&gt; catalog")]
+    dev -->|"3 · git push / open PR"| u["4 · make unit-test"]
 
-    subgraph CI["CI · onpush.yml — every push, any branch"]
-        direction LR
-        u["4 · make unit-test"] --> ds["5 · make deploy<br/>env=staging"] --> is["6 · make run env=staging<br/>(integration test)"] --> gate{"ref == main?"}
-        gate -->|yes| dp["7 · make deploy<br/>env=prod"]
-        gate -->|no| stop["branch CI ends"]
-    end
+    u --> ds["5 · make deploy env=staging"] --> is["6 · make run env=staging<br/>(integration test)"] --> gate{"ref == main?"}
+    gate -->|yes| dp["7 · make deploy env=prod"] --> prodcat[("prod catalog")]
+    gate -->|no| stop["branch CI ends"]
+    is --> stgcat[("staging catalog")]
 
-    dev -->|"1 · prototype · make unit-test"| vscode
-    dev -->|"2 · make deploy env=dev<br/>+ make run env=dev"| devcat
-    dev -->|"3 · git push / open PR"| u
-    is --> stgcat
-    dp --> prodcat
+    %% CI steps (run on every push via onpush.yml) tinted yellow
+    classDef ci fill:#fcfcbf,stroke:#c9c945,color:#000
+    class u,ds,is,gate,dp,stop ci
 ```
 
 Steps **1–2** run locally as the **developer** against a per-developer `dev_<user>` catalog;
