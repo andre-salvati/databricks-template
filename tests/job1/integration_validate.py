@@ -19,7 +19,7 @@ class Validate(BaseTask):
         #   Jane Smith: 3×$20       = $60  (product 2 @ $20)
         expected_data = [
             ("John Doe", "USA", date(2023, 1, 1), 1, "Product 1", 1, "Category 1", 3, 30.0, 1),
-            ("Jane Smith", "UK", date(2023, 1, 2), 2, "Product 2", 1, "Category 1", 3, 60.0, 1),
+            ("Jane Smith", "UK", date(2023, 1, 2), 2, "Product 2", 2, "Category 2", 3, 60.0, 1),
         ]
         df_expected = self.spark.createDataFrame(expected_data, schema=order_agg_schema)
 

@@ -121,7 +121,7 @@ databricks-template/
 ├── scripts/                              # Helper scripts
 │   ├── sdk_generate_template_job.py      # Job definition generator (Databricks SDK)
 │   ├── sdk_init_workspace.py             # Workspace initialization (SP, catalogs, schemas, grants)
-│   ├── sdk_truncate_tables.py            # Truncate all medallion tables in a target environment
+│   ├── sdk_drop_tables.py                # Drop all medallion tables in a target environment (schema migrations)
 │   ├── sdk_analyze_job_costs.py          # Cost analysis script
 │   ├── sdk_workspace_and_account.py      # Workspace and account management
 │   └── _sdk_sql.py                       # SQL warehouse helpers (used by other scripts)
@@ -220,7 +220,7 @@ The pipeline runs two parallel paths from the same source tables:
 
 4) Set up the Python environment and run unit tests on your local machine.
 
-        make sync && make test
+        make sync && make unit-test
         
 5) Initialize the workspace. Create an external location in Databricks and update the `storage-root` parameter in the Makefile. This step will create the catalogs, schemas, service principal, and the required grants. For more details, see [Overview of external locations](https://docs.databricks.com/aws/en/connect/unity-catalog/cloud-storage#external-locations). Then 
 run:

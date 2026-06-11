@@ -50,7 +50,7 @@ jobs:
         run: make sync
 
       - name: Unit tests
-        run: make test
+        run: make unit-test
 
       - name: Upload coverage report
         if: always()

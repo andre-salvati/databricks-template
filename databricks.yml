@@ -13,7 +13,6 @@ artifacts:
 include:
   - resources/*.yml
 
-
 # Here is a good reference on how to structure your catalogs, workspaces, and groups:
 # https://youtu.be/CLBq4fBE2Ro
 #

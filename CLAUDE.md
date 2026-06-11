@@ -31,12 +31,13 @@ This project is developed with the [Databricks AI Dev Kit](https://github.com/da
 
 ```bash
 make sync              # Install all dependencies via uv
-make test              # Run pytest with coverage
+make unit-test         # Run pytest with coverage
 make pre-commit        # Update and run pre-commit hooks (ruff lint/format)
 make init              # One-time workspace bootstrap (SP, catalogs, schemas, grants). Edit S3 path first.
                        # If workspace has >1 SQL warehouse, pass --warehouse-name to the underlying script.
 make deploy env=dev    # Generate resources/jobs.yml (jobs + SDP pipeline) + deploy bundle to target env (dev/staging/prod)
 make run env=dev       # Run integration test job on a target env (dev or staging)
+make drop env=dev      # Drop all medallion tables in a target env (schema migrations; staging/prod need yes=--yes)
 ```
 
 Run a single test file:
@@ -155,9 +156,9 @@ On every push: install deps → unit tests → bundle validate → deploy to sta
 
 ### AI/BI Dashboard
 
-`resources/orders_dashboard.lvdash.json` is generated at deploy time by `sdk_generate_template_job.py` with the target catalog name embedded in SQL. The dashboard is registered in `resources/jobs.yml` under `resources.dashboards.orders_dashboard` with the resolved `warehouse_id`. Both files are gitignored.
+`resources/orders_dashboard.lvdash.json` is committed to git and is the canonical dashboard definition. The catalog name in the SQL query is `${var.catalog}` — a DABs bundle variable resolved at deploy time from the target override written by `sdk_generate_template_job.py`. To update the dashboard: edit the JSON directly, or export from the Databricks UI and commit. The resource stanza (`display_name`, `file_path`, `warehouse_id`) is still written into `resources/jobs.yml` by the generator since `warehouse_id` requires runtime resolution.
 
-The dashboard has one page with three line charts (total value over time by country, by product, by category) and a global filter page with date-range, country, customer, product, and category filters. The dataset `ds_orders` queries `{catalog}.report.order_agg` and groups by all five dimensions.
+The dashboard has one page with three line charts (total value over time by country, by product, by category) and a global filter page with date-range, country, customer, product, and category filters. The dataset `ds_orders` queries `${var.catalog}.report.order_agg` and groups by all five dimensions.
 
 If a workspace has multiple SQL warehouses, pass `--warehouse-name <name>` to `sdk_generate_template_job.py` (or equivalently add it to the `scripts/sdk_generate_template_job.py` call in `Makefile`).
 
@@ -192,6 +193,5 @@ Favor solutions with less code, fewer classes, and fewer abstractions. When two 
 - Don't add `funcy` (or any decorator-based timing utility) to the dependencies. Use the structured logger.
 - Don't add `CREATE CATALOG` or `CREATE SCHEMA` calls outside the `args.env == "dev"` branch in `config.py`. Staging/prod catalogs and schemas are owned by `make init`; runtime jobs run without those privileges.
 - Don't commit `resources/jobs.yml` (gitignored — regenerated on every deploy).
-- Don't commit `resources/orders_dashboard.lvdash.json` (gitignored — regenerated on every deploy with the catalog name embedded).
 - Don't commit `.databricks-resources.json` (gitignored — local provisioning state, diverges per developer).
-- Don't hand-edit `resources/jobs.yml` or `resources/orders_dashboard.lvdash.json` — both are overwritten on every deploy. Change `scripts/sdk_generate_template_job.py` instead (it generates jobs, the SDP pipeline, the dashboard JSON, and the dashboard resource definition into `resources/jobs.yml`).
+- Don't hand-edit `resources/jobs.yml` — it is overwritten on every deploy. Change `scripts/sdk_generate_template_job.py` instead (it generates jobs, the SDP pipeline, and the dashboard resource stanza into `resources/jobs.yml`). `resources/orders_dashboard.lvdash.json` is committed and editable directly.

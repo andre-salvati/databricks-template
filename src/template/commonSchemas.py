@@ -24,7 +24,6 @@ order_schema = StructType(
         StructField("total", FloatType(), True),
         StructField("date", StringType(), True),
         StructField("product_id", IntegerType(), True),
-        StructField("prod_category_id", IntegerType(), True),
     ]
 )
 
@@ -42,11 +41,14 @@ order_item_schema = StructType(
 # which is what makes the silver "freeze at sale time" vs "restate" distinction
 # observable. line_revenue downstream = qty * unit_price captured when the order
 # row is first processed. `name` carries the human-readable label ("Product 1").
+# category_id/category_name are stable product attributes (not on the order).
 product_schema = StructType(
     [
         StructField("product_id", IntegerType(), True),
         StructField("name", StringType(), True),
         StructField("unit_price", FloatType(), True),
+        StructField("category_id", IntegerType(), True),
+        StructField("category_name", StringType(), True),
     ]
 )
 
