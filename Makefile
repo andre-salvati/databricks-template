@@ -35,4 +35,4 @@ drop: whoami
 
 project-costs: aws-profile ?= costs
 project-costs:
-	uv run python ./scripts/project_costs.py --aws-profile $(aws-profile)
+	uv run python ./scripts/project_costs.py $(if $(aws-profile),--aws-profile $(aws-profile),)

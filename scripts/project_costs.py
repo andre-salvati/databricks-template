@@ -101,7 +101,12 @@ def aws_daily_costs(days: int, profile: str | None = None) -> None:
         if amt > 0:
             print(f"{svc:<40.40} {amt:>12.4f}")
     print("-" * 54)
-    print(f"{'Total':<40} {by_service.sum():>12.4f}\n")
+    print(f"{'Total':<40} {by_service.sum():>12.4f}")
+    # The daily table marks estimated days with '*'; the rollup sums estimated + finalized
+    # cost into one total, so flag it rather than let the reader assume these are final.
+    if bool(aws_df["estimated"].any()):
+        print("Totals include estimated (not-yet-finalized) costs.")
+    print()
 
 
 def databricks_daily_costs(profile: str, days: int) -> None:
@@ -151,25 +156,30 @@ def databricks_daily_costs(profile: str, days: int) -> None:
             print("No usage data found.\n")
             return
 
-        # Raw data as a DataFrame, printed before the formatted report.
+        # Raw data as a DataFrame (quantities arrive as strings from the SQL result),
+        # printed before the formatted report.
         usage_df = pd.DataFrame(rows, columns=["usage_date", "sku_name", "total_quantity", "usage_unit"])
         print(f"\nDatabricks raw data — last {days} days (DataFrame, {len(usage_df)} rows)")
         print(usage_df.to_string(index=False))
         print()
 
+        # Convert quantity once, then drive both the daily table and the rollup off the frame.
+        usage_df["total_quantity"] = usage_df["total_quantity"].astype(float)
+
         print(f"{'Date':<12} {'SKU':<55} {'Quantity':>10}  Unit")
         print("-" * 85)
-        for row in rows:
-            print(f"{str(row[0]):<12} {str(row[1]):<55.55} {float(row[2]):>10.4f}  {row[3]}")
+        for r in usage_df.itertuples(index=False):
+            print(f"{str(r.usage_date):<12} {str(r.sku_name):<55.55} {r.total_quantity:>10.4f}  {r.usage_unit}")
         print()
 
         # Aggregate by SKU (service type) over the whole window. Quantities stay grouped by
-        # unit since DBU / DSU / GB are not summable across SKUs.
-        usage_df["total_quantity"] = usage_df["total_quantity"].astype(float)
+        # unit since DBU / DSU / GB are not summable across SKUs; dropna=False keeps a SKU with
+        # a NULL unit visible (pandas would otherwise drop NaN group keys and the rollup would
+        # silently disagree with the daily table). Sort within unit so the ordering is meaningful.
         by_sku = (
-            usage_df.groupby(["sku_name", "usage_unit"], as_index=False)["total_quantity"]
+            usage_df.groupby(["sku_name", "usage_unit"], as_index=False, dropna=False)["total_quantity"]
             .sum()
-            .sort_values("total_quantity", ascending=False)
+            .sort_values(["usage_unit", "total_quantity"], ascending=[True, False])
         )
         print(f"Databricks Costs by SKU — last {days} days")
         print(f"{'SKU':<55} {'Quantity':>12}  Unit")
