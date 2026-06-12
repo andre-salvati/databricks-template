@@ -2,6 +2,14 @@
 
 ---
 
+## [#40](https://github.com/andre-salvati/databricks-template/pull/40) · 2026-06-11 · docs: reorganize specs into specs/ folder, slim README and CLAUDE.md
+
+Extracted the deep technical documentation out of `README.md` and `CLAUDE.md` into a dedicated `specs/` folder (`architecture.md`, `data-model.md`, `test-plan.md`, an index, and `CHANGELOG.md` itself), leaving the README a landing page and `CLAUDE.md` working rules plus load-bearing invariants and pointers.
+Converted the medallion diagram to inline Mermaid (GitHub-rendered, diffable) and deleted the superseded `docs/medallion_data_flow.png`; the CI/CD diagram stays a draw.io export (`docs/ci_cd.drawio` → `docs/ci_cd.png`) because the layout it needs isn't expressible in GitHub-rendered (dagre) Mermaid.
+Added `specs/**` to the `onpush.yml` `paths-ignore` so docs-only changes don't trigger a CI run.
+
+---
+
 ## [#39](https://github.com/andre-salvati/databricks-template/pull/39) · 2026-06-11 · feat: add --aws-profile flag to project_costs.py
 
 Added an `--aws-profile` flag to `scripts/project_costs.py` so the AWS Cost Explorer query can target a dedicated AWS CLI profile (`aws_daily_costs` appends `--profile` only when set) instead of relying solely on the default credential chain.
