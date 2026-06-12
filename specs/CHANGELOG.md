@@ -2,6 +2,12 @@
 
 ---
 
+## [#41] · feat/costs-raw-dataframe · 2026-06-12 · feat: raw cost DataFrames + by-service/SKU aggregation in project_costs.py
+
+`scripts/project_costs.py` now prints the raw per-day/service (AWS) and per-day/SKU (Databricks) DataFrames before each formatted daily table, so the underlying data is visible and not just the summary. Added an "AWS Costs by Service" rollup (blended cost summed per service) and a "Databricks Costs by SKU" rollup (quantity grouped by SKU and unit, since DBU/DSU/GB are not summable across SKUs) after each daily table. Defaulted the `make project-costs` target to `--aws-profile costs` (the dedicated read-only Cost Explorer user), overridable via `aws-profile=`, so headless runs work without the expiry-prone browser login.
+
+---
+
 ## [#40](https://github.com/andre-salvati/databricks-template/pull/40) · 2026-06-11 · docs: reorganize specs into specs/ folder, slim README and CLAUDE.md
 
 Extracted the deep technical documentation out of `README.md` and `CLAUDE.md` into a dedicated `specs/` folder (`architecture.md`, `data-model.md`, `test-plan.md`, an index, and `CHANGELOG.md` itself), leaving the README a landing page and `CLAUDE.md` working rules plus load-bearing invariants and pointers.
