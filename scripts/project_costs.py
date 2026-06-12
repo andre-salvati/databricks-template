@@ -92,6 +92,17 @@ def aws_daily_costs(days: int, profile: str | None = None) -> None:
     print(f"{'Total':<13} {grand_total:>10.4f}")
     print("* = estimated\n")
 
+    # Aggregate by service type over the whole window.
+    by_service = aws_df.groupby("service")["blended_cost_usd"].sum().sort_values(ascending=False)
+    print(f"AWS Costs by Service — last {days} days")
+    print(f"{'Service':<40} {'Total USD':>12}")
+    print("-" * 54)
+    for svc, amt in by_service.items():
+        if amt > 0:
+            print(f"{svc:<40.40} {amt:>12.4f}")
+    print("-" * 54)
+    print(f"{'Total':<40} {by_service.sum():>12.4f}\n")
+
 
 def databricks_daily_costs(profile: str, days: int) -> None:
     print(f"Databricks Daily Costs — last {days} days")
@@ -150,6 +161,21 @@ def databricks_daily_costs(profile: str, days: int) -> None:
         print("-" * 85)
         for row in rows:
             print(f"{str(row[0]):<12} {str(row[1]):<55.55} {float(row[2]):>10.4f}  {row[3]}")
+        print()
+
+        # Aggregate by SKU (service type) over the whole window. Quantities stay grouped by
+        # unit since DBU / DSU / GB are not summable across SKUs.
+        usage_df["total_quantity"] = usage_df["total_quantity"].astype(float)
+        by_sku = (
+            usage_df.groupby(["sku_name", "usage_unit"], as_index=False)["total_quantity"]
+            .sum()
+            .sort_values("total_quantity", ascending=False)
+        )
+        print(f"Databricks Costs by SKU — last {days} days")
+        print(f"{'SKU':<55} {'Quantity':>12}  Unit")
+        print("-" * 75)
+        for r in by_sku.itertuples(index=False):
+            print(f"{r.sku_name:<55.55} {r.total_quantity:>12.4f}  {r.usage_unit}")
         print()
 
     except Exception as e:
