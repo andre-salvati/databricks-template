@@ -2,6 +2,12 @@
 
 ---
 
+## [#41](https://github.com/andre-salvati/databricks-template/pull/41) · 2026-06-12 · feat: raw cost DataFrames + by-service/SKU aggregation in project_costs.py
+
+`scripts/project_costs.py` now prints the raw per-day/service (AWS) and per-day/SKU (Databricks) DataFrames before each formatted daily table, plus an "AWS Costs by Service" rollup and a "Databricks Costs by SKU" rollup (quantity grouped by SKU and unit, since DBU/DSU/GB are not summable; NULL units kept, sorted within unit, AWS estimates flagged). Defaulted the `make project-costs` target to `--aws-profile costs` (the dedicated read-only Cost Explorer user), where `aws-profile=` now falls back to the default credential chain instead of hard-failing argparse. Also folded in code-review fixes: `scripts/sdk_drop_tables.py` now issues the kind-matched `DROP MATERIALIZED VIEW` / `DROP STREAMING TABLE` instead of a blind `DROP TABLE` (which aborted `make drop` mid-loop once the SDP pipeline had materialized its views/streaming tables), and `seed_sources.py` centralizes the product-category formula so the price-update path can't drift from the initial seed.
+
+---
+
 ## [#40](https://github.com/andre-salvati/databricks-template/pull/40) · 2026-06-11 · docs: reorganize specs into specs/ folder, slim README and CLAUDE.md
 
 Extracted the deep technical documentation out of `README.md` and `CLAUDE.md` into a dedicated `specs/` folder (`architecture.md`, `data-model.md`, `test-plan.md`, an index, and `CHANGELOG.md` itself), leaving the README a landing page and `CLAUDE.md` working rules plus load-bearing invariants and pointers.

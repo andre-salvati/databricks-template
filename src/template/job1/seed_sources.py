@@ -21,6 +21,14 @@ _INCREMENTAL_CUSTOMER_UPDATES = 50
 _INCREMENTAL_PRICE_UPDATES = 5  # products whose unit_price changes each day
 
 
+def _product_category(product_id: int) -> tuple[int, str]:
+    """Stable category attribute of a product, mirroring the Spark expression in
+    _seed_initial: category = (product_id - 1) % 10 + 1. Used to build the price-update
+    rows so the formula lives in one place and the two product-writing paths can't drift."""
+    cat = (product_id - 1) % 10 + 1
+    return cat, f"Category {cat}"
+
+
 class SeedSources(BaseTask):
     """
     Idempotent seeder for external_source tables.
@@ -217,13 +225,15 @@ class SeedSources(BaseTask):
         start = day_offset * _INCREMENTAL_PRICE_UPDATES % _INITIAL_PRODUCTS
         product_ids = [((start + i) % _INITIAL_PRODUCTS) + 1 for i in range(_INCREMENTAL_PRICE_UPDATES)]
         factor = 1.0 + ((day_offset % 5) - 2) * 0.05  # -10% .. +10%
+        # The MERGE below only updates unit_price; category columns are carried solely to
+        # satisfy product_schema, but we derive them from the shared helper so they stay
+        # correct if the MERGE is ever extended to category.
         update_rows = [
             (
                 pid,
                 f"Product {pid}",
                 round(((pid - 1) % 10 + 1) * 5.0 + 4.99) * factor,
-                (pid - 1) % 10 + 1,
-                f"Category {(pid - 1) % 10 + 1}",
+                *_product_category(pid),
             )
             for pid in product_ids
         ]

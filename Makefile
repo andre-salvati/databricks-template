@@ -33,5 +33,6 @@ run: whoami
 drop: whoami
 	uv run python ./scripts/sdk_drop_tables.py $(env) $(yes)
 
+project-costs: aws-profile ?= costs
 project-costs:
-	uv run python ./scripts/project_costs.py
+	uv run python ./scripts/project_costs.py $(if $(aws-profile),--aws-profile $(aws-profile),)
