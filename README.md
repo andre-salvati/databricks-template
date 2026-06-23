@@ -68,6 +68,7 @@ Deep technical detail lives in [`specs/`](specs/) (the README stays a landing pa
 - [**Architecture**](specs/architecture.md) — wheel/CLI surface, jobs DAG, job generation, CI/CD, job-level params, deploy-time env vars, logging, production guardrails, folder structure.
 - [**Data model**](specs/data-model.md) — catalog/schema isolation, medallion data flow (diagram), table schemas, price-freeze semantics, liquid clustering, DQX/quarantine, lineage.
 - [**Test plan**](specs/test-plan.md) — unit, integration, and load tests.
+- [**Tooling**](specs/tooling.md) — MCP servers (Databricks, AWS billing/docs, context7), the Databricks CLI, and the bundled skills.
 
 ## 🧠 Resources
 
@@ -96,7 +97,7 @@ Other resources:
 
 <br>
 
-<img src="docs/dashboard.png">
+<img src="assets/dashboard.png">
 
 <br>
 
@@ -143,7 +144,7 @@ run:
 
 9) (Optional) You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
-- <img src="docs/vscode.png">
+- <img src="assets/vscode.png">
 
 ## Star History
 

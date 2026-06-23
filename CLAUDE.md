@@ -6,26 +6,15 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A production-ready PySpark/Databricks ETL pipeline template using medallion architecture, Python packaging, unit + integration tests, Databricks Declarative Automation Bundles (DABs), and DQX data quality framework. Code is structured as a Python wheel package (not notebooks) deployed to Databricks serverless.
 
-## Tooling: Databricks AI Dev Kit + MCP
+## Tooling: MCP servers, CLI, skills → see [`specs/tooling.md`](specs/tooling.md)
 
-This project is developed with the [Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit) installed at the user level (`~/.ai-dev-kit/`). It provides:
+Developed with the [Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit) (user-level, `~/.ai-dev-kit/`). MCP config (`.mcp.json`) and `.claude/` are gitignored — user-level tooling, not committed. Quick decision list (full reference in `specs/tooling.md`):
 
-- **Databricks MCP server** (`mcp__databricks__*` tools) — wired globally in `~/.claude.json`, authenticates via the `dev` profile in `~/.databrickscfg`.
-- **Databricks skills** (`databricks-bundles`, `databricks-jobs`, `databricks-python-sdk`, `databricks-config`, `databricks-unity-catalog`, etc.) — invoke via the Skill tool when the task matches.
-
-### When to use what
-
-- **Workspace/UC/Jobs/Pipelines/Apps/Serving operations** → prefer `mcp__databricks__*` tools over `databricks` CLI shell-outs or hand-rolled SDK scripts. Examples: `manage_jobs`, `manage_job_runs`, `manage_uc_objects`, `execute_sql`, `manage_serving_endpoint`, `manage_workspace_files`.
-- **Bundle work** (editing `databricks.yml`, `resources/*.yml`, deploy/run) → invoke the `databricks-bundles` skill. Note this project generates `resources/jobs.yml` via `scripts/sdk_generate_template_job.py`; do not hand-edit it.
-- **Adding/modifying jobs** → invoke `databricks-jobs` skill for guidance, but route changes through `scripts/sdk_generate_template_job.py` + `make deploy` (see `specs/architecture.md` → "Adding a new job").
-- **Switching workspaces / checking auth** → invoke `databricks-config` skill.
-- **SDK code inside `src/template/`** → invoke `databricks-python-sdk` skill.
-
-### Conventions
-
-- Use the `dev` profile unless told otherwise. To check or switch, use the `databricks-config` skill.
-- Do **not** install the Dev Kit into this repo or commit MCP config — it's a user-level tool. `.claude/` is currently untracked.
-- If MCP tools are unavailable in a session, fall back to the `databricks` CLI or `databricks-sdk` directly, but flag it to the user.
+- **Workspace / UC / Jobs / Pipelines / Apps / Serving / SQL** → prefer `mcp__databricks__*` tools over `databricks` CLI shell-outs or hand-rolled SDK scripts.
+- **Bundle / job changes** → `databricks-bundles` / `databricks-jobs` skills, but route job edits through `scripts/sdk_generate_template_job.py` + `make deploy` (never hand-edit `resources/jobs.yml`).
+- **Library/SDK docs** (PySpark, Databricks SDK, uv, ruff) → `context7` MCP, not memory or web search.
+- **Cloud spend / cost analysis** → `aws-billing-cost` MCP (`AWS_PROFILE=costs`) + `/project-costs` skill. **AWS docs** → `aws-documentation` MCP.
+- Use the `dev` profile unless told otherwise (`prod` for prod ops). If MCP tools are unavailable, fall back to CLI/SDK and flag it.
 
 ## Commands
 
@@ -57,6 +46,7 @@ The detailed specs live in [`specs/`](specs/) — read the relevant one **before
 - [`specs/architecture.md`](specs/architecture.md) — execution flow, CLI surface, key classes, jobs DAG, job **generation** (`scripts/sdk_generate_template_job.py` → `resources/jobs.yml`; never hand-edit), CI/CD, job-level params, deploy-time env vars, logging, production guardrails, adding a new job.
 - [`specs/data-model.md`](specs/data-model.md) — catalog/schema isolation, medallion flow, table schemas, price freeze, liquid clustering, DQX/quarantine, lineage.
 - [`specs/test-plan.md`](specs/test-plan.md) — unit / integration / load tests.
+- [`specs/tooling.md`](specs/tooling.md) — MCP servers (Databricks, AWS billing/docs, context7), CLI, and skills: what to reach for and when.
 - The AI/BI dashboard (`resources/orders_dashboard.lvdash.json`) is committed and edited directly; the catalog is `${var.catalog}`, resolved at deploy time.
 
 ### Load-bearing invariants (keep in mind; full detail in specs)
@@ -79,13 +69,13 @@ The detailed specs live in [`specs/`](specs/) — read the relevant one **before
 
 - **Never commit directly to `main`.** All changes must go on a feature branch and land via PR. A hook blocks direct commits and pushes to `main`.
 - **Before merging a PR**, always update the PR description to accurately reflect all changes in the branch. Use `gh pr edit <number> --body "..."` to finalize it. A hook automatically uses the PR description as the merge commit message body, so whatever is in the description at merge time becomes the permanent commit record.
+- **Keep docs in sync in the same commit.** Don't ship changes to the CLI surface (`main.py:arg_parser`), runtime env vars, catalog/schema model, or production guardrails without updating `README.md`, the relevant doc under `specs/`, and this file (`CLAUDE.md`) together. Stale docs are worse than no docs — they mislead future contributors and future sessions.
+- **Add a `specs/CHANGELOG.md` entry before merging a PR**, describing what changed and why. It's an append-only file — add a new entry, never edit old ones — and each entry is **at most 3 sentences**.
 
 ## Keep It Simple
 
 Favor solutions with less code, fewer classes, and fewer abstractions. When two approaches both solve the problem, prefer the one with fewer moving parts — even if the "cleaner" architecture feels more elegant. Extend existing classes before creating new ones. Add a parameter before adding a new task key. Branch on a flag before splitting into subclasses.
 
-- Don't ship changes to the CLI surface (`main.py:arg_parser`), runtime env vars, catalog/schema model, or production guardrails without updating `README.md`, the relevant doc under `specs/`, and this file (`CLAUDE.md`) in the same commit. Stale docs are worse than no docs — they mislead future contributors and future sessions.
-- Don't merge a PR without adding an entry to `specs/CHANGELOG.md` describing what changed and why.
 - Don't reintroduce `--user`, `--debug`, or `--schema` CLI args. They were removed deliberately — see PR #21.
 - Don't add `funcy` (or any decorator-based timing utility) to the dependencies. Use the structured logger.
 - Don't add `CREATE CATALOG` or `CREATE SCHEMA` calls outside the `args.env == "dev"` branch in `config.py`. Staging/prod catalogs and schemas are owned by `make init`; runtime jobs run without those privileges.
