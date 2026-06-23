@@ -4,7 +4,20 @@
       "name": "ds_orders",
       "displayName": "Orders",
       "queryLines": [
-        "SELECT order_date, country, customer_name AS customer, product_name AS product, category_name AS category, SUM(total_value) AS total_value, SUM(total_orders) AS total_orders FROM ${var.catalog}.report.order_agg WHERE order_date BETWEEN :date_range.min AND :date_range.max GROUP BY 1, 2, 3, 4, 5"
+        "WITH latest AS (",
+        "  SELECT product_id, product_name,",
+        "         ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY order_date DESC, product_name DESC) AS rn",
+        "  FROM ${var.catalog}.report.order_agg",
+        ")",
+        "SELECT a.order_date, a.country, a.customer_name AS customer,",
+        "       l.product_name AS product,",
+        "       a.product_name AS product_name,",
+        "       a.category_name AS category,",
+        "       SUM(a.total_value) AS total_value, SUM(a.total_orders) AS total_orders",
+        "FROM ${var.catalog}.report.order_agg a",
+        "JOIN latest l ON a.product_id = l.product_id AND l.rn = 1",
+        "WHERE a.order_date BETWEEN :date_range.min AND :date_range.max",
+        "GROUP BY 1, 2, 3, 4, 5, 6"
       ],
       "parameters": [
         {
@@ -525,8 +538,8 @@
                   "datasetName": "ds_orders",
                   "fields": [
                     {
-                      "name": "product",
-                      "expression": "`product`"
+                      "name": "product_name",
+                      "expression": "`product_name`"
                     }
                   ],
                   "disaggregated": false
@@ -539,7 +552,7 @@
               "encodings": {
                 "fields": [
                   {
-                    "fieldName": "product",
+                    "fieldName": "product_name",
                     "displayName": "Product",
                     "queryName": "q_product"
                   }

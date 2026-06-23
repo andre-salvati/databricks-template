@@ -1,6 +1,6 @@
 # Data model
 
-The medallion layout, the catalog/schema isolation model, table schemas, the price-freeze
+The medallion layout, the catalog/schema isolation model, table schemas, the attribute-freeze
 semantics, liquid clustering, and data quality. For how tasks/jobs are wired see
 [architecture.md](architecture.md).
 
@@ -127,21 +127,24 @@ Canonical schemas live in `commonSchemas.py` (`order_enriched_schema`, `order_ag
 
 - **`curated.order_enriched`**: `customer_name, country, customer_id, order_id, order_total,
   order_date (DateType), product_id, product_name, product_category_id, category_name, item_seq,
-  item_description, item_quantity, item_total, line_revenue, unit_price_at_sale`.
+  item_description, item_quantity, item_total`.
 - **`report.order_agg`**: `customer_name, country, order_date (DateType), product_id, product_name,
   product_category_id, category_name, total_quantity, total_value, total_orders`.
 
-`total_value` in gold is `SUM(line_revenue)`, **not** `SUM(item_total)`. `line_revenue =
-item_quantity × unit_price_at_sale`, computed in silver by joining the `external_source.product`
-dimension and **frozen** at first processing (see below). `product_name` (`"Product 1"`) and
+`total_value` in gold is `SUM(item_total)` — the line value the source froze on the order at sale
+time, so a later price change never restates historical revenue. `product_name` (`"Product 1"`) and
 `category_name` (`"Category 2"`, derived as `concat('Category ', product_category_id)`) are
 human-readable labels carried alongside the numeric ids; the dashboard displays the labels.
+`product_name` is **frozen** per row at first processing (see below) — it is the mutable attribute the
+freeze pattern is demonstrated against.
 
-## Incremental silver: price freeze (load-bearing)
+## Incremental silver: product-name freeze (load-bearing)
 
-`external_source.product` is a mutable dimension — the daily seed bumps `unit_price` for a few
-products each run. The pipeline freezes the price at sale time so a later price change never
-restates already-booked revenue. **Both** pipelines freeze, by different mechanisms:
+`external_source.product` is a mutable dimension — the daily seed renames a couple of products each
+run (`"Product 1"` → `"Product 1.1"` → `"Product 1.2"`, suffix = cumulative rename count). The
+pipeline freezes `product_name` onto each order line at sale time, so a later rename never relabels
+already-booked orders (`unit_price` is a static attribute and `total_value = SUM(item_total)`, so
+revenue is never restated either). **Both** pipelines freeze, by different mechanisms:
 
 - **`job1` (batch)** — `generate_orders` does first-run-full / incremental-after: first run (silver
   empty) overwrites all backfilled orders; every subsequent run enriches only `date = seed_date`
@@ -150,15 +153,18 @@ restates already-booked revenue. **Both** pipelines freeze, by different mechani
   order_date = DATE'<seed_date>'`.
 - **`job1_sdp` (declarative)** — silver (`curated.order_enriched_sdp`) and bronze `raw.order_item_sdp`
   are **streaming tables** (`@dp.table` + `spark.readStream`). A stream–static join (streaming
-  `order_item` fact ⨝ static dims) appends each row once and never reprocesses it, so `line_revenue`
-  is frozen on append. **A materialized view would restate** the price on every refresh — that is
+  `order_item` fact ⨝ static dims) appends each row once and never reprocesses it, so `product_name`
+  is frozen on append. **A materialized view would restate** the name on every refresh — that is
   why silver had to become a streaming table. Gold stays an MV because it re-sums already-frozen silver.
 
 Why an MV restates but a streaming table freezes: an MV is *defined as a query over current inputs*
 and recomputes from scratch (latest-wins); a streaming table consumes new input rows once and
-appends. "Incremental" (Enzyme re-reading only changed files) is efficiency, not semantics. Known
-limitations (acceptable for a template): the first-run backfill freezes at the *current* price;
-freeze is at *processing* time, not strictly *order date*; country is frozen at append time in SDP.
+appends. "Incremental" (Enzyme re-reading only changed files) is efficiency, not semantics. The
+dashboard consolidates the "by product" chart by `product_id` (labeled with each product's latest
+name), so a renamed product stays one line; the frozen historical names remain in `report.order_agg`
+and in the Product filter. Known limitations (acceptable for a template): the first-run backfill
+freezes the *current* name; freeze is at *processing* time, not strictly *order date*; country is
+frozen at append time in SDP.
 
 ## Liquid clustering
 

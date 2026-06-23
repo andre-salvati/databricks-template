@@ -2,6 +2,12 @@
 
 ---
 
+## [#43] · feat/freeze-product-name · 2026-06-23 · feat: freeze product_name instead of line_revenue
+
+Removed the synthetic `line_revenue`/`unit_price_at_sale` columns — gold `total_value` is now `SUM(item_total)` (the line value the source already freezes on the order) — and re-pointed the silver insert-only-MERGE / streaming-table freeze at the mutable `product_name`, which the seed now changes by renaming 2 products per run (`Product N` → `Product N.k`); `unit_price` stays as a static attribute. The AI/BI "by product" chart now consolidates by `product_id` labeled with each product's latest name (one line per physical product across renames), while the frozen historical names remain in `report.order_agg` and the Product filter. Updated unit/integration tests, schemas, the SDP pipeline, and the data-model/test-plan docs accordingly.
+
+---
+
 ## [#42] · docs/reorg-specs-tooling · 2026-06-23 · docs: rename docs/→assets/, consolidate tooling into specs/tooling.md, slim CLAUDE.md
 
 Renamed the image-only `docs/` folder to `assets/` (it held no prose, only screenshots and the CI/CD draw.io export) and repointed every `<img>` reference in the README and specs. Added `specs/tooling.md` consolidating all four MCP servers (Databricks, aws-billing-cost, aws-documentation, context7), the Databricks CLI, and the bundled skills, then trimmed `CLAUDE.md`'s tooling section to a short every-session decision list that points at it. Moved the repo folder-structure tree out of `architecture.md` into the `specs/README.md` routing hub and flagged `CHANGELOG.md` there as append-only (don't read for context).

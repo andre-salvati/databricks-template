@@ -8,9 +8,10 @@ class GenerateOrders(BaseTask):
         super().__init__(config)
 
     def enrich_order(self, df_customer, df_order, df_order_item, df_product):
-        # order_item ⨝ order ⨝ customer ⨝ product. line_revenue is computed from the
-        # product dimension's CURRENT unit_price at the moment this row is processed;
-        # the incremental MERGE in run() then freezes it (INSERT-only, never updated).
+        # order_item ⨝ order ⨝ customer ⨝ product. product_name is read from the
+        # product dimension's CURRENT value at the moment this row is processed; the
+        # incremental MERGE in run() then freezes it (INSERT-only, never updated), so a
+        # later rename never relabels already-booked orders.
         return (
             df_order_item.join(df_order, df_order_item["id_order"] == df_order["id"])
             .join(df_customer, df_order["id_customer"] == df_customer["id"])
@@ -30,8 +31,6 @@ class GenerateOrders(BaseTask):
                 df_order_item["desc_item"].alias("item_description"),
                 df_order_item["qty"].alias("item_quantity"),
                 df_order_item["total_item"].alias("item_total"),
-                (df_order_item["qty"] * df_product["unit_price"]).cast("double").alias("line_revenue"),
-                df_product["unit_price"].alias("unit_price_at_sale"),
             )
         )
 
@@ -49,8 +48,8 @@ class GenerateOrders(BaseTask):
 
         if first_run:
             # Backfill: the initial 2M orders span ~1 year of dates, so we can't filter
-            # by seed_date — process the whole table once. Every row freezes at the
-            # current price (synthetic backfill has no historical price to honour).
+            # by seed_date — process the whole table once. Every row freezes the current
+            # product_name (synthetic backfill has no rename history to honour).
             df_order = self.spark.read.table("raw.order")
             df_order_item = self.spark.read.table("raw.order_item")
             df_out = self.enrich_order(df_customer, df_order, df_order_item, df_product)
@@ -58,8 +57,8 @@ class GenerateOrders(BaseTask):
         else:
             # Daily incremental: only orders for seed_date are new (raw.order.date is the
             # source string date). Enrich just those and INSERT (no UPDATE) — existing
-            # rows keep their own frozen price, so a later price change never restates
-            # already-booked revenue.
+            # rows keep their own frozen product_name, so a later rename never relabels
+            # already-booked orders.
             df_order = self.spark.read.table("raw.order").filter(F.col("date") == seed_date)
             df_order_item = self.spark.read.table("raw.order_item")
             df_new = self.enrich_order(df_customer, df_order, df_order_item, df_product)

@@ -58,8 +58,9 @@ class Setup(BaseTask):
             F.lit("USA").alias("country"),
         ).write.saveAsTable(f"{catalog}.{SCHEMA}.customer")
 
-        # 100 products (ids 1–100). unit_price=25.0 so line_revenue = qty(2) × 25 = 50,
-        # keeping the per-group total_value (120 items × 50 = 6,000) that _validate_load_test asserts.
+        # 100 products (ids 1–100). unit_price is a static attribute (25.0); the load
+        # test's per-group total_value (120 items × item_total 50 = 6,000) comes from
+        # item_total, which _validate_load_test asserts.
         self.spark.range(1, 101).select(
             F.col("id").cast(IntegerType()).alias("product_id"),
             F.concat(F.lit("Product "), F.col("id")).alias("name"),

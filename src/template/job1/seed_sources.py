@@ -18,15 +18,22 @@ _INITIAL_ITEMS = 6_000_000  # 3 per order
 
 _INCREMENTAL_ORDERS = 5_000
 _INCREMENTAL_CUSTOMER_UPDATES = 50
-_INCREMENTAL_PRICE_UPDATES = 5  # products whose unit_price changes each day
+_INCREMENTAL_NAME_UPDATES = 2  # products whose name changes each day
 
 
 def _product_category(product_id: int) -> tuple[int, str]:
     """Stable category attribute of a product, mirroring the Spark expression in
-    _seed_initial: category = (product_id - 1) % 10 + 1. Used to build the price-update
+    _seed_initial: category = (product_id - 1) % 10 + 1. Used to build the name-update
     rows so the formula lives in one place and the two product-writing paths can't drift."""
     cat = (product_id - 1) % 10 + 1
     return cat, f"Category {cat}"
+
+
+def _product_unit_price(product_id: int) -> float:
+    """Static unit_price of a product, mirroring the Spark expression in _seed_initial.
+    unit_price never changes after the initial load; it is carried on name-update rows
+    only to satisfy product_schema (the MERGE updates name alone)."""
+    return float(((product_id - 1) % 10 + 1) * 5.0 + 4.99)
 
 
 class SeedSources(BaseTask):
@@ -34,8 +41,9 @@ class SeedSources(BaseTask):
     Idempotent seeder for external_source tables.
 
     First run (empty tables): full initial load — 500 customers, 2M orders, 6M order_items.
-    Subsequent runs: append 5 000 orders (+1 item each) and update 50 customers' country.
-    Incremental IDs are anchored to seed_date so reruns of the same date are no-ops.
+    Subsequent runs: append 5 000 orders (+1 item each), update 50 customers' country, and
+    rename 2 products (e.g. "Product 1" → "Product 1.1"). Incremental IDs and renames are
+    anchored to seed_date so reruns of the same date are no-ops.
     """
 
     def run(self) -> None:
@@ -107,10 +115,11 @@ class SeedSources(BaseTask):
             .alias("country"),
         ).write.mode("overwrite").option("overwriteSchema", "false").saveAsTable(f"{catalog}.{SCHEMA}.customer")
 
-        # Product dimension: 100 products. unit_price starts category-banded
-        # (category = (product_id-1) % 10 + 1, so price spreads $10–$55) and is bumped
-        # over time by the incremental seed — that mutation is what the silver freeze
-        # vs. restate behaviour is demonstrated against. name is the readable label.
+        # Product dimension: 100 products. unit_price is category-banded
+        # (category = (product_id-1) % 10 + 1, so price spreads $10–$55) and STATIC — it
+        # never changes after this load. name ("Product N") is the mutable attribute: the
+        # incremental seed renames a couple of products each day, and that mutation is what
+        # the silver freeze vs. restate behaviour is demonstrated against.
         self.spark.range(1, _INITIAL_PRODUCTS + 1).select(
             F.col("id").cast(IntegerType()).alias("product_id"),
             F.concat(F.lit("Product "), F.col("id")).alias("name"),
@@ -164,22 +173,22 @@ class SeedSources(BaseTask):
             WHEN MATCHED THEN UPDATE SET t.country = s.country
         """)
 
-        df_prices = self._build_price_updates(seed_date)
-        df_prices.createOrReplaceTempView("_seed_price_updates")
+        df_names = self._build_name_updates(seed_date)
+        df_names.createOrReplaceTempView("_seed_name_updates")
         self.spark.sql(f"""
             MERGE INTO {catalog}.{SCHEMA}.product AS t
-            USING _seed_price_updates AS s ON t.product_id = s.product_id
-            WHEN MATCHED THEN UPDATE SET t.unit_price = s.unit_price
+            USING _seed_name_updates AS s ON t.product_id = s.product_id
+            WHEN MATCHED THEN UPDATE SET t.name = s.name
         """)
 
         day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
         self.logger.info(
-            "incremental seed complete date=%s orders=%d items=%d customers_updated=%d prices_updated=%d country=%s",
+            "incremental seed complete date=%s orders=%d items=%d customers_updated=%d names_updated=%d country=%s",
             seed_date,
             _INCREMENTAL_ORDERS,
             _INCREMENTAL_ORDERS,
             _INCREMENTAL_CUSTOMER_UPDATES,
-            _INCREMENTAL_PRICE_UPDATES,
+            _INCREMENTAL_NAME_UPDATES,
             _COUNTRIES[day_offset % len(_COUNTRIES)],
         )
 
@@ -218,23 +227,25 @@ class SeedSources(BaseTask):
         update_rows = [(cid, f"Customer_{cid}", new_country) for cid in customer_ids]
         return self.spark.createDataFrame(update_rows, schema=customer_schema)
 
-    def _build_price_updates(self, seed_date: str):
-        # Bump 5 products' unit_price each day by a day-anchored factor. Anchoring the
-        # factor to seed_date keeps reruns of the same date idempotent (same result).
+    @staticmethod
+    def _products_renamed_on(day_offset: int) -> list[int]:
+        """The product ids selected for a rename on a given day, by a day-anchored
+        rotation. Deterministic so reruns of the same date are idempotent."""
+        start = day_offset * _INCREMENTAL_NAME_UPDATES % _INITIAL_PRODUCTS
+        return [((start + i) % _INITIAL_PRODUCTS) + 1 for i in range(_INCREMENTAL_NAME_UPDATES)]
+
+    def _build_name_updates(self, seed_date: str):
+        # Rename 2 products each day: "Product N" → "Product N.k", where k is the
+        # cumulative number of times product N has been selected through this day. The
+        # suffix increments on each successive rename (Product 1.1, Product 1.2, ...).
+        # Everything is a deterministic function of the day offset, so reruns of the same
+        # date produce identical names (idempotent MERGE).
         day_offset = (_date.fromisoformat(seed_date) - _EPOCH).days
-        start = day_offset * _INCREMENTAL_PRICE_UPDATES % _INITIAL_PRODUCTS
-        product_ids = [((start + i) % _INITIAL_PRODUCTS) + 1 for i in range(_INCREMENTAL_PRICE_UPDATES)]
-        factor = 1.0 + ((day_offset % 5) - 2) * 0.05  # -10% .. +10%
-        # The MERGE below only updates unit_price; category columns are carried solely to
-        # satisfy product_schema, but we derive them from the shared helper so they stay
-        # correct if the MERGE is ever extended to category.
-        update_rows = [
-            (
-                pid,
-                f"Product {pid}",
-                round(((pid - 1) % 10 + 1) * 5.0 + 4.99) * factor,
-                *_product_category(pid),
-            )
-            for pid in product_ids
-        ]
+        # The MERGE below only updates name; unit_price/category columns are carried solely
+        # to satisfy product_schema and derived from the shared helpers so they stay correct
+        # if the MERGE is ever extended.
+        update_rows = []
+        for pid in self._products_renamed_on(day_offset):
+            k = sum(1 for d in range(day_offset + 1) if pid in self._products_renamed_on(d))
+            update_rows.append((pid, f"Product {pid}.{k}", _product_unit_price(pid), *_product_category(pid)))
         return self.spark.createDataFrame(update_rows, schema=product_schema)
