@@ -46,7 +46,7 @@ does not expose custom env vars to the process).
 The batch job (`job1`) runs as a Lakeflow Job DAG; the declarative path (`job1_sdp`) runs the same
 ETL as a Spark Declarative Pipeline.
 
-<img src="../docs/dag.png">
+<img src="../assets/dag.png">
 
 ### Adding a new job
 
@@ -64,8 +64,8 @@ integration test on staging → (only on `main`) deploy to prod. Requires `DATAB
 action versions are pinned. Staging/prod deploy **and run as the service principal**
 (identity-locked); the local dev loop runs as the developer against a per-developer catalog.
 
-<!-- Diagram source: docs/ci_cd.drawio (edit in https://app.diagrams.net, then export over docs/ci_cd.png) -->
-<img src="../docs/ci_cd.png" alt="CI/CD: local dev loop and the onpush.yml GitHub Actions pipeline">
+<!-- Diagram source: assets/ci_cd.drawio (edit in https://app.diagrams.net, then export over assets/ci_cd.png) -->
+<img src="../assets/ci_cd.png" alt="CI/CD: local dev loop and the onpush.yml GitHub Actions pipeline">
 
 Local steps **1–2** run as the **developer** against a per-developer `dev_<user>` catalog; **3**
 pushes / opens a PR, triggering **GitHub Actions** (`onpush.yml`) — which runs on every push and
@@ -101,7 +101,7 @@ Structured logging via the `template` logger (configured in `config.py:_configur
 (`--run-id`) via a `logging.Filter`, so logs are correlatable after ingest. Use `self.logger.info(...)`
 — never `print()`.
 
-<img src="../docs/task_output.png">
+<img src="../assets/task_output.png">
 
 ## Production guardrails
 
@@ -124,23 +124,4 @@ Structured logging via the `template` logger (configured in `config.py:_configur
 - **Quiet pager** — `no_alert_for_canceled_runs` / `no_alert_for_skipped_runs` keep deliberate
   cancellations off on-call.
 
-## Folder structure
-
-```
-databricks-template/
-├── .github/workflows/onpush.yml   # CI/CD pipeline
-├── src/template/                  # Python package (deployed as a wheel)
-│   ├── main.py                    # CLI entry point + TASKS dict
-│   ├── config.py                  # Config: catalogs/schemas, logging, DQX
-│   ├── baseTask.py                # BaseTask (spark/config/logger/cluster_by)
-│   ├── commonSchemas.py           # Canonical PySpark schemas
-│   └── job1/                      # extract_source1/2, generate_orders(_agg),
-│                                  #   health_check, seed_sources
-├── tests/job1/                    # unit_test, unit_test_sdp, integration_setup/validate
-├── resources/                     # jobs.yml (generated), orders_dashboard.lvdash.json (committed)
-├── scripts/                       # sdk_generate_template_job.py, sdk_init_workspace.py,
-│                                  #   sdk_drop_tables.py, project_costs.py, _sdk_sql.py
-├── specs/                         # architecture / data-model / test-plan (this folder)
-├── docs/                          # screenshots referenced by README + specs
-├── databricks.yml · pyproject.toml · Makefile · .pre-commit-config.yaml
-```
+> Repo layout / folder structure lives in [`specs/README.md`](README.md).

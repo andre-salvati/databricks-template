@@ -177,10 +177,10 @@ metadata-only — it does not rewrite existing data.
 table. The `--quarantine-fail-ratio` job parameter hard-fails the task when too many rows are
 quarantined (silent quarantine bloat is the main DQX failure mode in prod).
 
-<img src="../docs/data_quality.png">
+<img src="../assets/data_quality.png">
 
 ## Data lineage (Unity Catalog)
 
 Unity Catalog captures table-to-table lineage across the medallion layers automatically.
 
-<img src="../docs/data_lineage.png">
+<img src="../assets/data_lineage.png">
