@@ -4,7 +4,7 @@
 
 ## [#43] · feat/freeze-product-name · 2026-06-23 · feat: freeze product_name instead of line_revenue
 
-Removed the synthetic `line_revenue`/`unit_price_at_sale` columns — gold `total_value` is now `SUM(item_total)` (the line value the source already freezes on the order) — and re-pointed the silver insert-only-MERGE / streaming-table freeze at the mutable `product_name`, which the seed now changes by renaming 2 products per run (`Product N` → `Product N.k`); `unit_price` stays as a static attribute. The AI/BI "by product" chart now consolidates by `product_id` labeled with each product's latest name (one line per physical product across renames), while the frozen historical names remain in `report.order_agg` and the Product filter. Updated unit/integration tests, schemas, the SDP pipeline, and the data-model/test-plan docs accordingly.
+Removed the synthetic `line_revenue`/`unit_price_at_sale` columns — gold `total_value` is now `SUM(item_total)` (the line value the source already freezes on the order) — and re-pointed the silver insert-only-MERGE / streaming-table freeze at the mutable `product_name`, which the seed now changes by renaming 2 products per run (`Product N` → `Product N.k`); `unit_price` stays as a static attribute. The AI/BI "by product" chart now consolidates by `product_id` labeled with each product's latest name (one line per physical product across renames), while the frozen historical names remain in `report.order_agg` and the Product filter. Updated unit/integration tests, schemas, the SDP pipeline, and docs; also removed the batch `job1`'s standalone prod schedule (the SDP pipeline already had none) so `job1_prod_integration` is the single prod trigger, orchestrating seed → batch + SDP.
 
 ---
 
