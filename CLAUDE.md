@@ -81,4 +81,5 @@ Favor solutions with less code, fewer classes, and fewer abstractions. When two 
 - Don't add `CREATE CATALOG` or `CREATE SCHEMA` calls outside the `args.env == "dev"` branch in `config.py`. Staging/prod catalogs and schemas are owned by `make init`; runtime jobs run without those privileges.
 - Don't commit `resources/jobs.yml` (gitignored — regenerated on every deploy).
 - Don't commit `.databricks-resources.json` (gitignored — local provisioning state, diverges per developer).
+- Don't commit or hand-edit `resources/orders_dashboard_deploy.lvdash.json` (gitignored — regenerated from `orders_dashboard.lvdash.json` on every deploy with `${var.catalog}` resolved, since DABs can't substitute bundle vars inside `.lvdash.json` content). Edit the source `orders_dashboard.lvdash.json` instead.
 - Don't hand-edit `resources/jobs.yml` — it is overwritten on every deploy. Change `scripts/sdk_generate_template_job.py` instead (it generates jobs, the SDP pipeline, and the dashboard resource stanza into `resources/jobs.yml`). `resources/orders_dashboard.lvdash.json` is committed and editable directly.
