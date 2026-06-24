@@ -17,10 +17,12 @@ the sum of those frozen `item_total`s.
 Products can be **renamed** over time (the daily seed renames a couple — `"Product 1"` →
 `"Product 1.1"`). Silver freezes the name onto each order line *as it is processed*, so a rename
 never rewrites history: orders booked before the change keep the old name, orders after it get the
-new one — both live side by side in gold for the same `product_id`. The **dashboard** keeps both: a
-line chart **consolidates by `product_id`** and labels each line with the product's *latest* name
-(so a renamed product stays one line), while the Product **filter** still lists every name a product
-has ever had. Old name and new name are both stored and visible; nothing is lost or double-counted.
+new one — both live side by side in gold for the same `product_id`. The **dashboard** identifies a
+product by its *latest* name: the line chart **consolidates by `product_id`** (so a renamed product
+stays one line, labeled with the current name), and the Product **filter** lists each product once
+by that current name — selecting it shows the product's *full* history, pre- and post-rename. The old
+name is never lost: gold keeps the frozen `product_name` on every row, so the rename is fully
+auditable in the data even though the chart and filter present the single current label.
 
 ## Catalog / schema model (load-bearing)
 
@@ -197,8 +199,9 @@ Why an MV restates but a streaming table freezes: an MV is *defined as a query o
 and recomputes from scratch (latest-wins); a streaming table consumes new input rows once and
 appends. "Incremental" (Enzyme re-reading only changed files) is efficiency, not semantics. The
 dashboard consolidates the "by product" chart by `product_id` (labeled with each product's latest
-name), so a renamed product stays one line; the frozen historical names remain in `report.order_agg`
-and in the Product filter. Known limitations (acceptable for a template): the first-run backfill
+name) and the Product filter selects by that same latest name, so a renamed product stays one line
+and filtering it shows its full pre-/post-rename history; the frozen historical names remain in
+`report.order_agg` for audit. Known limitations (acceptable for a template): the first-run backfill
 freezes the *current* name; freeze is at *processing* time, not strictly *order date*; country is
 frozen at append time in SDP.
 

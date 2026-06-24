@@ -525,8 +525,8 @@
                   "datasetName": "ds_orders",
                   "fields": [
                     {
-                      "name": "product_name",
-                      "expression": "`product_name`"
+                      "name": "product",
+                      "expression": "`product`"
                     }
                   ],
                   "disaggregated": false
@@ -539,7 +539,7 @@
               "encodings": {
                 "fields": [
                   {
-                    "fieldName": "product_name",
+                    "fieldName": "product",
                     "displayName": "Product",
                     "queryName": "q_product"
                   }
