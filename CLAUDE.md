@@ -44,7 +44,7 @@ uv run pytest tests/job1/unit_test.py::test_enrich_orders
 The detailed specs live in [`specs/`](specs/) — read the relevant one **before** working in that area:
 
 - [`specs/architecture.md`](specs/architecture.md) — execution flow, CLI surface, key classes, jobs DAG, job **generation** (`scripts/sdk_generate_template_job.py` → `resources/jobs.yml`; never hand-edit), CI/CD, job-level params, deploy-time env vars, logging, production guardrails, adding a new job.
-- [`specs/data-model.md`](specs/data-model.md) — catalog/schema isolation, medallion flow, table schemas, product-name freeze, liquid clustering, DQX/quarantine, lineage.
+- [`specs/data-model.md`](specs/data-model.md) — plain-words pipeline overview, catalog/schema isolation, medallion flow, table schemas, **field naming conventions**, product-name freeze, liquid clustering, DQX/quarantine, lineage.
 - [`specs/test-plan.md`](specs/test-plan.md) — unit / integration / load tests.
 - [`specs/tooling.md`](specs/tooling.md) — MCP servers (Databricks, AWS billing/docs, context7), CLI, and skills: what to reach for and when.
 - The AI/BI dashboard (`resources/orders_dashboard.lvdash.json`) is committed and edited directly; the catalog is `${var.catalog}`, resolved at deploy time.

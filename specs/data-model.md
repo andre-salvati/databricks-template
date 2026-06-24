@@ -4,6 +4,24 @@ The medallion layout, the catalog/schema isolation model, table schemas, the att
 semantics, liquid clustering, and data quality. For how tasks/jobs are wired see
 [architecture.md](architecture.md).
 
+## The pipeline in plain words
+
+It pulls the source data from `external_source` — customers, products, orders, and the order
+items. **Bronze** (`raw`) is a faithful copy; **silver** (`curated.order_enriched`) joins them into
+one row per order line, looking up the product to attach its name and category. Each order line
+already carries its own `item_total` — the money for that line, fixed by the source when the order
+was placed — so revenue is never recomputed from the current price list. **Gold**
+(`report.order_agg`) rolls those lines up per customer / day / product, and `total_value` is just
+the sum of those frozen `item_total`s.
+
+Products can be **renamed** over time (the daily seed renames a couple — `"Product 1"` →
+`"Product 1.1"`). Silver freezes the name onto each order line *as it is processed*, so a rename
+never rewrites history: orders booked before the change keep the old name, orders after it get the
+new one — both live side by side in gold for the same `product_id`. The **dashboard** keeps both: a
+line chart **consolidates by `product_id`** and labels each line with the product's *latest* name
+(so a renamed product stays one line), while the Product **filter** still lists every name a product
+has ever had. Old name and new name are both stored and visible; nothing is lost or double-counted.
+
 ## Catalog / schema model (load-bearing)
 
 **Environment isolation is at the *catalog* level, not the schema level.** The same medallion
@@ -137,6 +155,24 @@ time, so a later price change never restates historical revenue. `product_name` 
 human-readable labels carried alongside the numeric ids; the dashboard displays the labels.
 `product_name` is **frozen** per row at first processing (see below) — it is the mutable attribute the
 freeze pattern is demonstrated against.
+
+### Field naming conventions
+
+Medallion field names follow a small set of rules (canonical schemas in `commonSchemas.py` are the
+source of truth):
+
+- **`{entity}_id` suffix** for identifiers — `customer_id`, `product_id`, `order_id`,
+  `product_category_id`.
+- **Entity-qualified names** — `customer_name`, `product_name`, `category_name`, `order_date`,
+  `order_total` (not bare `name` / `date` / `total` once past the source layer).
+- **`item_*` prefix** for order-item-level fields — `item_seq`, `item_description`, `item_quantity`,
+  `item_total`.
+- **`total_*` prefix** for gold aggregates — `total_quantity`, `total_value`, `total_orders`.
+- **No abbreviations** — spell words out (`quantity`, not `qty`; `description`, not `desc`); the raw
+  source columns (`qty`, `desc_item`, `total_item`) are renamed at the silver boundary.
+- **`DateType` for dates** — `order_date` is cast from the source string to `DateType` in silver.
+- **`_sdp` suffix** for the declarative-pipeline table variants (`order_enriched_sdp`,
+  `order_agg_sdp`, `product_sdp`, …) so the batch and SDP outputs never collide in the same schema.
 
 ## Incremental silver: product-name freeze (load-bearing)
 
