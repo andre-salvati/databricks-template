@@ -2,7 +2,7 @@
 
 ---
 
-## [#46] · docs/pyspark-chain-convention · 2026-07-03 · docs: document PySpark transformation-chain formatting convention
+## [#46](https://github.com/andre-salvati/databricks-template/pull/46) · 2026-07-03 · docs: document PySpark transformation-chain formatting convention
 
 Added a `## Code style: PySpark transformation chains` section to `specs/architecture.md` documenting that `ruff format` is canonical for any already-multi-line chain (its two shapes: outer-parens+dot-aligned when each call fits a line, vs. hanging `.method(` when a call explodes its own args) and that the only hand decision is one-line-vs-broken, since `ruff format` won't introduce a break into a chain that fits `line-length`. Verified the existing chains are already ruff-canonical, so no code was reformatted (`aggregate_orders`'s `groupBy().agg()` and both `enrich_order`s already match). Added a pointer to the convention in `CLAUDE.md`'s Keep It Simple section.
 
