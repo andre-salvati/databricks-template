@@ -127,6 +127,7 @@ def _environments() -> list[JobEnvironment]:
 def _tags(environment: str) -> dict[str, str]:
     return {
         "git_branch": "${bundle.git.branch}",
+        "git_commit": "${bundle.git.commit}",
         "git_origin_url": "${bundle.git.origin_url}",
         "environment": environment,
         "cost_center": COST_CENTER,
@@ -239,11 +240,12 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
         ]
     )
 
-    schedule = None
+    # No standalone schedule on the batch job: in prod it is triggered solely by
+    # job1_prod_integration (via its `run` RunJobTask), so the orchestrator is the
+    # single entry point. Prod still gets failure/duration alerting below.
     email_notifications = None
     health = None
     if environment == "prod":
-        schedule = CronSchedule(quartz_cron_expression="0 0 5 * * ?", timezone_id="UTC")
         email_notifications = JobEmailNotifications(
             on_failure=_alert_emails(),
             on_duration_warning_threshold_exceeded=_alert_emails(),
@@ -264,8 +266,8 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
         name=f"{JOB_NAME}_${{bundle.target}}",
         timeout_seconds=3600,
         # max_concurrent_runs=1 + queue.enabled=True: if a run is already in flight
-        # when the next scheduled tick arrives, queue it rather than silently
-        # skipping. Skipping a scheduled prod run is almost never what you want.
+        # when job1_prod_integration triggers this job again, queue it rather than
+        # silently skipping. Skipping a prod run is almost never what you want.
         max_concurrent_runs=1,
         queue=QueueSettings(enabled=True),
         # Suppress alerts for runs that were manually cancelled or skipped by an
@@ -286,7 +288,6 @@ def _build_job(environment: str, sp_id: str | None) -> dict:
         ],
         tags=_tags(environment),
         environments=_environments(),
-        schedule=schedule,
         email_notifications=email_notifications,
         health=health,
         tasks=tasks,

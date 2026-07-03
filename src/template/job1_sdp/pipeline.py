@@ -22,13 +22,13 @@ Freeze semantics (mirrors job1's INSERT-only MERGE)
 ---------------------------------------------------
 Silver is a STREAMING table fed by a stream–static join: the order_item fact streams,
 while order / customer / product are read static. Each order_item is appended exactly
-once and never reprocessed, so the line_revenue (item_quantity × unit_price) computed at
-append time is frozen — a later product price change in raw.product_sdp only affects NEW
-rows, it does not restate already-booked revenue. A materialized view, by contrast,
-recomputes from current inputs on every refresh and WOULD restate price; that is why
-silver had to become a streaming table for the freeze to hold. Because customer is read
-static, its country attribute is captured at append time too — the whole enriched row is
-frozen. Gold stays a materialized_view: it re-sums already-frozen silver, so it is stable.
+once and never reprocessed, so the product_name read at append time is frozen onto the
+row — a later product rename in raw.product_sdp only affects NEW rows, it does not relabel
+already-booked orders. A materialized view, by contrast, recomputes from current inputs on
+every refresh and WOULD restate the name; that is why silver had to become a streaming
+table for the freeze to hold. Because customer is read static, its country attribute is
+captured at append time too — the whole enriched row is frozen. Gold stays a
+materialized_view: it re-sums already-frozen silver (total_value = SUM(item_total)), so it is stable.
 
 DQX is intentionally absent from this pipeline — apply_checks() stamps run_time
 timestamps on violation structs, which Enzyme treats as non-deterministic and
@@ -99,7 +99,7 @@ def raw_customer_sdp():
 @dp.materialized_view(
     name=f"{_catalog}.raw.product_sdp",
     comment="Bronze: full copy of external_source.product (mirrors ExtractSource1). "
-    "Static dimension joined into silver; its mutable unit_price is what silver freezes.",
+    "Static dimension joined into silver; its mutable name is what silver freezes.",
     cluster_by=["product_id"],
 )
 def raw_product_sdp():
@@ -125,20 +125,20 @@ def raw_order_sdp():
 @dp.table(
     name=f"{_catalog}.raw.order_item_sdp",
     comment="Bronze: streaming append of external_source.order_item. Streaming (not a "
-    "materialized view) so silver can be a streaming table and freeze price on append.",
+    "materialized view) so silver can be a streaming table and freeze product_name on append.",
     cluster_by=["id_order"],
 )
 def raw_order_item_sdp():
     return spark.readStream.table(f"{_catalog}.external_source.order_item")
 
 
-# ── Silver: curated.order_enriched_sdp (STREAMING — freezes price) ────────────
+# ── Silver: curated.order_enriched_sdp (STREAMING — freezes product_name) ─────
 
 
 @dp.table(
     name=f"{_catalog}.curated.order_enriched_sdp",
     comment="Silver: order_item ⨝ order ⨝ customer ⨝ product (mirrors GenerateOrders). "
-    "Streaming fact + static dims: each row appended once, so line_revenue is frozen.",
+    "Streaming fact + static dims: each row appended once, so product_name is frozen.",
     cluster_by=["order_date"],
 )
 def curated_order_enriched_sdp():

@@ -8,7 +8,7 @@ reference. Read the relevant spec before working in that area.
 | Spec | Read it when you're touching… |
 |---|---|
 | [architecture.md](architecture.md) | the wheel/CLI surface, jobs DAG, job generation, CI/CD, job-level params, deploy-time env vars, logging, or production guardrails. |
-| [data-model.md](data-model.md) | the catalog/schema model, medallion flow, table schemas, the price-freeze semantics, liquid clustering, DQX/quarantine, or lineage. |
+| [data-model.md](data-model.md) | the catalog/schema model, medallion flow, table schemas, the product-name freeze semantics, liquid clustering, DQX/quarantine, or lineage. |
 | [test-plan.md](test-plan.md) | unit, integration, or load tests. |
 | [tooling.md](tooling.md) | MCP servers (Databricks, AWS, context7), the Databricks CLI, and the bundled skills — what to reach for and when. |
 | [CHANGELOG.md](CHANGELOG.md) | the per-PR change history. **Append-only — add an entry before every merge; don't read it for context.** |

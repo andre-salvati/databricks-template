@@ -4,7 +4,7 @@
       "name": "ds_orders",
       "displayName": "Orders",
       "queryLines": [
-        "SELECT order_date, country, customer_name AS customer, product_name AS product, category_name AS category, SUM(total_value) AS total_value, SUM(total_orders) AS total_orders FROM ${var.catalog}.report.order_agg WHERE order_date BETWEEN :date_range.min AND :date_range.max GROUP BY 1, 2, 3, 4, 5"
+        "SELECT a.order_date, a.country, a.customer_name AS customer, l.product_name AS product, a.product_name AS product_name, a.category_name AS category, SUM(a.total_value) AS total_value, SUM(a.total_orders) AS total_orders FROM ${var.catalog}.report.order_agg a JOIN (SELECT product_id, product_name FROM (SELECT product_id, product_name, ROW_NUMBER() OVER (PARTITION BY product_id ORDER BY order_date DESC, product_name DESC) AS rn FROM ${var.catalog}.report.order_agg) WHERE rn = 1) l ON a.product_id = l.product_id WHERE a.order_date BETWEEN :date_range.min AND :date_range.max GROUP BY 1, 2, 3, 4, 5, 6"
       ],
       "parameters": [
         {

@@ -2,6 +2,12 @@
 
 ---
 
+## [#43] · feat/freeze-product-name · 2026-06-23 · feat: freeze product_name instead of line_revenue
+
+Removed the synthetic `line_revenue`/`unit_price_at_sale` columns — gold `total_value` is now `SUM(item_total)` (the line value the source already freezes on the order) — and re-pointed the silver insert-only-MERGE / streaming-table freeze at the mutable `product_name`, which the seed now changes by renaming 2 products per run (`Product N` → `Product N.k`); `unit_price` stays as a static attribute. The AI/BI "by product" chart and Product filter both identify a product by its latest name (consolidating by `product_id`, one line per physical product across renames, and filtering shows the full pre-/post-rename history); the frozen historical names remain in `report.order_agg` for audit. Also removed the batch `job1`'s standalone prod schedule (the SDP pipeline already had none) so `job1_prod_integration` is the single prod trigger orchestrating seed → batch + SDP, fixed `sdk_drop_tables.py` to fall back to `DROP TABLE` when a warehouse's parser rejects `DROP STREAMING TABLE`, added a `git_commit` (`${bundle.git.commit}`) deploy tag on every job so a deployed environment's exact commit is identifiable from `jobs list`, and updated unit/integration tests, schemas, the SDP pipeline, and docs.
+
+---
+
 ## [#42] · docs/reorg-specs-tooling · 2026-06-23 · docs: rename docs/→assets/, consolidate tooling into specs/tooling.md, slim CLAUDE.md
 
 Renamed the image-only `docs/` folder to `assets/` (it held no prose, only screenshots and the CI/CD draw.io export) and repointed every `<img>` reference in the README and specs. Added `specs/tooling.md` consolidating all four MCP servers (Databricks, aws-billing-cost, aws-documentation, context7), the Databricks CLI, and the bundled skills, then trimmed `CLAUDE.md`'s tooling section to a short every-session decision list that points at it. Moved the repo folder-structure tree out of `architecture.md` into the `specs/README.md` routing hub and flagged `CHANGELOG.md` there as append-only (don't read for context).

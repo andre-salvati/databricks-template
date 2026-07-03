@@ -44,7 +44,9 @@ does not expose custom env vars to the process).
 ## Jobs DAG
 
 The batch job (`job1`) runs as a Lakeflow Job DAG; the declarative path (`job1_sdp`) runs the same
-ETL as a Spark Declarative Pipeline.
+ETL as a Spark Declarative Pipeline. In **prod**, neither has its own schedule: `job1_prod_integration`
+is the sole scheduled entry point (daily, 06:00 America/Sao_Paulo) — it runs `seed_sources`, then
+triggers the batch `job1` (`RunJobTask`) and the `job1_sdp` pipeline (`PipelineTask`) in parallel.
 
 <img src="../assets/dag.png">
 

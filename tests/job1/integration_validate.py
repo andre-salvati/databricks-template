@@ -14,12 +14,12 @@ class Validate(BaseTask):
     def _validate_standard(self, catalog):
         # groupBy(customer_name, country, order_date, product_id, product_name,
         # product_category_id, category_name) → still 2 rows (one per order).
-        # total_value is now sum(line_revenue) = qty × unit_price-at-sale:
-        #   John Doe:   2×$10 + 1×$10 = $30  (product 1 @ $10)
-        #   Jane Smith: 3×$20       = $60  (product 2 @ $20)
+        # total_value is sum(item_total), the line value frozen on the order:
+        #   John Doe:   $50 + $50 = $100  (items A + B on order 1)
+        #   Jane Smith: $151             (item C on order 2)
         expected_data = [
-            ("John Doe", "USA", date(2023, 1, 1), 1, "Product 1", 1, "Category 1", 3, 30.0, 1),
-            ("Jane Smith", "UK", date(2023, 1, 2), 2, "Product 2", 2, "Category 2", 3, 60.0, 1),
+            ("John Doe", "USA", date(2023, 1, 1), 1, "Product 1", 1, "Category 1", 3, 100.0, 1),
+            ("Jane Smith", "UK", date(2023, 1, 2), 2, "Product 2", 2, "Category 2", 3, 151.0, 1),
         ]
         df_expected = self.spark.createDataFrame(expected_data, schema=order_agg_schema)
 

@@ -54,8 +54,6 @@ def df_orders_enriched(spark) -> DataFrame:
             "Item A",
             2,
             50.0,
-            20.0,
-            10.0,
         ),
         (
             "John Doe",
@@ -72,8 +70,6 @@ def df_orders_enriched(spark) -> DataFrame:
             "Item B",
             1,
             50.0,
-            10.0,
-            10.0,
         ),
         (
             "Jane Smith",
@@ -90,8 +86,6 @@ def df_orders_enriched(spark) -> DataFrame:
             "Item C",
             3,
             150.0,
-            75.0,
-            25.0,
         ),
     ]
     return spark.createDataFrame(data, schema=order_enriched_schema)
@@ -142,8 +136,6 @@ def test_enrich_order_columns(spark):
         "item_description",
         "item_quantity",
         "item_total",
-        "line_revenue",
-        "unit_price_at_sale",
     }
 
     df_customer = spark.createDataFrame([(10, "Alice", "US")], schema=customer_schema)
@@ -169,8 +161,8 @@ def test_aggregate_orders_values(spark, df_orders_enriched):
     df_out = aggregate_orders(df_orders_enriched)
 
     expected_data = [
-        ("John Doe", "USA", date(2023, 1, 1), 1, "Product 1", 1, "Category 1", 3, 30.0, 1),  # line_revenue 20+10=30
-        ("Jane Smith", "UK", date(2023, 1, 2), 2, "Product 2", 2, "Category 2", 3, 75.0, 1),  # line_revenue 75
+        ("John Doe", "USA", date(2023, 1, 1), 1, "Product 1", 1, "Category 1", 3, 100.0, 1),  # item_total 50+50=100
+        ("Jane Smith", "UK", date(2023, 1, 2), 2, "Product 2", 2, "Category 2", 3, 150.0, 1),  # item_total 150
     ]
     df_expected = spark.createDataFrame(expected_data, schema=order_agg_schema)
 

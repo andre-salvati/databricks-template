@@ -1,8 +1,28 @@
 # Data model
 
-The medallion layout, the catalog/schema isolation model, table schemas, the price-freeze
+The medallion layout, the catalog/schema isolation model, table schemas, the attribute-freeze
 semantics, liquid clustering, and data quality. For how tasks/jobs are wired see
 [architecture.md](architecture.md).
+
+## The pipeline in plain words
+
+It pulls the source data from `external_source` — customers, products, orders, and the order
+items. **Bronze** (`raw`) is a faithful copy; **silver** (`curated.order_enriched`) joins them into
+one row per order line, looking up the product to attach its name and category. Each order line
+already carries its own `item_total` — the money for that line, fixed by the source when the order
+was placed — so revenue is never recomputed from the current price list. **Gold**
+(`report.order_agg`) rolls those lines up per customer / day / product, and `total_value` is just
+the sum of those frozen `item_total`s.
+
+Products can be **renamed** over time (the daily seed renames a couple — `"Product 1"` →
+`"Product 1.1"`). Silver freezes the name onto each order line *as it is processed*, so a rename
+never rewrites history: orders booked before the change keep the old name, orders after it get the
+new one — both live side by side in gold for the same `product_id`. The **dashboard** identifies a
+product by its *latest* name: the line chart **consolidates by `product_id`** (so a renamed product
+stays one line, labeled with the current name), and the Product **filter** lists each product once
+by that current name — selecting it shows the product's *full* history, pre- and post-rename. The old
+name is never lost: gold keeps the frozen `product_name` on every row, so the rename is fully
+auditable in the data even though the chart and filter present the single current label.
 
 ## Catalog / schema model (load-bearing)
 
@@ -127,21 +147,42 @@ Canonical schemas live in `commonSchemas.py` (`order_enriched_schema`, `order_ag
 
 - **`curated.order_enriched`**: `customer_name, country, customer_id, order_id, order_total,
   order_date (DateType), product_id, product_name, product_category_id, category_name, item_seq,
-  item_description, item_quantity, item_total, line_revenue, unit_price_at_sale`.
+  item_description, item_quantity, item_total`.
 - **`report.order_agg`**: `customer_name, country, order_date (DateType), product_id, product_name,
   product_category_id, category_name, total_quantity, total_value, total_orders`.
 
-`total_value` in gold is `SUM(line_revenue)`, **not** `SUM(item_total)`. `line_revenue =
-item_quantity × unit_price_at_sale`, computed in silver by joining the `external_source.product`
-dimension and **frozen** at first processing (see below). `product_name` (`"Product 1"`) and
+`total_value` in gold is `SUM(item_total)` — the line value the source froze on the order at sale
+time, so a later price change never restates historical revenue. `product_name` (`"Product 1"`) and
 `category_name` (`"Category 2"`, derived as `concat('Category ', product_category_id)`) are
 human-readable labels carried alongside the numeric ids; the dashboard displays the labels.
+`product_name` is **frozen** per row at first processing (see below) — it is the mutable attribute the
+freeze pattern is demonstrated against.
 
-## Incremental silver: price freeze (load-bearing)
+### Field naming conventions
 
-`external_source.product` is a mutable dimension — the daily seed bumps `unit_price` for a few
-products each run. The pipeline freezes the price at sale time so a later price change never
-restates already-booked revenue. **Both** pipelines freeze, by different mechanisms:
+Medallion field names follow a small set of rules (canonical schemas in `commonSchemas.py` are the
+source of truth):
+
+- **`{entity}_id` suffix** for identifiers — `customer_id`, `product_id`, `order_id`,
+  `product_category_id`.
+- **Entity-qualified names** — `customer_name`, `product_name`, `category_name`, `order_date`,
+  `order_total` (not bare `name` / `date` / `total` once past the source layer).
+- **`item_*` prefix** for order-item-level fields — `item_seq`, `item_description`, `item_quantity`,
+  `item_total`.
+- **`total_*` prefix** for gold aggregates — `total_quantity`, `total_value`, `total_orders`.
+- **No abbreviations** — spell words out (`quantity`, not `qty`; `description`, not `desc`); the raw
+  source columns (`qty`, `desc_item`, `total_item`) are renamed at the silver boundary.
+- **`DateType` for dates** — `order_date` is cast from the source string to `DateType` in silver.
+- **`_sdp` suffix** for the declarative-pipeline table variants (`order_enriched_sdp`,
+  `order_agg_sdp`, `product_sdp`, …) so the batch and SDP outputs never collide in the same schema.
+
+## Incremental silver: product-name freeze (load-bearing)
+
+`external_source.product` is a mutable dimension — the daily seed renames a couple of products each
+run (`"Product 1"` → `"Product 1.1"` → `"Product 1.2"`, suffix = cumulative rename count). The
+pipeline freezes `product_name` onto each order line at sale time, so a later rename never relabels
+already-booked orders (`unit_price` is a static attribute and `total_value = SUM(item_total)`, so
+revenue is never restated either). **Both** pipelines freeze, by different mechanisms:
 
 - **`job1` (batch)** — `generate_orders` does first-run-full / incremental-after: first run (silver
   empty) overwrites all backfilled orders; every subsequent run enriches only `date = seed_date`
@@ -150,15 +191,19 @@ restates already-booked revenue. **Both** pipelines freeze, by different mechani
   order_date = DATE'<seed_date>'`.
 - **`job1_sdp` (declarative)** — silver (`curated.order_enriched_sdp`) and bronze `raw.order_item_sdp`
   are **streaming tables** (`@dp.table` + `spark.readStream`). A stream–static join (streaming
-  `order_item` fact ⨝ static dims) appends each row once and never reprocesses it, so `line_revenue`
-  is frozen on append. **A materialized view would restate** the price on every refresh — that is
+  `order_item` fact ⨝ static dims) appends each row once and never reprocesses it, so `product_name`
+  is frozen on append. **A materialized view would restate** the name on every refresh — that is
   why silver had to become a streaming table. Gold stays an MV because it re-sums already-frozen silver.
 
 Why an MV restates but a streaming table freezes: an MV is *defined as a query over current inputs*
 and recomputes from scratch (latest-wins); a streaming table consumes new input rows once and
-appends. "Incremental" (Enzyme re-reading only changed files) is efficiency, not semantics. Known
-limitations (acceptable for a template): the first-run backfill freezes at the *current* price;
-freeze is at *processing* time, not strictly *order date*; country is frozen at append time in SDP.
+appends. "Incremental" (Enzyme re-reading only changed files) is efficiency, not semantics. The
+dashboard consolidates the "by product" chart by `product_id` (labeled with each product's latest
+name) and the Product filter selects by that same latest name, so a renamed product stays one line
+and filtering it shows its full pre-/post-rename history; the frozen historical names remain in
+`report.order_agg` for audit. Known limitations (acceptable for a template): the first-run backfill
+freezes the *current* name; freeze is at *processing* time, not strictly *order date*; country is
+frozen at append time in SDP.
 
 ## Liquid clustering
 

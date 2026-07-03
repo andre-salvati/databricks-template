@@ -66,7 +66,7 @@ This project template demonstrates how to:
 Deep technical detail lives in [`specs/`](specs/) (the README stays a landing page):
 
 - [**Architecture**](specs/architecture.md) — wheel/CLI surface, jobs DAG, job generation, CI/CD, job-level params, deploy-time env vars, logging, production guardrails, folder structure.
-- [**Data model**](specs/data-model.md) — catalog/schema isolation, medallion data flow (diagram), table schemas, price-freeze semantics, liquid clustering, DQX/quarantine, lineage.
+- [**Data model**](specs/data-model.md) — catalog/schema isolation, medallion data flow (diagram), table schemas, product-name freeze semantics, liquid clustering, DQX/quarantine, lineage.
 - [**Test plan**](specs/test-plan.md) — unit, integration, and load tests.
 - [**Tooling**](specs/tooling.md) — MCP servers (Databricks, AWS billing/docs, context7), the Databricks CLI, and the bundled skills.
 

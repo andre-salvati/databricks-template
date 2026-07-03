@@ -8,8 +8,8 @@ class GenerateOrdersAgg(BaseTask):
         super().__init__(config)
 
     def aggregate_orders(self, df_order):
-        # total_value sums the frozen line_revenue (qty × unit_price-at-sale), not the
-        # raw item_total — so a later price change never restates historical revenue.
+        # total_value sums item_total — the line value the source froze on the order at
+        # sale time, so a later price change never restates historical revenue.
         return df_order.groupBy(
             "customer_name",
             "country",
@@ -20,7 +20,7 @@ class GenerateOrdersAgg(BaseTask):
             "category_name",
         ).agg(
             F.sum("item_quantity").alias("total_quantity"),
-            F.sum("line_revenue").alias("total_value"),
+            F.sum("item_total").alias("total_value"),
             F.countDistinct("order_id").alias("total_orders"),
         )
 
