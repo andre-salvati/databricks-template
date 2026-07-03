@@ -6,6 +6,7 @@ authors = [
     {name = "Andre Salvati"}
 ]
 readme = "README.md"
+license = "Apache-2.0"
 requires-python = "==3.12.*"
 dependencies = [
     "databricks-labs-dqx==0.12.0", 

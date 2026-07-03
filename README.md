@@ -4,6 +4,7 @@
 ![PySpark](https://img.shields.io/badge/pyspark-4.1+-brightgreen?logo=apache-spark)
 ![CI/CD](https://img.shields.io/github/actions/workflow/status/andre-salvati/databricks-template/.github/workflows/onpush.yml)
 ![Claude Code](https://img.shields.io/badge/agentic-Claude%20Code-8A2BE2)
+![License](https://img.shields.io/badge/license-Apache%202.0-blue)
 ![Stars](https://img.shields.io/github/stars/andre-salvati/databricks-template?style=social)
 
 ## 🚀 Overview
@@ -66,8 +67,8 @@ This project template demonstrates how to:
 Deep technical detail lives in [`specs/`](specs/) (the README stays a landing page):
 
 - [**Architecture**](specs/architecture.md) — wheel/CLI surface, jobs DAG, job generation, CI/CD, job-level params, deploy-time env vars, logging, production guardrails, folder structure.
-- [**Data model**](specs/data-model.md) — catalog/schema isolation, medallion data flow (diagram), table schemas, product-name freeze semantics, liquid clustering, DQX/quarantine, lineage.
-- [**Test plan**](specs/test-plan.md) — unit, integration, and load tests.
+- [**Data model**](specs/data-model.md) — catalog/schema isolation, medallion data flow (diagram), table schemas, product-name freeze semantics, the dashboard, liquid clustering, DQX/quarantine, lineage.
+- [**Workflow**](specs/workflow.md) — the development lifecycle (plan → branch → PR), PR description standard, production-table impact check, and the unit / integration / load test plan.
 - [**Tooling**](specs/tooling.md) — MCP servers (Databricks, AWS billing/docs, context7), the Databricks CLI, and the bundled skills.
 
 ## 🧠 Resources
@@ -93,13 +94,6 @@ Other resources:
 - [Goodbye Pip and Poetry. Why UV Might Be All You Need](https://codecut.ai/why-uv-might-all-you-need/)
 - [The Spark Revolution You Didn’t See Coming: How Apache Spark 4.0 in Databricks Just Changed Everything](https://medium.com/@matiasmaquieira96/the-spark-revolution-you-didnt-see-coming-how-apache-spark-4-0-2a6422144f67)
 
-## Dashboard
-
-<br>
-
-<img src="assets/dashboard.png">
-
-<br>
 
 ## Instructions
 
@@ -145,6 +139,10 @@ run:
 9) (Optional) You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
 - <img src="assets/vscode.png">
+
+## License
+
+Licensed under the [Apache License 2.0](LICENSE). See [`LICENSE`](LICENSE) and [`NOTICE`](NOTICE).
 
 ## Star History
 

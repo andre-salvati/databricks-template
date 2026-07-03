@@ -8,8 +8,8 @@ reference. Read the relevant spec before working in that area.
 | Spec | Read it when you're touching… |
 |---|---|
 | [architecture.md](architecture.md) | the wheel/CLI surface, jobs DAG, job generation, CI/CD, job-level params, deploy-time env vars, logging, or production guardrails. |
-| [data-model.md](data-model.md) | the catalog/schema model, medallion flow, table schemas, the product-name freeze semantics, liquid clustering, DQX/quarantine, or lineage. |
-| [test-plan.md](test-plan.md) | unit, integration, or load tests. |
+| [data-model.md](data-model.md) | the catalog/schema model, medallion flow, table schemas, the product-name freeze semantics, the dashboard, liquid clustering, DQX/quarantine, or lineage. |
+| [workflow.md](workflow.md) | the development lifecycle (plan → branch → PR), the PR description standard, the production-table impact check, or the unit / integration / load tests. |
 | [tooling.md](tooling.md) | MCP servers (Databricks, AWS, context7), the Databricks CLI, and the bundled skills — what to reach for and when. |
 | [CHANGELOG.md](CHANGELOG.md) | the per-PR change history. **Append-only — add an entry before every merge; don't read it for context.** |
 
@@ -17,7 +17,7 @@ reference. Read the relevant spec before working in that area.
 
 ```
 databricks-template/
-├── .github/workflows/onpush.yml   # CI/CD pipeline
+├── .github/                        # workflows/onpush.yml (CI/CD) · PULL_REQUEST_TEMPLATE.md
 ├── src/template/                  # Python package (deployed as a wheel)
 │   ├── main.py                    # CLI entry point + TASKS dict
 │   ├── config.py                  # Config: catalogs/schemas, logging, DQX
@@ -29,9 +29,10 @@ databricks-template/
 ├── resources/                     # jobs.yml (generated), orders_dashboard.lvdash.json (committed)
 ├── scripts/                       # sdk_generate_template_job.py, sdk_init_workspace.py,
 │                                  #   sdk_drop_tables.py, project_costs.py, _sdk_sql.py
-├── specs/                         # architecture / data-model / test-plan / tooling (this folder)
+├── specs/                         # architecture / data-model / workflow / tooling (this folder)
 ├── assets/                        # screenshots + diagrams referenced by README + specs
 ├── databricks.yml · pyproject.toml · Makefile · .pre-commit-config.yaml
+├── LICENSE · NOTICE                # Apache-2.0
 ```
 
 ## Diagrams
