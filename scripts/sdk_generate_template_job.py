@@ -127,6 +127,7 @@ def _environments() -> list[JobEnvironment]:
 def _tags(environment: str) -> dict[str, str]:
     return {
         "git_branch": "${bundle.git.branch}",
+        "git_commit": "${bundle.git.commit}",
         "git_origin_url": "${bundle.git.origin_url}",
         "environment": environment,
         "cost_center": COST_CENTER,
