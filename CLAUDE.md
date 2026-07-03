@@ -45,9 +45,9 @@ The detailed specs live in [`specs/`](specs/) — read the relevant one **before
 
 - [`specs/architecture.md`](specs/architecture.md) — execution flow, CLI surface, key classes, jobs DAG, job **generation** (`scripts/sdk_generate_template_job.py` → `resources/jobs.yml`; never hand-edit), CI/CD, job-level params, deploy-time env vars, logging, production guardrails, adding a new job.
 - [`specs/data-model.md`](specs/data-model.md) — plain-words pipeline overview, catalog/schema isolation, medallion flow, table schemas, **field naming conventions**, product-name freeze, liquid clustering, DQX/quarantine, lineage.
-- [`specs/test-plan.md`](specs/test-plan.md) — unit / integration / load tests.
+- [`specs/workflow.md`](specs/workflow.md) — the development lifecycle (plan → branch → PR), PR description standard, production-table impact check, and the unit / integration / load test plan.
 - [`specs/tooling.md`](specs/tooling.md) — MCP servers (Databricks, AWS billing/docs, context7), CLI, and skills: what to reach for and when.
-- The AI/BI dashboard (`resources/orders_dashboard.lvdash.json`) is committed and edited directly; the catalog is `${var.catalog}`, resolved at deploy time.
+- The AI/BI dashboard: latest-name binding and deploy mechanics are documented in [`specs/data-model.md#dashboard`](specs/data-model.md#dashboard) — edit the committed `resources/orders_dashboard.lvdash.json` (catalog `${var.catalog}`, resolved at deploy time).
 
 ### Load-bearing invariants (keep in mind; full detail in specs)
 
@@ -65,12 +65,12 @@ The detailed specs live in [`specs/`](specs/) — read the relevant one **before
 - **`run_as` field on a job dict takes `application_id` (int), not `display_name`** — the dict key is named `service_principal_name` for legacy reasons, but the value is the numeric app ID.
 - **All writes must use `.option("overwriteSchema", "false")`** on medallion tables. Schema drift is a failure signal, not something to silently absorb. The only exception is `ops._health` (intentional; `overwriteSchema=true` is fine there).
 
-## Git Workflow
+## Git Workflow → full detail in [`specs/workflow.md`](specs/workflow.md)
 
-- **Never commit directly to `main`.** All changes must go on a feature branch and land via PR. A hook blocks direct commits and pushes to `main`.
-- **Before merging a PR**, always update the PR description to accurately reflect all changes in the branch. Use `gh pr edit <number> --body "..."` to finalize it. A hook automatically uses the PR description as the merge commit message body, so whatever is in the description at merge time becomes the permanent commit record.
-- **Keep docs in sync in the same commit.** Don't ship changes to the CLI surface (`main.py:arg_parser`), runtime env vars, catalog/schema model, or production guardrails without updating `README.md`, the relevant doc under `specs/`, and this file (`CLAUDE.md`) together. Stale docs are worse than no docs — they mislead future contributors and future sessions.
-- **Add a `specs/CHANGELOG.md` entry before merging a PR**, describing what changed and why. It's an append-only file — add a new entry, never edit old ones — and each entry is **at most 3 sentences**.
+- **Ask "should I open a new branch?" before executing a plan**, and **never commit directly to `main`** — cut a feature branch and land via PR (a hook blocks direct commits and pushes to `main`).
+- **Hold commits until asked.** Before merging, update the PR description (a hook uses it as the merge commit message body) following the What / Why / How / Validation / **Impact in prod** template in [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md); any table schema/data change needs the production-table impact check.
+- **Keep docs in sync in the same commit.** Don't ship changes to the CLI surface (`main.py:arg_parser`), runtime env vars, catalog/schema model, or production guardrails without updating `README.md`, the relevant doc under `specs/`, and this file (`CLAUDE.md`) together.
+- **Add a `specs/CHANGELOG.md` entry before merging a PR** — append-only (never edit old ones), each entry **at most 3 sentences**.
 
 ## Keep It Simple
 

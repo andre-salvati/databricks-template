@@ -2,6 +2,12 @@
 
 ---
 
+## [#45](https://github.com/andre-salvati/databricks-template/pull/45) · 2026-07-03 · docs: add workflow spec + license, move dashboard docs to data-model
+
+Added `specs/workflow.md` centralizing the development lifecycle (plan → ask-about-branch → hold-commits → PR), a research-backed PR description standard materialized as `.github/PULL_REQUEST_TEMPLATE.md`, and a production-table impact check with a schema-change alert table (add/remove/rename/type/cluster-key → risk → remediation, tied to the `overwriteSchema=false` guard); it also absorbs the former `specs/test-plan.md`, which was deleted. Consolidated the scattered dashboard documentation (README screenshot + `CLAUDE.md` deploy invariants + the latest-name binding) into a new `## Dashboard` section in `specs/data-model.md`, with the README section now linking to it. Added an Apache-2.0 `LICENSE` + `NOTICE`, a license badge and `## License` section in the README, and the SPDX `license` field in `pyproject.toml`, updating all cross-references (`README.md`, `CLAUDE.md`, `specs/README.md`, `specs/architecture.md`).
+
+---
+
 ## [#43] · feat/freeze-product-name · 2026-06-23 · feat: freeze product_name instead of line_revenue
 
 Removed the synthetic `line_revenue`/`unit_price_at_sale` columns — gold `total_value` is now `SUM(item_total)` (the line value the source already freezes on the order) — and re-pointed the silver insert-only-MERGE / streaming-table freeze at the mutable `product_name`, which the seed now changes by renaming 2 products per run (`Product N` → `Product N.k`); `unit_price` stays as a static attribute. The AI/BI "by product" chart and Product filter both identify a product by its latest name (consolidating by `product_id`, one line per physical product across renames, and filtering shows the full pre-/post-rename history); the frozen historical names remain in `report.order_agg` for audit. Also removed the batch `job1`'s standalone prod schedule (the SDP pipeline already had none) so `job1_prod_integration` is the single prod trigger orchestrating seed → batch + SDP, fixed `sdk_drop_tables.py` to fall back to `DROP TABLE` when a warehouse's parser rejects `DROP STREAMING TABLE`, added a `git_commit` (`${bundle.git.commit}`) deploy tag on every job so a deployed environment's exact commit is identifiable from `jobs list`, and updated unit/integration tests, schemas, the SDP pipeline, and docs.

@@ -1,8 +1,8 @@
 # Architecture
 
 How the wheel is structured, how jobs are generated and run, and the guardrails that protect
-production. For the data/medallion model see [data-model.md](data-model.md); for tests see
-[test-plan.md](test-plan.md).
+production. For the data/medallion model see [data-model.md](data-model.md); for the dev lifecycle
+and tests see [workflow.md](workflow.md).
 
 ## Execution flow
 

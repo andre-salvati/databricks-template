@@ -17,12 +17,10 @@ the sum of those frozen `item_total`s.
 Products can be **renamed** over time (the daily seed renames a couple — `"Product 1"` →
 `"Product 1.1"`). Silver freezes the name onto each order line *as it is processed*, so a rename
 never rewrites history: orders booked before the change keep the old name, orders after it get the
-new one — both live side by side in gold for the same `product_id`. The **dashboard** identifies a
-product by its *latest* name: the line chart **consolidates by `product_id`** (so a renamed product
-stays one line, labeled with the current name), and the Product **filter** lists each product once
-by that current name — selecting it shows the product's *full* history, pre- and post-rename. The old
-name is never lost: gold keeps the frozen `product_name` on every row, so the rename is fully
-auditable in the data even though the chart and filter present the single current label.
+new one — both live side by side in gold for the same `product_id`. The old name is never lost: gold
+keeps the frozen `product_name` on every row, so the rename is fully auditable. The
+[**dashboard**](#dashboard) always labels a product by its *latest* name while still exposing that
+full pre-/post-rename history.
 
 ## Catalog / schema model (load-bearing)
 
@@ -197,13 +195,34 @@ revenue is never restated either). **Both** pipelines freeze, by different mecha
 
 Why an MV restates but a streaming table freezes: an MV is *defined as a query over current inputs*
 and recomputes from scratch (latest-wins); a streaming table consumes new input rows once and
-appends. "Incremental" (Enzyme re-reading only changed files) is efficiency, not semantics. The
-dashboard consolidates the "by product" chart by `product_id` (labeled with each product's latest
-name) and the Product filter selects by that same latest name, so a renamed product stays one line
-and filtering it shows its full pre-/post-rename history; the frozen historical names remain in
-`report.order_agg` for audit. Known limitations (acceptable for a template): the first-run backfill
-freezes the *current* name; freeze is at *processing* time, not strictly *order date*; country is
-frozen at append time in SDP.
+appends. "Incremental" (Enzyme re-reading only changed files) is efficiency, not semantics. How the
+dashboard presents these frozen-but-renamed products is covered in [Dashboard](#dashboard). Known
+limitations (acceptable for a template): the first-run backfill freezes the *current* name; freeze is
+at *processing* time, not strictly *order date*; country is frozen at append time in SDP.
+
+## Dashboard
+
+The AI/BI dashboard visualizes the **gold** layer (`report.order_agg`).
+
+<img src="../assets/dashboard.png">
+
+**Latest-name binding.** Because silver freezes `product_name` per order line, a single physical
+product can carry several names across its history (see the freeze section above). The dashboard
+presents it as one product under its *current* name:
+
+- The "by product" **line chart consolidates by `product_id`**, so a renamed product stays a single
+  line, labeled with its latest name.
+- The Product **filter** lists each product once by that same latest name; selecting it shows the
+  product's *full* history, pre- and post-rename.
+- The frozen historical `product_name`s remain on every row of `report.order_agg`, so the rename is
+  fully auditable in the data even though the chart and filter present the single current label.
+
+**Deploy mechanics.** Edit the committed source `resources/orders_dashboard.lvdash.json` directly;
+its catalog is the bundle var `${var.catalog}`, resolved at deploy time. On every deploy,
+`scripts/sdk_generate_template_job.py` emits the dashboard resource stanza into `resources/jobs.yml`
+and regenerates `resources/orders_dashboard_deploy.lvdash.json` with `${var.catalog}` substituted
+(DABs can't substitute bundle vars inside `.lvdash.json` content). The `_deploy` variant is
+**gitignored — never commit or hand-edit it**; edit the source instead.
 
 ## Liquid clustering
 
