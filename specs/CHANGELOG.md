@@ -2,6 +2,12 @@
 
 ---
 
+## [#46] · docs/pyspark-chain-convention · 2026-07-03 · docs: document PySpark transformation-chain formatting convention
+
+Added a `## Code style: PySpark transformation chains` section to `specs/architecture.md` documenting that `ruff format` is canonical for any already-multi-line chain (its two shapes: outer-parens+dot-aligned when each call fits a line, vs. hanging `.method(` when a call explodes its own args) and that the only hand decision is one-line-vs-broken, since `ruff format` won't introduce a break into a chain that fits `line-length`. Verified the existing chains are already ruff-canonical, so no code was reformatted (`aggregate_orders`'s `groupBy().agg()` and both `enrich_order`s already match). Added a pointer to the convention in `CLAUDE.md`'s Keep It Simple section.
+
+---
+
 ## [#45](https://github.com/andre-salvati/databricks-template/pull/45) · 2026-07-03 · docs: add workflow spec + license, move dashboard docs to data-model
 
 Added `specs/workflow.md` centralizing the development lifecycle (plan → ask-about-branch → hold-commits → PR), a research-backed PR description standard materialized as `.github/PULL_REQUEST_TEMPLATE.md`, and a production-table impact check with a schema-change alert table (add/remove/rename/type/cluster-key → risk → remediation, tied to the `overwriteSchema=false` guard); it also absorbs the former `specs/test-plan.md`, which was deleted. Consolidated the scattered dashboard documentation (README screenshot + `CLAUDE.md` deploy invariants + the latest-name binding) into a new `## Dashboard` section in `specs/data-model.md`, with the README section now linking to it. Added an Apache-2.0 `LICENSE` + `NOTICE`, a license badge and `## License` section in the README, and the SPDX `license` field in `pyproject.toml`, updating all cross-references (`README.md`, `CLAUDE.md`, `specs/README.md`, `specs/architecture.md`).

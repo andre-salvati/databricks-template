@@ -41,6 +41,37 @@ does not expose custom env vars to the process).
   implement `run()`. Transformation logic lives in dedicated methods (e.g. `enrich_order`) so unit
   tests can call them directly without Spark tables.
 
+## Code style: PySpark transformation chains
+
+`ruff format` (Black-style) **is** canonical for a chain that is already multi-line — it decides
+where the parens and dots go, so once a chain is broken, don't hand-tune it (running the formatter
+will just rewrite it). The one thing `ruff format` will **not** do is *introduce* a break into a
+chain that fits on one line (a Black limitation). So the only hand decision is **one line vs.
+broken**; the shape of a broken chain is the formatter's to make. Canonical examples: `enrich_order`
+in `src/template/job1_sdp/transforms.py` and `aggregate_orders` in `job1/generate_orders_agg.py`.
+
+Keep short chains that fit within `line-length = 120` on one line. Break a chain when it exceeds
+that (or readability demands it), then let `ruff format` shape it — which produces one of two forms:
+
+- **Each call fits on one line** (e.g. the four `.join`s in `enrich_order`) → the chain is wrapped
+  in `( … )`, the DataFrame and its first call on the opening line, each subsequent `.method`
+  starting its own line, aligned at the dot:
+
+  ```python
+  return (
+      df_order_item.join(df_order, ...)
+      .join(df_customer, ...)
+      .select(...)
+  )
+  ```
+
+- **A call explodes its own arguments** (e.g. `groupBy(...).agg(...)` in `aggregate_orders`) →
+  `ruff format` drops the redundant outer parens and hangs the next `.method(` off the
+  closing-paren line. Don't add the outer parens back — the formatter strips them.
+
+Exploded arguments go **one per line with a trailing comma**: the trailing comma is load-bearing —
+it's the *magic trailing comma* that stops `ruff format` from collapsing them back onto one line.
+
 ## Jobs DAG
 
 The batch job (`job1`) runs as a Lakeflow Job DAG; the declarative path (`job1_sdp`) runs the same
