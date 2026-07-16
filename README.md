@@ -1,4 +1,4 @@
-# databricks-template — agentic development for Databricks + production-ready ETL
+# Databricks PySpark ETL Template — production-ready pipelines, built agentically with Claude Code
 
 ![Databricks](https://img.shields.io/badge/platform-Databricks-orange?logo=databricks)
 ![PySpark](https://img.shields.io/badge/pyspark-4.1+-brightgreen?logo=apache-spark)
@@ -9,7 +9,7 @@
 
 ## 🚀 Overview
 
-> Stop spending weeks on boilerplate. This PySpark project template for Databricks gives you medallion architecture, Python packaging, unit + integration + load tests, CI/CD via Declarative Automation Bundles, DQX data quality, and service-principal-based production deploys — all wired together and ready to ship. Whether you're starting a new Databricks ETL project or looking for a reference implementation of production-ready PySpark pipelines, fork this and go.
+> Stop spending weeks on boilerplate. This PySpark project template for Databricks gives you medallion architecture, Python packaging, unit + integration + load tests, CI/CD, DQX data quality, service-principal-based production deploys, and much more — all wired together and ready to ship. Whether you're starting a new Databricks ETL project or looking for a reference implementation of production-ready PySpark pipelines, fork this and go.
 
 If this saves you time, a star helps others find it. Let's [connect on LinkedIn](https://www.linkedin.com/in/andresalvati/).
 
@@ -27,7 +27,7 @@ If this saves you time, a star helps others find it. Let's [connect on LinkedIn]
 - Claude Code
 - PySpark 4.1
 - Spark Declarative Pipelines (SDP)
-- Python 3.12+
+- Python 3.12
 - GitHub Actions
 - Pytest
 
@@ -134,7 +134,7 @@ run:
 
         make deploy env=dev
 
-8) Configure CI/CD automation with the service principal ID and secret. Configure [GitHub Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions) (DATABRICKS_HOST, DATABRICKS_PRINCIPAL_ID, DATABRICKS_SECRET).
+8) Configure CI/CD automation with the service principal ID and secret. Configure [GitHub Actions repository secrets](https://docs.github.com/en/actions/security-guides/using-secrets-in-github-actions): `DATABRICKS_HOST`, `DATABRICKS_CLIENT_ID`, `DATABRICKS_CLIENT_SECRET`, and `TEMPLATE_ALERT_EMAILS` (comma-separated on-call addresses).
 
 9) (Optional) You can also execute unit tests from your preferred IDE. Here's a screenshot from [VS Code](https://code.visualstudio.com/) with [Microsoft's Python extension](https://marketplace.visualstudio.com/items?itemName=ms-python.python) installed.
 
@@ -146,10 +146,12 @@ Licensed under the [Apache License 2.0](LICENSE). See [`LICENSE`](LICENSE) and [
 
 ## Star History
 
-<a href="https://www.star-history.com/?repos=andre-salvati%2Fdatabricks-template&type=date&legend=top-left">
+<a href="https://github.com/andre-salvati/databricks-template/stargazers">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=andre-salvati/databricks-template&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=andre-salvati/databricks-template&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=andre-salvati/databricks-template&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="assets/star_history_dark.svg" />
+   <source media="(prefers-color-scheme: light)" srcset="assets/star_history.svg" />
+   <img alt="Star History Chart" src="assets/star_history.svg" width="800" />
  </picture>
 </a>
+
+Generated from the GitHub API by `make star-history` — see [`scripts/star_history.py`](scripts/star_history.py).

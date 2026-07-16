@@ -1,6 +1,4 @@
-from databricks.sdk import WorkspaceClient
-from databricks.sdk import AccountClient
-import requests
+from databricks.sdk import AccountClient, WorkspaceClient
 
 
 def demoWorkspaceApi():

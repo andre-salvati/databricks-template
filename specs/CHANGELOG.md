@@ -2,6 +2,12 @@
 
 ---
 
+## [#48](https://github.com/andre-salvati/databricks-template/pull/48) · 2026-07-16 · docs: local star-history chart, README refresh, and doc-consistency fixes
+
+Replaced the README star-history chart with `scripts/star_history.py` + `make star-history`, rendering committed light/dark SVGs from the GitHub API — `api.star-history.com` 503s for every repo, so it was never our markup. Fixed README step 8, which named the wrong CI secrets and silently broke CI auth for anyone forking. Also reconciled the specs with the code, de-duplicated CLAUDE.md, standardized the `#42`/`#43` headers, and widened the ruff lint gate to `scripts/`.
+
+---
+
 ## [#47](https://github.com/andre-salvati/databricks-template/pull/47) · 2026-07-16 · feat: weekly USD cost pivots + generated markdown cost report
 
 Reworked `scripts/project_costs.py` from per-day dumps into three tables — AWS by week × service, Databricks by week × SKU, and a combined by-service rollup carrying `Quantity`/`Unit`/`USD` — monetizing Databricks usage through a date-scoped `system.billing.list_prices` join on `pricing.effective_list.default`, which shows Databricks is ~99.5% of project spend ($33.91 of $34.06 at list over 30 days) and that AWS is only ever a proxy for job activity since serverless SKUs bill compute inside the DBU rate. Two properties of that join are load-bearing and easy to get wrong: it must be date-scoped because `list_prices` is a slowly-changing dimension (joining on `sku_name` alone fans out 3.5× on `JOBS_SERVERLESS_COMPUTE`), and it must be a LEFT join so an unpriced SKU shows blank rather than vanishing; per-day `ROUND()` was also dropped, since rounding then summing zeroed sub-cent SKUs like internet egress. The script now writes `cost_report/YYYY-MM-DD.md` — gitignored, with this first report force-added and linked from the README's Features list as a worked example — holding every table in markdown plus an `## Analysis` section that the `/project-costs` skill fills in, so numbers are never re-transcribed by hand.
@@ -20,17 +26,18 @@ Added `specs/workflow.md` centralizing the development lifecycle (plan → ask-a
 
 ---
 
-## [#43] · feat/freeze-product-name · 2026-06-23 · feat: freeze product_name instead of line_revenue
+## [#43](https://github.com/andre-salvati/databricks-template/pull/43) · 2026-06-23 · feat: freeze product_name instead of line_revenue
 
 Removed the synthetic `line_revenue`/`unit_price_at_sale` columns — gold `total_value` is now `SUM(item_total)` (the line value the source already freezes on the order) — and re-pointed the silver insert-only-MERGE / streaming-table freeze at the mutable `product_name`, which the seed now changes by renaming 2 products per run (`Product N` → `Product N.k`); `unit_price` stays as a static attribute. The AI/BI "by product" chart and Product filter both identify a product by its latest name (consolidating by `product_id`, one line per physical product across renames, and filtering shows the full pre-/post-rename history); the frozen historical names remain in `report.order_agg` for audit. Also removed the batch `job1`'s standalone prod schedule (the SDP pipeline already had none) so `job1_prod_integration` is the single prod trigger orchestrating seed → batch + SDP, fixed `sdk_drop_tables.py` to fall back to `DROP TABLE` when a warehouse's parser rejects `DROP STREAMING TABLE`, added a `git_commit` (`${bundle.git.commit}`) deploy tag on every job so a deployed environment's exact commit is identifiable from `jobs list`, and updated unit/integration tests, schemas, the SDP pipeline, and docs.
 
 ---
 
-## [#42] · docs/reorg-specs-tooling · 2026-06-23 · docs: rename docs/→assets/, consolidate tooling into specs/tooling.md, slim CLAUDE.md
+## [#42](https://github.com/andre-salvati/databricks-template/pull/42) · 2026-06-23 · docs: rename docs/→assets/, consolidate tooling into specs/tooling.md, slim CLAUDE.md
 
 Renamed the image-only `docs/` folder to `assets/` (it held no prose, only screenshots and the CI/CD draw.io export) and repointed every `<img>` reference in the README and specs. Added `specs/tooling.md` consolidating all four MCP servers (Databricks, aws-billing-cost, aws-documentation, context7), the Databricks CLI, and the bundled skills, then trimmed `CLAUDE.md`'s tooling section to a short every-session decision list that points at it. Moved the repo folder-structure tree out of `architecture.md` into the `specs/README.md` routing hub and flagged `CHANGELOG.md` there as append-only (don't read for context).
 
 ---
+
 
 ## [#41](https://github.com/andre-salvati/databricks-template/pull/41) · 2026-06-12 · feat: raw cost DataFrames + by-service/SKU aggregation in project_costs.py
 
