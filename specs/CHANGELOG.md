@@ -2,6 +2,12 @@
 
 ---
 
+## [#47] · feat/costs-weekly-usd · 2026-07-16 · feat: weekly USD cost pivots + generated markdown cost report
+
+Reworked `scripts/project_costs.py` from per-day dumps into three tables — AWS by week × service, Databricks by week × SKU, and a combined by-service rollup carrying `Quantity`/`Unit`/`USD` — monetizing Databricks usage through a date-scoped `system.billing.list_prices` join on `pricing.effective_list.default`, which shows Databricks is ~99.5% of project spend ($33.91 of $34.06 at list over 30 days) and that AWS is only ever a proxy for job activity since serverless SKUs bill compute inside the DBU rate. Two properties of that join are load-bearing and easy to get wrong: it must be date-scoped because `list_prices` is a slowly-changing dimension (joining on `sku_name` alone fans out 3.5× on `JOBS_SERVERLESS_COMPUTE`), and it must be a LEFT join so an unpriced SKU shows blank rather than vanishing; per-day `ROUND()` was also dropped, since rounding then summing zeroed sub-cent SKUs like internet egress. The script now writes `cost_report/YYYY-MM-DD.md` — gitignored, with this first report force-added and linked from the README's Features list as a worked example — holding every table in markdown plus an `## Analysis` section that the `/project-costs` skill fills in, so numbers are never re-transcribed by hand.
+
+---
+
 ## [#46](https://github.com/andre-salvati/databricks-template/pull/46) · 2026-07-03 · docs: document PySpark transformation-chain formatting convention
 
 Added a `## Code style: PySpark transformation chains` section to `specs/architecture.md` documenting that `ruff format` is canonical for any already-multi-line chain (its two shapes: outer-parens+dot-aligned when each call fits a line, vs. hanging `.method(` when a call explodes its own args) and that the only hand decision is one-line-vs-broken, since `ruff format` won't introduce a break into a chain that fits `line-length`. Verified the existing chains are already ruff-canonical, so no code was reformatted (`aggregate_orders`'s `groupBy().agg()` and both `enrich_order`s already match). Added a pointer to the convention in `CLAUDE.md`'s Keep It Simple section.
