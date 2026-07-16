@@ -20,3 +20,7 @@ resources/orders_dashboard_deploy.lvdash.json
 .ai-dev-kit/
 .github/skills/
 .mcp.json
+# Generated spend reports — local artifacts containing account cost figures.
+# A report that has been committed stays tracked (.gitignore only governs untracked files), so
+# new dated reports are ignored by default; `git add -f` a specific one to keep it.
+cost_report/
