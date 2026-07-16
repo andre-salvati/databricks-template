@@ -2,8 +2,10 @@
 
 This project is developed with the [Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit)
 installed at the user level (`~/.ai-dev-kit/`). MCP servers and skills are **user-level tooling** —
-`.mcp.json` and `.claude/` are gitignored and are **not** part of the repo. This doc records what's
-wired up locally so a session knows what to reach for; it does not provision anything.
+`.mcp.json` and `.claude/` are gitignored and are **not** part of the repo. The one exception is
+`.claude/commands/`, which `.gitignore` un-ignores: project-specific slash commands (e.g.
+`/project-costs`) are committed so every developer gets them. This doc records what's wired up
+locally so a session knows what to reach for; it does not provision anything.
 
 `CLAUDE.md` carries a short decision list for every session; this is the full reference.
 

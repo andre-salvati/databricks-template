@@ -23,12 +23,16 @@ databricks-template/
 │   ├── config.py                  # Config: catalogs/schemas, logging, DQX
 │   ├── baseTask.py                # BaseTask (spark/config/logger/cluster_by)
 │   ├── commonSchemas.py           # Canonical PySpark schemas
-│   └── job1/                      # extract_source1/2, generate_orders(_agg),
-│                                  #   health_check, seed_sources
+│   ├── job1/                      # extract_source1/2, generate_orders(_agg),
+│   │                              #   health_check, seed_sources
+│   ├── job1_sdp/                  # SDP pipeline: pipeline.py (@dp defs) + transforms.py
+│   └── job2/                      # placeholder for a second job (.gitkeep)
 ├── tests/job1/                    # unit_test, unit_test_sdp, integration_setup/validate
 ├── resources/                     # jobs.yml (generated), orders_dashboard.lvdash.json (committed)
 ├── scripts/                       # sdk_generate_template_job.py, sdk_init_workspace.py,
-│                                  #   sdk_drop_tables.py, project_costs.py, _sdk_sql.py
+│                                  #   sdk_drop_tables.py, sdk_analyze_job_costs.py,
+│                                  #   sdk_workspace_and_account.py, project_costs.py,
+│                                  #   star_history.py, _sdk_sql.py
 ├── specs/                         # architecture / data-model / workflow / tooling (this folder)
 ├── assets/                        # screenshots + diagrams referenced by README + specs
 ├── databricks.yml · pyproject.toml · Makefile · .pre-commit-config.yaml

@@ -12,7 +12,7 @@ Data flow:
   external_source.order_item ──►  raw.order_item_sdp  (@dp.table STREAMING, append-only)
 
   raw.customer_sdp  ─┐ (static dim)
-  raw.order_sdp      ├──► curated.order_enriched_sdp  (@dp.table STREAMING — freezes price)
+  raw.order_sdp      ├──► curated.order_enriched_sdp  (@dp.table STREAMING — freezes product_name)
   raw.product_sdp    │ (static dim)
   raw.order_item_sdp ┘ (streaming fact)
 

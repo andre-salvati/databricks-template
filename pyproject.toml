@@ -60,6 +60,11 @@ ignore = []
 # spark is injected by the SDP runtime — not a normal Python import
 "src/template/job1_sdp/pipeline.py" = ["F821"]
 
+[tool.ruff.lint.isort]
+# `_sdk_sql` is a local sibling module in scripts/, not a third-party package —
+# without this, isort files it under the databricks imports.
+known-first-party = ["_sdk_sql"]
+
 [tool.coverage.run]
 source = ["."]
 omit = ["tests/*", "setup.py"]

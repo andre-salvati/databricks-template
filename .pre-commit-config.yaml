@@ -7,5 +7,5 @@ repos:
     -   id: ruff
         args:
           - --fix
-        files: ^src/
+        files: ^(src|scripts)/
     -   id: ruff-format

@@ -5,7 +5,6 @@ from databricks.sdk.service.iam import AccessControlRequest, PermissionLevel
 
 from _sdk_sql import get_warehouse_id, run_sql
 
-
 SP_DISPLAY_NAME = "template-sp"
 # Per-developer dev catalogs (`dev_<short_name>`) and their schemas are created
 # on the fly by Config when a developer runs the wheel — see src/template/config.py.

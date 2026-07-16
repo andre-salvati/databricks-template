@@ -36,3 +36,8 @@ drop: whoami
 project-costs: aws-profile ?= costs
 project-costs:
 	uv run python ./scripts/project_costs.py $(if $(aws-profile),--aws-profile $(aws-profile),)
+
+# Regenerate the README star-history chart from the GitHub API. The SVGs are committed,
+# so the README renders from this repo rather than a third-party chart service.
+star-history:
+	uv run python ./scripts/star_history.py

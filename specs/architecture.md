@@ -22,11 +22,12 @@ does not expose custom env vars to the process).
 | Arg | Required | Purpose |
 |---|---|---|
 | `--task` | yes | Task key; in jobs, filled by `{{task.name}}`. |
-| `--env` | yes | `dev` / `staging` / `prod` (or `local` for tests). |
+| `--env` | yes | `dev` / `staging` / `prod`. Unit tests use `env=local`, but they build the args namespace directly — the parser itself rejects `local`. |
 | `--run-id` | no | Observability-only; filled by `{{job.run_id}}`, stamped on every log line. Defaults to `-`. |
-| `--log-level` | no | `DEBUG`/`INFO`/`WARNING`, from job param `log_level` (default `INFO`). |
+| `--log-level` | no | `DEBUG`/`INFO`/`WARN`/`WARNING`, from job param `log_level` (default `INFO`). |
 | `--quarantine-fail-ratio` | no | DQX hard-fail threshold for `extract_source2`. |
 | `--seed-date` | no | ISO-8601 date for `seed_sources`; empty → today at runtime. |
+| `--load-test` | no | `"true"` activates load-test data volumes in the integration Setup/Validate tasks (staging-only). From job param `load_test` (default `"false"`); only the integration job passes it. |
 
 > Removed deliberately (PR #21) — do **not** reintroduce: `--user`, `--debug`, `--schema`.
 > Identity comes from `WorkspaceClient` at runtime with sanitization, not a CLI arg.
@@ -91,18 +92,22 @@ triggers the batch `job1` (`RunJobTask`) and the `job1_sdp` pipeline (`PipelineT
 
 ## CI/CD
 
-On every push (any branch), CI installs deps → unit tests → bundle validate → deploy to staging →
-integration test on staging → (only on `main`) deploy to prod. Requires `DATABRICKS_HOST`,
-`DATABRICKS_CLIENT_ID`, `DATABRICKS_CLIENT_SECRET`, `TEMPLATE_ALERT_EMAILS` repo secrets. CLI and
-action versions are pinned. Staging/prod deploy **and run as the service principal**
-(identity-locked); the local dev loop runs as the developer against a per-developer catalog.
+On every push, CI (`onpush.yml`) installs deps (`make sync`) → unit tests (`make unit-test`) →
+uploads the coverage artifact → installs the pinned Databricks CLI → deploys to staging →
+runs the integration test on staging → and, **only when `ref == main`**, deploys to prod.
+Docs-only pushes trigger nothing: `paths-ignore` skips `README.md`, `CLAUDE.md`, `assets/**`,
+and `specs/**`. There is **no `bundle validate` step** — `make deploy` regenerates
+`resources/jobs.yml` and the bundle deploy itself is the validation gate. A `workflow_dispatch`
+trigger allows re-running CI without a new commit.
+
+Requires `DATABRICKS_HOST`, `DATABRICKS_CLIENT_ID`, `DATABRICKS_CLIENT_SECRET`, and
+`TEMPLATE_ALERT_EMAILS` repo secrets. CLI and action versions are pinned.
 
 <!-- Diagram source: assets/ci_cd.drawio (edit in https://app.diagrams.net, then export over assets/ci_cd.png) -->
 <img src="../assets/ci_cd.png" alt="CI/CD: local dev loop and the onpush.yml GitHub Actions pipeline">
 
 Local steps **1–2** run as the **developer** against a per-developer `dev_<user>` catalog; **3**
-pushes / opens a PR, triggering **GitHub Actions** (`onpush.yml`) — which runs on every push and
-deploys to prod only when `ref == main`. Staging and prod deploy **and run as the service
+pushes / opens a PR, triggering GitHub Actions. Staging and prod deploy **and run as the service
 principal** — identity-locked.
 
 ## Job-level parameters (runtime, overridable per-run)
@@ -146,7 +151,10 @@ Structured logging via the `template` logger (configured in `config.py:_configur
   warehouse before any medallion table is touched.
 - **Wheel version pinning** — `_project_version()` reads `pyproject.toml` to pin the wheel filename in
   `JobEnvironment.dependencies`, so a forgotten rebuild can't silently deploy an old wheel.
-- **Retries** — 0 in dev, 2 in staging/prod, backing off `MIN_RETRY_INTERVAL_MS` (60s).
+- **Retries** — 0 in dev, 2 in staging/prod, backing off `MIN_RETRY_INTERVAL_MS` (60s). Two
+  deliberate exceptions bypass `_retries()`: `health_check` pins `max_retries=1` in every env, and
+  the integration-test tasks pin `max_retries=0` even on staging (a failed assertion is a real
+  failure — retrying it just hides flakiness).
 - **Per-task `timeout_seconds`** (300s health-check, 900s extracts, 1800s transforms) so one hung
   task can't eat the whole job budget.
 - **Schema-drift guard** — all medallion writes use `overwriteSchema=false` (the only exception is

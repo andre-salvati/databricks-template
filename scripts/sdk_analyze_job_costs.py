@@ -14,10 +14,11 @@ Examples:
 """
 
 import argparse
+import time
 from datetime import datetime, timedelta
+
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.sql import StatementState
-import time
 
 
 def get_todays_date():
@@ -55,7 +56,7 @@ def analyze_job_costs(workspace: WorkspaceClient, target_date: str):
         AND u.cloud = list_prices.cloud
     WHERE
         usage_date = '{target_date}'
-        AND 
+        AND
         u.usage_metadata.job_id IS NOT NULL
     GROUP BY
         u.usage_metadata.job_id,
