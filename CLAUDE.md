@@ -72,7 +72,7 @@ The detailed specs live in [`specs/`](specs/) — read the relevant one **before
 - **Ask "should I open a new branch?" before executing a plan**, and **never commit directly to `main`** — cut a feature branch and land via PR (a hook blocks direct commits and pushes to `main`).
 - **Hold commits until asked.** Before merging, update the PR description (a hook uses it as the merge commit message body) following the What / Why / How / Validation / **Impact in prod** template in [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md); any table schema/data change needs the production-table impact check.
 - **Keep docs in sync in the same commit.** Don't ship changes to the CLI surface (`main.py:arg_parser`), runtime env vars, catalog/schema model, or production guardrails without updating `README.md`, the relevant doc under `specs/`, and this file (`CLAUDE.md`) together.
-- **Add a `specs/CHANGELOG.md` entry before merging a PR** — append-only (never edit old ones), each entry **at most 3 sentences**.
+- **Add a `specs/CHANGELOG.md` entry immediately before merging a PR** (not while the work is in progress — scope grows, and an early entry just gets rewritten). Append-only (never edit old ones). Each entry is **exactly 3 sentences** and **at most ~5 rendered lines** (~475 chars); keep it one unwrapped paragraph — the line cap is a length budget, not a wrap width.
 
 ## Keep It Simple
 
