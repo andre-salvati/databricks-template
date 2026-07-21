@@ -2,6 +2,12 @@
 
 ---
 
+## [#49](https://github.com/andre-salvati/databricks-template/pull/49) · 2026-07-21 · feat: attribute Databricks spend to jobs and pipelines
+
+Added a fourth table to `make project-costs`, Databricks by Job / Pipeline, attributing spend to the job or SDP pipeline that incurred it. Job names come off `usage_metadata.job_name`; only pipelines need a lookup, pre-collapsed per `pipeline_id` because joining those slowly-changing dimensions to usage otherwise fans each row out per revision and overcounted one job 21×. Only usage carrying a `job_id` or `dlt_pipeline_id` is attributable, so it breaks down scheduled work, not the whole bill.
+
+---
+
 ## [#48](https://github.com/andre-salvati/databricks-template/pull/48) · 2026-07-16 · docs: local star-history chart, README refresh, and doc-consistency fixes
 
 Replaced the README star-history chart with `scripts/star_history.py` + `make star-history`, rendering committed light/dark SVGs from the GitHub API — `api.star-history.com` 503s for every repo, so it was never our markup. Fixed README step 8, which named the wrong CI secrets and silently broke CI auth for anyone forking. Also reconciled the specs with the code, de-duplicated CLAUDE.md, standardized the `#42`/`#43` headers, and widened the ruff lint gate to `scripts/`.
