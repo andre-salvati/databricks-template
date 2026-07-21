@@ -18,12 +18,15 @@ session, then re-run. Do not attempt the browser login yourself.
 
 ## What the script emits
 
-Three tables, and only three:
+Four tables, and only four:
 
 1. **AWS by Week × Service** (USD, Total column)
 2. **Databricks by Week × SKU** (USD at list price, Total column)
 3. **Combined Totals by Service** across both clouds — native `Quantity`/`Unit` plus a totalled
    `USD` column. This is the only place native DBU/DSU/GB quantities appear.
+4. **Databricks by Job / Pipeline** — one row per job or SDP pipeline that incurred spend, with
+   `Kind`, native `Quantity`/`Unit`, `USD` and `Days` (distinct days with usage). In the generated
+   report it sits directly after Combined Totals; on stdout it prints last.
 
 Databricks usage is monetized by joining `system.billing.list_prices` inside the script, so DBU/DSU
 /GB and AWS dollars are directly comparable.
@@ -53,6 +56,17 @@ to dollars before calling them big or small.
   scheduled jobs. Call out stretches with *no* SQL activity too; a long-silent warehouse may mean a
   dashboard nobody opens.
 - Trend: is DBU consumption flat, growing, or declining?
+
+**By job / pipeline**
+- The top spenders, and the prod / staging / dev split — prod runs daily, staging and dev only on
+  the days someone deployed, so compare *per active day*, never raw totals. The `Days` column is
+  what makes that comparison possible.
+- Compare `job1_*` against its `job1_sdp_*` counterpart: they produce the same medallion tables by
+  different execution models, so a persistent gap between them is a real finding, not noise.
+- Watch the integration-test jobs. They are easy to overlook and can rival the pipeline they test.
+- Reconcile before trusting: the attributed total is always *less* than the Databricks total, since
+  SQL warehouse and interactive compute carry no `job_id`. The note under the table gives the
+  attributed share — if it moves a lot between runs, interactive usage changed, not the jobs.
 
 **Cross-cloud observation**
 - Note whether AWS S3/egress spikes correlate with high Databricks DBU days (they should — heavy

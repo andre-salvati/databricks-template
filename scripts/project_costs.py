@@ -31,6 +31,11 @@ _PRICE_NOTE = (
     "account discounts and commit contracts, so treat it as an upper bound."
 )
 _WEEK_NOTE = "Weeks start Monday; the first and last weeks in the window are usually partial."
+_ATTRIBUTION_NOTE = (
+    "Only usage tagged with a job_id or dlt_pipeline_id is attributable ({pct}% of Databricks "
+    "spend here); SQL warehouse and other interactive compute carry neither, so this table is a "
+    "breakdown of scheduled work, not of the whole bill."
+)
 
 
 def _money(v: float) -> str:
@@ -142,6 +147,104 @@ def fetch_aws(days: int, profile: str | None = None) -> pd.DataFrame | None:
     return aws_df
 
 
+def _connect(profile: str) -> tuple[WorkspaceClient, str] | None:
+    """Return (client, warehouse_id) for the profile, or None if either is unavailable."""
+    try:
+        w = WorkspaceClient(profile=profile)
+    except Exception as e:
+        # Avoid printing the exception directly — SDK exceptions can include the workspace URL.
+        print(f"Could not connect to Databricks ({profile} profile): {type(e).__name__}\n")
+        return None
+
+    warehouses = list(w.warehouses.list())
+    if not warehouses:
+        print("No SQL warehouse available.\n")
+        return None
+    return w, warehouses[0].id
+
+
+def _run_sql(w: WorkspaceClient, warehouse_id: str, sql: str) -> list[list[str]]:
+    """Execute a statement and return its rows. Raises on any non-SUCCEEDED terminal state."""
+    stmt = w.statement_execution.execute_statement(
+        warehouse_id=warehouse_id,
+        statement=sql,
+        wait_timeout="30s",
+    )
+    while stmt.status.state not in _POLL_TERMINAL:
+        time.sleep(1)
+        stmt = w.statement_execution.get_statement(stmt.statement_id)
+
+    if stmt.status.state != StatementState.SUCCEEDED:
+        error_msg = stmt.status.error.message if stmt.status.error else stmt.status.state.value
+        raise RuntimeError(error_msg)
+    return stmt.result.data_array or []
+
+
+def fetch_by_entity(profile: str, days: int) -> pd.DataFrame | None:
+    """Attribute Databricks spend to the job or pipeline that incurred it.
+
+    Two joins, and only one of them is a dimension:
+
+    * list_prices is slowly-changing (one row per price revision). The usage_end_time BETWEEN
+      price_start_time AND price_end_time predicate pins it to a single version, collapsing it
+      to 1:1.
+    * Job names come straight off usage_metadata.job_name, which is populated on every job
+      record — no dimension join at all. Only pipelines need a lookup (usage_metadata carries
+      dlt_pipeline_id but no pipeline name), and system.lakeflow.pipelines is slowly-changing
+      too, so it is pre-collapsed to one row per pipeline_id *before* being joined.
+
+    Never join system.lakeflow.jobs/.pipelines to usage without one of those two safeguards: the
+    row fans out once per definition revision and SUM(usd) comes back an integer multiple of the
+    truth.
+
+    Only usage carrying a job_id or dlt_pipeline_id is attributable — SQL warehouse and other
+    interactive compute has neither, so this never reconciles to the full Databricks total.
+    """
+    conn = _connect(profile)
+    if conn is None:
+        return None
+    w, warehouse_id = conn
+
+    sql = f"""
+    WITH pipe_names AS (
+      SELECT pipeline_id, MAX_BY(name, change_time) AS name
+      FROM system.lakeflow.pipelines
+      GROUP BY pipeline_id
+    )
+    SELECT
+      COALESCE(u.usage_metadata.job_name, n.name, '(unnamed)') AS entity,
+      CASE WHEN u.usage_metadata.dlt_pipeline_id IS NOT NULL THEN 'pipeline' ELSE 'job' END AS kind,
+      SUM(u.usage_quantity) AS quantity,
+      u.usage_unit,
+      SUM(u.usage_quantity * p.pricing.effective_list.default) AS usd,
+      COUNT(DISTINCT u.usage_date) AS active_days
+    FROM system.billing.usage u
+    LEFT JOIN system.billing.list_prices p
+      ON u.sku_name = p.sku_name
+     AND u.usage_end_time >= p.price_start_time
+     AND (p.price_end_time IS NULL OR u.usage_end_time < p.price_end_time)
+    LEFT JOIN pipe_names n
+      ON n.pipeline_id = u.usage_metadata.dlt_pipeline_id
+    WHERE u.usage_date >= CURRENT_DATE() - INTERVAL {days} DAYS
+      AND COALESCE(u.usage_metadata.job_id, u.usage_metadata.dlt_pipeline_id) IS NOT NULL
+    GROUP BY entity, kind, u.usage_unit
+    ORDER BY usd DESC
+    """
+
+    try:
+        rows = _run_sql(w, warehouse_id, sql)
+        if not rows:
+            return None
+        entity_df = pd.DataFrame(rows, columns=["Entity", "Kind", "Quantity", "Unit", "USD", "Days"])
+        entity_df["Quantity"] = entity_df["Quantity"].astype(float)
+        entity_df["USD"] = entity_df["USD"].astype(float)
+        entity_df["Days"] = entity_df["Days"].astype(int)
+        return entity_df
+    except Exception as e:
+        print(f"Could not attribute usage to jobs/pipelines: {e}\n")
+        return None
+
+
 def fetch_databricks(profile: str, days: int) -> pd.DataFrame | None:
     """Pull per-day, per-SKU usage and list-price cost. Returns None on any failure.
 
@@ -158,18 +261,10 @@ def fetch_databricks(profile: str, days: int) -> pd.DataFrame | None:
     field Databricks documents for costing. These are LIST prices: account-level discounts and
     commit contracts are not exposed here, so the USD figures are an upper bound.
     """
-    try:
-        w = WorkspaceClient(profile=profile)
-    except Exception as e:
-        # Avoid printing the exception directly — SDK exceptions can include the workspace URL.
-        print(f"Could not connect to Databricks ({profile} profile): {type(e).__name__}\n")
+    conn = _connect(profile)
+    if conn is None:
         return None
-
-    warehouses = list(w.warehouses.list())
-    if not warehouses:
-        print("No SQL warehouse available.\n")
-        return None
-    warehouse_id = warehouses[0].id
+    w, warehouse_id = conn
 
     # No ROUND() here: rounding per day and then summing 30 days destroys small SKUs — internet
     # egress bills ~$0.000009/day, which rounds to 0.0000 every single day and totals to nothing.
@@ -193,20 +288,7 @@ def fetch_databricks(profile: str, days: int) -> pd.DataFrame | None:
     """
 
     try:
-        stmt = w.statement_execution.execute_statement(
-            warehouse_id=warehouse_id,
-            statement=sql,
-            wait_timeout="30s",
-        )
-        while stmt.status.state not in _POLL_TERMINAL:
-            time.sleep(1)
-            stmt = w.statement_execution.get_statement(stmt.statement_id)
-
-        if stmt.status.state != StatementState.SUCCEEDED:
-            error_msg = stmt.status.error.message if stmt.status.error else stmt.status.state.value
-            raise RuntimeError(error_msg)
-
-        rows = stmt.result.data_array or []
+        rows = _run_sql(w, warehouse_id, sql)
         if not rows:
             print("No usage data found.\n")
             return None
@@ -357,10 +439,30 @@ def print_combined(combined: pd.DataFrame, days: int) -> None:
     print()
 
 
+def print_by_entity(entity_df: pd.DataFrame, usage_df: pd.DataFrame | None, days: int) -> None:
+    print(f"Databricks Costs by Job / Pipeline — last {days} days (USD, list price)")
+    print(f"{'Entity':<48} {'Kind':<9} {'Quantity':>12}  {'Unit':<5} {'USD':>10} {'Days':>5}")
+    print("-" * 94)
+    for r in entity_df.itertuples(index=False):
+        print(f"{r.Entity:<48.48} {r.Kind:<9} {r.Quantity:>12.4f}  {r.Unit:<5} {r.USD:>10.4f} {r.Days:>5}")
+    print("-" * 94)
+    print(f"{'Attributed total':<48} {'':<9} {'':>12}  {'':<5} {entity_df['USD'].sum():>10.4f}")
+    print(_ATTRIBUTION_NOTE.format(pct=_attributed_pct(entity_df, usage_df)))
+    print()
+
+
+def _attributed_pct(entity_df: pd.DataFrame, usage_df: pd.DataFrame | None) -> str:
+    """Share of total Databricks spend this table accounts for, as a display string."""
+    if usage_df is None or not usage_df["usd"].sum():
+        return "?"
+    return f"{100 * entity_df['USD'].sum() / usage_df['usd'].sum():.0f}"
+
+
 def write_markdown(
     aws_df: pd.DataFrame | None,
     usage_df: pd.DataFrame | None,
     combined: pd.DataFrame | None,
+    entity_df: pd.DataFrame | None,
     days: int,
 ) -> Path:
     """Write the data tables to cost_report/YYYY-MM-DD.md, leaving Analysis for the skill."""
@@ -394,6 +496,18 @@ def write_markdown(
     else:
         out.append("_No data available._")
     out.append("")
+
+    if entity_df is not None:
+        out += [
+            "## Databricks — by Job / Pipeline (USD)",
+            "",
+            f"Attributed total: **${entity_df['USD'].sum():.2f}** over {days} days at list price.",
+            "",
+            _md_table(entity_df),
+            "",
+            f"> {_ATTRIBUTION_NOTE.format(pct=_attributed_pct(entity_df, usage_df))}",
+            "",
+        ]
 
     if aws_df is not None:
         estimated = (
@@ -490,7 +604,11 @@ def main() -> None:
     if combined is not None:
         print_combined(combined, args.days)
 
-    path = write_markdown(aws_df, usage_df, combined, args.days)
+    entity_df = fetch_by_entity(args.profile, args.days) if usage_df is not None else None
+    if entity_df is not None:
+        print_by_entity(entity_df, usage_df, args.days)
+
+    path = write_markdown(aws_df, usage_df, combined, entity_df, args.days)
     print(f"Report written to {path.relative_to(Path.cwd()) if path.is_relative_to(Path.cwd()) else path}\n")
 
 
