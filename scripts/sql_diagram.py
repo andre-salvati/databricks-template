@@ -7,8 +7,10 @@ inference, so what is drawn is exactly what the query says.
                     as their own sub-pipeline feeding the scan that reads them.
     --mode lineage  which source column feeds each output column.
 
-Writes both `reports/sql-diagram/<name>.mmd` (renders on GitHub, diffable) and a standalone
-`<name>.svg`, so a diagram can be linked from prose without a Mermaid renderer in the loop.
+Writes three files to `reports/sql-diagram/`: the `<name>.sql` that was analysed, `<name>.mmd`
+(renders on GitHub, diffable) and a standalone `<name>.svg` for linking from prose where no
+Mermaid renderer is available. Keeping the query beside the diagram is what makes the diagram
+checkable — and regenerable.
 
 Usage:
     python scripts/sql_diagram.py --file query.sql
@@ -97,12 +99,17 @@ def build_plan(sql: str, dialect: str) -> list[Stage]:
     def sql_of(node) -> str:
         return node if isinstance(node, str) else node.sql(dialect=dialect)
 
+    def ordered(deps) -> list:
+        # planner.Step.dependencies is a set, so iteration order changes with the hash seed —
+        # without this the node numbering churns on every run and the .mmd is not diffable.
+        return sorted(deps, key=lambda d: (d.name or "", type(d).__name__))
+
     def visit(step) -> str:
         if id(step) in seen:
             return seen[id(step)]
 
         if isinstance(step, planner.Join):
-            by_name = {dep.name: visit(dep) for dep in step.dependencies}
+            by_name = {dep.name: visit(dep) for dep in ordered(step.dependencies)}
             current = by_name[step.name]  # the FROM table; every join hangs off it in turn
             for i, (source, ctx) in enumerate(step.joins.items(), 1):
                 details = [
@@ -121,7 +128,7 @@ def build_plan(sql: str, dialect: str) -> list[Stage]:
             seen[id(step)] = current
             return current
 
-        deps = [visit(dep) for dep in step.dependencies]
+        deps = [visit(dep) for dep in ordered(step.dependencies)]
         if isinstance(step, planner.Scan):
             node = emit("SCAN", f"SCAN {sql_of(step.source).split(' AS ')[0]}", [], deps)
         elif isinstance(step, planner.Aggregate):
@@ -486,10 +493,14 @@ def main():
 
     name = args.name or (Path(args.file).stem if args.file else "query")
     OUT_DIR.mkdir(parents=True, exist_ok=True)
+    # The query is written out verbatim alongside the diagram: a diagram without the SQL it came
+    # from cannot be checked or regenerated, and the source is often an f-string in a .py file
+    # that no longer reads the same once its placeholders are filled in.
+    (OUT_DIR / f"{name}.sql").write_text(sql.strip() + "\n")
     (OUT_DIR / f"{name}.mmd").write_text(mermaid + "\n")
     svg = plan_to_svg(stages, name, comments) if args.mode == "plan" else to_svg(edges, tables, name, joins, comments)
     (OUT_DIR / f"{name}.svg").write_text(svg + "\n")
-    print(f"Wrote {OUT_DIR / name}.mmd and {OUT_DIR / name}.svg")
+    print(f"Wrote {OUT_DIR / name}.sql, .mmd and .svg")
 
 
 if __name__ == "__main__":

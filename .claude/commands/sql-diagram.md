@@ -8,12 +8,16 @@ Diagram a SQL query and explain what it shows — either its execution steps or 
 2. Pick the mode. `mode=plan` (the default) answers "what does this query *do*, step by step";
    `mode=lineage` answers "where does this output column come from". When the user asks about
    joins, stages, filters or ordering, they want `plan`.
-3. Run `make sql-diagram sql=<path> name=<basename> comments=1` via Bash. It writes
-   `reports/sql-diagram/<basename>.mmd` and `.svg` (both gitignored — `git add -f` one only if it
-   is meant to be a committed example). Pass `--stdout` to `scripts/sql_diagram.py` for a
-   throwaway look with no files written.
+3. Run `make sql-diagram sql=<path> name=<basename> comments=1` via Bash. It writes three files to
+   `reports/sql-diagram/`: `<basename>.sql` (the query as analysed), `.mmd` and `.svg` — all
+   gitignored, so `git add -f` them only if they are meant to be a committed example. Pass
+   `--stdout` to `scripts/sql_diagram.py` for a throwaway look with no files written.
 4. Read the `.mmd`, show it in a ```mermaid fence, and explain it (see below). The `.svg` is the
    same graph for linking from prose where no Mermaid renderer is available.
+
+The emitted `.sql` is what makes the diagram auditable: it is the query *after* any f-string
+placeholders were filled in, so `make sql-diagram sql=reports/sql-diagram/<basename>.sql` reproduces
+the diagram exactly. When you commit a diagram as an example, commit its `.sql` with it.
 
 Both diagrams come from the parsed AST, so they are exactly what the query says — do not "improve"
 one by adding a node or edge you believe should be there. If it looks wrong, the query is the thing
