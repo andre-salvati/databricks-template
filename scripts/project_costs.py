@@ -2,7 +2,7 @@
 Show AWS and Databricks spend for the last 30 days, week by week.
 Usage: uv run python scripts/project_costs.py [--days N] [--profile PROFILE] [--aws-profile PROFILE]
 
-Also writes cost_report/YYYY-MM-DD.md (gitignored) holding the same tables in markdown, with an
+Also writes reports/cost/YYYY-MM-DD.md (gitignored) holding the same tables in markdown, with an
 empty Analysis section for the /project-costs skill to fill in. The script never writes prose —
 it emits only numbers it pulled, so the report cannot drift from the data.
 """
@@ -21,7 +21,7 @@ from databricks.sdk.service.sql import StatementState
 
 _POLL_TERMINAL = {StatementState.SUCCEEDED, StatementState.FAILED, StatementState.CANCELED, StatementState.CLOSED}
 
-_REPORT_DIR = Path(__file__).resolve().parent.parent / "cost_report"
+_REPORT_DIR = Path(__file__).resolve().parent.parent / "reports" / "cost"
 
 # Native quantities span DBU / DSU / GB and are not comparable with each other, so the Quantity
 # column is never totalled. USD is the only figure that spans SKUs and clouds.
@@ -465,8 +465,8 @@ def write_markdown(
     entity_df: pd.DataFrame | None,
     days: int,
 ) -> Path:
-    """Write the data tables to cost_report/YYYY-MM-DD.md, leaving Analysis for the skill."""
-    _REPORT_DIR.mkdir(exist_ok=True)
+    """Write the data tables to reports/cost/YYYY-MM-DD.md, leaving Analysis for the skill."""
+    _REPORT_DIR.mkdir(parents=True, exist_ok=True)
     path = _REPORT_DIR / f"{date.today()}.md"
 
     end = date.today()

@@ -130,7 +130,7 @@ uv run pytest tests/job1/unit_test.py
 uv run pytest tests/job1/unit_test.py::test_enrich_orders
 ```
 
-Coverage: `make unit-test` writes a report under `coverage_reports/` (uploaded as a CI artifact,
+Coverage: `make unit-test` writes a report under `reports/coverage/` (uploaded as a CI artifact,
 14-day retention).
 
 | Test (batch — `unit_test.py`) | Asserts |

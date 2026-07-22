@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="850" height="829" viewBox="0 0 850 829" font-family="-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-serif">
+<style>.bg{fill:#ffffff}.stt{fill:#1f2328;font-size:12px;font-weight:600}.std{fill:#57606a;font-size:10.5px}.ttl{fill:#1f2328;font-size:14px;font-weight:600}.scan{fill:#eef6ff;stroke:#54aeff;rx:5}.join{fill:#fbefff;stroke:#c297ff;rx:5}.filter{fill:#fff8e6;stroke:#e5b34a;rx:5}.aggregate{fill:#eafaef;stroke:#5bb974;rx:5}.sort{fill:#f6f8fa;stroke:#d0d7de;rx:5}.output{fill:#eceef1;stroke:#8c959f;rx:5}.step{fill:#f6f8fa;stroke:#d0d7de;rx:5}.edge{fill:none;stroke:#8c959f;stroke-width:1.3;opacity:.8}@media(prefers-color-scheme:dark){.bg{fill:#0d1117}.stt{fill:#e6edf3}.std{fill:#8b949e}.ttl{fill:#e6edf3}.scan{fill:#0d2847;stroke:#1f6feb}.join{fill:#2b1a3d;stroke:#8957e5}.filter{fill:#3a2d10;stroke:#9e6a03}.aggregate{fill:#0f2e1b;stroke:#2ea043}.sort{fill:#161b22;stroke:#30363d}.step{fill:#161b22;stroke:#30363d}.output{fill:#21262d;stroke:#6e7681}}</style>
+<rect width="850" height="829" class="bg"/>
+<text x="24" y="32" class="ttl">job_spend_plan — logical plan</text>
+<path d="M425.0,112 C425.0,130 287.0,128 287.0,146" class="edge"/>
+<path d="M287.0,198 C287.0,216 425.0,240 425.0,258" class="edge"/>
+<path d="M149.0,112 C149.0,130 563.0,128 563.0,146" class="edge"/>
+<path d="M701.0,112 C701.0,130 563.0,128 563.0,146" class="edge"/>
+<path d="M563.0,224 C563.0,242 425.0,300 425.0,318" class="edge"/>
+<path d="M425.0,284 C425.0,302 425.0,300 425.0,318" class="edge"/>
+<path d="M425.0,370 C425.0,388 425.0,386 425.0,404" class="edge"/>
+<path d="M425.0,482 C425.0,500 425.0,498 425.0,516" class="edge"/>
+<path d="M425.0,594 C425.0,612 425.0,610 425.0,628" class="edge"/>
+<path d="M425.0,667 C425.0,685 425.0,683 425.0,701" class="edge"/>
+<rect x="24.0" y="60" width="250" height="52" class="scan"/>
+<text x="34.0" y="77" class="stt">SCAN system.billing.usage</text>
+<text x="34.0" y="89" class="std">The usage table gives you access to</text>
+<text x="34.0" y="102" class="std">account-wide billable usage data. The data …</text>
+<rect x="300.0" y="60" width="250" height="52" class="scan"/>
+<text x="310.0" y="77" class="stt">SCAN system.lakeflow.pipelines</text>
+<text x="310.0" y="89" class="std">The `pipelines` table is a slow-changing</text>
+<text x="310.0" y="102" class="std">dimension table (SCD2) that contains the …</text>
+<rect x="162.0" y="146" width="250" height="52" class="aggregate"/>
+<text x="172.0" y="163" class="stt">AGGREGATE</text>
+<text x="172.0" y="175" class="std">GROUP BY pipeline_id</text>
+<text x="172.0" y="188" class="std">MAX_BY(name, change_time) AS name</text>
+<rect x="300.0" y="258" width="250" height="26" class="scan"/>
+<text x="310.0" y="275" class="stt">SCAN pipe_names</text>
+<rect x="576.0" y="60" width="250" height="52" class="scan"/>
+<text x="586.0" y="77" class="stt">SCAN system.billing.list_prices</text>
+<text x="586.0" y="89" class="std">The pricing table gives you access to a</text>
+<text x="586.0" y="102" class="std">historical log of SKU pricing. A record gets …</text>
+<rect x="438.0" y="146" width="250" height="78" class="join"/>
+<text x="448.0" y="163" class="stt">JOIN 1 · LEFT · p</text>
+<text x="448.0" y="175" class="std">u.sku_name = p.sku_name</text>
+<text x="448.0" y="188" class="std">and u.usage_end_time &gt;= p.price_start_time</text>
+<text x="448.0" y="201" class="std">and (p.price_end_time IS NULL OR</text>
+<text x="448.0" y="214" class="std">u.usage_end_time &lt; p.price_end_time)</text>
+<rect x="300.0" y="318" width="250" height="52" class="join"/>
+<text x="310.0" y="335" class="stt">JOIN 2 · LEFT · n</text>
+<text x="310.0" y="347" class="std">u.usage_metadata.dlt_pipeline_id =</text>
+<text x="310.0" y="360" class="std">n.pipeline_id</text>
+<rect x="300.0" y="404" width="250" height="78" class="filter"/>
+<text x="310.0" y="421" class="stt">WHERE</text>
+<text x="310.0" y="433" class="std">u.usage_date &gt;= CURRENT_DATE - INTERVAL &#x27;30&#x27;</text>
+<text x="310.0" y="446" class="std">DAYS</text>
+<text x="310.0" y="459" class="std">NOT COALESCE(u.usage_metadata.job_id,</text>
+<text x="310.0" y="472" class="std">u.usage_metadata.dlt_pipeline_id) IS NULL</text>
+<rect x="300.0" y="516" width="250" height="78" class="aggregate"/>
+<text x="310.0" y="533" class="stt">AGGREGATE</text>
+<text x="310.0" y="545" class="std">GROUP BY entity, kind, u.usage_unit</text>
+<text x="310.0" y="558" class="std">SUM(u.usage_quantity) AS quantity</text>
+<text x="310.0" y="571" class="std">SUM(`_a_0`) AS usd</text>
+<text x="310.0" y="584" class="std">COUNT(`_a_1`) AS active_days</text>
+<rect x="300.0" y="628" width="250" height="39" class="sort"/>
+<text x="310.0" y="645" class="stt">SORT</text>
+<text x="310.0" y="657" class="std">usd DESC</text>
+<rect x="300.0" y="701" width="250" height="104" class="output"/>
+<text x="310.0" y="718" class="stt">OUTPUT</text>
+<text x="310.0" y="730" class="std">entity</text>
+<text x="310.0" y="743" class="std">kind</text>
+<text x="310.0" y="756" class="std">quantity</text>
+<text x="310.0" y="769" class="std">usage_unit</text>
+<text x="310.0" y="782" class="std">usd</text>
+<text x="310.0" y="795" class="std">active_days</text>
+</svg>

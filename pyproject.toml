@@ -47,7 +47,7 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "*_test.py", "unit_test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "--cov=. --cov-report=term --cov-report=xml:coverage_reports/coverage.xml --cov-report=html:coverage_reports/html"
+addopts = "--cov=. --cov-report=term --cov-report=xml:reports/coverage/coverage.xml --cov-report=html:reports/coverage/html"
 
 [tool.ruff]
 line-length = 120

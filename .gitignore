@@ -8,7 +8,7 @@ notes/
 .pytest_cache/
 dist/
 build/
-coverage_reports/
+reports/coverage/
 src/template.egg-info/
 *.pyc
 *.lock
@@ -23,4 +23,7 @@ resources/orders_dashboard_deploy.lvdash.json
 # Generated spend reports — local artifacts containing account cost figures.
 # A report that has been committed stays tracked (.gitignore only governs untracked files), so
 # new dated reports are ignored by default; `git add -f` a specific one to keep it.
-cost_report/
+reports/cost/
+# Generated query diagrams — same rule: ignored by default, `git add -f` one to keep it as an
+# example. They are derived artifacts, regenerable from the query at any time.
+reports/sql-diagram/

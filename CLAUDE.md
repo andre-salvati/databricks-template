@@ -30,7 +30,7 @@ make run env=dev       # Run integration test job on a target env (dev or stagin
 make drop env=dev      # Drop all medallion tables in a target env (schema migrations; staging/prod need yes=--yes)
 make whoami            # Print the identity the env's profile authenticates as (runs implicitly before deploy/run/drop)
 make project-costs     # AWS + Databricks spend report (--aws-profile costs); backs the /project-costs skill
-make sql-lineage sql=q.sql  # Column-level lineage diagram (Mermaid) for a SQL query; backs /sql-lineage
+make sql-diagram sql=q.sql  # Query plan (or mode=lineage) .mmd + .svg into reports/sql-diagram/; backs /sql-diagram
 make star-history      # Regenerate the README star-history SVGs (assets/star_history*.svg) from the GitHub API
 ```
 
