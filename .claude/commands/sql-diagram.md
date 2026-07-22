@@ -77,7 +77,12 @@ has no comment the space is blank, and that absence is itself worth reporting.
 ## Limits worth stating rather than hiding
 
 - `SELECT *` errors out in lineage mode by design — tracing it needs the table schemas, which the
-  script does not have.
+  script does not have. Plan mode draws it fine.
+- Lineage mode also refuses a query whose output projects the same column name twice
+  (`SELECT a.id, b.id`): `sqlglot` resolves lineage by name and would trace both to the first
+  match, drawing a confident wrong graph. Alias them, or use plan mode.
+- `CREATE TABLE … AS SELECT` and `INSERT … SELECT` are unwrapped to their SELECT and diagrammed.
+  Anything with no SELECT at all (a `DELETE`, a DDL statement) exits with a one-line message.
 - Dialect defaults to `databricks`; pass `--dialect` to `scripts/sql_diagram.py` directly for others.
 - CTEs resolve through to their base tables, but a query reading a **view** stops at the view name;
   the view's own definition is not expanded.

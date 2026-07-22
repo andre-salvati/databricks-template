@@ -42,15 +42,53 @@ FONT = "-apple-system, BlinkMacSystemFont, Segoe UI, Helvetica, Arial, sans-seri
 OUT_DIR = Path(__file__).resolve().parent.parent / "reports" / "sql-diagram"
 
 
-def output_columns(sql: str, dialect: str) -> list[str]:
-    """Names of the columns the query projects, in select order."""
-    parsed = sqlglot.parse_one(sql, dialect=dialect)
-    select = parsed.find(exp.Select)
+def parse_select(sql: str, dialect: str) -> exp.Select:
+    """
+    Parse to the SELECT both diagram modes work from.
+
+    `CREATE TABLE … AS SELECT` and `INSERT … SELECT` wrap a SELECT that is perfectly diagrammable,
+    so they are unwrapped rather than rejected. Failures exit with one line instead of a traceback:
+    this is a CLI, and a stack trace tells the reader nothing they can act on.
+    """
+    if not sql.strip():
+        raise SystemExit("sql-diagram: no SQL given (empty input)")
+    try:
+        parsed = sqlglot.parse_one(sql, dialect=dialect)
+    except sqlglot.errors.ParseError as err:
+        raise SystemExit(f"sql-diagram: could not parse the SQL as {dialect} — {err}") from None
+    select = parsed.find(exp.Select) if parsed else None
     if select is None:
-        raise RuntimeError("no SELECT found in the statement")
+        raise SystemExit("sql-diagram: no SELECT found in the statement; nothing to diagram")
+    return select
+
+
+def driving_table(select: exp.Select, dialect: str) -> str | None:
+    """
+    The table in the FROM clause — the one every join hangs off.
+
+    Found by scanning this SELECT's own args for the From node rather than by key: sqlglot names
+    it `from_` in v30 and `from` earlier, and a missing key returns None silently, which reads as
+    "no FROM clause" and quietly drops every join edge. Direct args only — `find()` would descend
+    into a CTE and return its FROM instead.
+    """
+    source = next((v for v in select.args.values() if isinstance(v, exp.From)), None)
+    return exp.table_name(source.this) if source and isinstance(source.this, exp.Table) else None
+
+
+def output_columns(select: exp.Select) -> list[str]:
+    """Names of the columns the query projects, in select order."""
     names = [e.alias_or_name for e in select.expressions]
     if any(n == "*" for n in names):
-        raise RuntimeError("SELECT * cannot be traced without table schemas; name the columns")
+        raise SystemExit("sql-diagram: SELECT * cannot be traced without table schemas; name the columns")
+    # sqlglot's lineage() resolves a column by name, so `SELECT a.id, b.id` would trace both to
+    # a.id and draw a confident, wrong graph. Refusing is the only honest option: a lineage
+    # diagram that silently attributes a column to the wrong table is worse than no diagram.
+    duplicates = sorted({n for n in names if names.count(n) > 1})
+    if duplicates:
+        raise SystemExit(
+            f"sql-diagram: output column name(s) {', '.join(duplicates)} appear more than once; "
+            "lineage cannot tell them apart — give each one a distinct alias (plan mode is unaffected)"
+        )
     return names
 
 
@@ -77,9 +115,10 @@ class Stage:
     title: str
     details: list[str]
     deps: list[str]
+    source: str = ""  # SCAN only: the table name, for an exact comment lookup
 
 
-def build_plan(sql: str, dialect: str) -> list[Stage]:
+def build_plan(select: exp.Select, dialect: str) -> list[Stage]:
     """
     Flatten sqlglot's logical plan into ordered stages.
 
@@ -92,8 +131,8 @@ def build_plan(sql: str, dialect: str) -> list[Stage]:
     stages: list[Stage] = []
     seen: dict[int, str] = {}
 
-    def emit(kind: str, title: str, details: list[str], deps: list[str]) -> str:
-        stages.append(Stage(f"n{len(stages)}", kind, title, details, deps))
+    def emit(kind: str, title: str, details: list[str], deps: list[str], source: str = "") -> str:
+        stages.append(Stage(f"n{len(stages)}", kind, title, details, deps, source))
         return stages[-1].id
 
     def sql_of(node) -> str:
@@ -112,25 +151,28 @@ def build_plan(sql: str, dialect: str) -> list[Stage]:
             by_name = {dep.name: visit(dep) for dep in ordered(step.dependencies)}
             current = by_name[step.name]  # the FROM table; every join hangs off it in turn
             for i, (source, ctx) in enumerate(step.joins.items(), 1):
-                details = [
+                keys = [
                     f"{sql_of(a)} = {sql_of(b)}" for a, b in zip(ctx.get("source_key") or [], ctx.get("join_key") or [])
                 ]
-                # sqlglot pads the residual predicate with TRUE AND …; drop that, keep the rest
-                extra = re.sub(r"\bTRUE AND\b", "", sql_of(ctx["condition"])).strip() if ctx.get("condition") else ""
-                if extra and extra != "TRUE":
-                    details += [f"and {part}" for part in _split_and(extra)]
-                current = emit(
-                    "JOIN", f"JOIN {i} · {(ctx.get('side') or 'INNER').upper()} · {source}", details, [current]
-                )
+                # With a complex ON, sqlglot leaves source_key empty and puts everything in the
+                # residual, so "and" cannot be tied to the residual list — it belongs to every
+                # predicate after the first, wherever it came from.
+                predicates = keys + _and_parts(ctx.get("condition"), dialect)
+                details = predicates[:1] + [f"and {part}" for part in predicates[1:]]
+                # A join with neither keys nor a predicate is a cross product. Labelling that
+                # "INNER" would hide exactly the unconstrained join this diagram exists to expose.
+                side = (ctx.get("side") or "").upper() or ("CROSS" if not details else "INNER")
+                current = emit("JOIN", f"JOIN {i} · {side} · {source}", details, [current])
                 stages[-1].deps.append(by_name[source])
             if step.condition:
-                current = emit("FILTER", "WHERE", _split_and(sql_of(step.condition)), [current])
+                current = emit("FILTER", "WHERE", _and_parts(step.condition, dialect), [current])
             seen[id(step)] = current
             return current
 
         deps = [visit(dep) for dep in ordered(step.dependencies)]
         if isinstance(step, planner.Scan):
-            node = emit("SCAN", f"SCAN {sql_of(step.source).split(' AS ')[0]}", [], deps)
+            table = exp.table_name(step.source) if isinstance(step.source, exp.Table) else step.name
+            node = emit("SCAN", f"SCAN {table}", [], deps, source=table)
         elif isinstance(step, planner.Aggregate):
             group = [sql_of(g) for g in (step.group or {}).values()]
             details = ([f"GROUP BY {', '.join(group)}"] if group else []) + [sql_of(a) for a in step.aggregations]
@@ -143,24 +185,43 @@ def build_plan(sql: str, dialect: str) -> list[Stage]:
         seen[id(step)] = node
         return node
 
-    root = planner.Plan(sqlglot.parse_one(sql, dialect=dialect)).root
+    try:
+        root = planner.Plan(select).root
+    except Exception as err:  # sqlglot's planner raises assorted types on shapes it cannot model
+        raise SystemExit(f"sql-diagram: could not build a plan for this query ({type(err).__name__}: {err})") from None
     last = visit(root)
     emit("OUTPUT", "OUTPUT", [e.alias_or_name for e in root.projections], [last])
     return stages
 
 
-def _split_and(condition: str) -> list[str]:
-    """Break a conjunction onto its own lines; nested parens stay whole."""
-    parts, depth, current = [], 0, ""
-    for token in re.split(r"(\s+AND\s+|\(|\))", condition):
-        depth += token.count("(") - token.count(")")
-        if re.fullmatch(r"\s+AND\s+", token) and depth == 0:
-            parts.append(current.strip())
-            current = ""
-        else:
-            current += token
-    parts.append(current.strip())
-    return [p for p in parts if p]
+def _and_parts(condition, dialect: str) -> list[str]:
+    """
+    Split a conjunction into one string per top-level predicate.
+
+    Done on the AST, never on generated text: splitting text on " AND " tears apart string
+    literals containing the word, and counting parentheses miscounts when a literal holds one.
+    Filtering `TRUE` here also removes the `TRUE AND …` padding sqlglot puts on a join's residual
+    predicate — a regex for that would delete a legitimate `TRUE AND` written inside a predicate.
+    """
+    if condition is None:
+        return []
+    if isinstance(condition, str):
+        try:
+            condition = sqlglot.parse_one(condition, dialect=dialect)
+        except sqlglot.errors.ParseError:
+            return [condition]
+    parts = condition.flatten() if isinstance(condition, exp.And) else [condition]
+    rendered = []
+    for part in parts:
+        if isinstance(part, exp.Boolean) and part.this is True:
+            continue
+        text = part.sql(dialect=dialect)
+        # An OR shown as a bare conjunct reads as "(and X) OR Y" once the lines are prefixed —
+        # the opposite grouping. Parenthesise it so the line cannot be misread.
+        if isinstance(part, exp.Or) and not text.startswith("("):
+            text = f"({text})"
+        rendered.append(text)
+    return rendered
 
 
 def _shorten(text: str, limit: int) -> str:
@@ -194,10 +255,10 @@ def _wrap(text: str, width: int, max_lines: int) -> list[str]:
     return lines
 
 
-def extract_joins(sql: str, dialect: str) -> dict[str, str]:
+def extract_joins(select: exp.Select, dialect: str) -> dict[str, str]:
     """Source table -> the join that brings it in, e.g. "LEFT JOIN ON a.id = b.id"."""
     joins = {}
-    for join in sqlglot.parse_one(sql, dialect=dialect).find_all(exp.Join):
+    for join in select.find_all(exp.Join):
         if not isinstance(join.this, exp.Table):  # subquery / derived table: no single name to key on
             continue
         kind = " ".join(filter(None, [join.side, join.kind, "JOIN"]))
@@ -226,20 +287,34 @@ def fetch_comments(tables: list[str], profile: str) -> dict[str, str]:
     return comments
 
 
-def build_graph(sql: str, dialect: str) -> tuple[dict[str, set[tuple[str, str]]], dict[str, list[str]]]:
-    """(output column -> source columns, source table -> its columns), both in render order."""
-    edges = {col: source_columns(sql, dialect, col) for col in output_columns(sql, dialect)}
+def build_graph(
+    sql: str, select: exp.Select, dialect: str
+) -> tuple[list[tuple[str, set[tuple[str, str]]]], dict[str, list[str]]]:
+    """
+    (output column, its source columns) in select order, plus source table -> its columns.
+
+    Edges are a list, not a dict keyed by column name: `SELECT a.id, b.id` projects the name `id`
+    twice, and keying by name silently collapses the two — dropping a whole source table out of a
+    diagram whose only job is to show where columns come from.
+    """
+    edges = [(col, source_columns(sql, dialect, col)) for col in output_columns(select)]
     tables: dict[str, list[str]] = {}
-    for table, column in sorted({src for sources in edges.values() for src in sources}):
+    for table, column in sorted({src for _, sources in edges for src in sources}):
         tables.setdefault(table, []).append(column)
+    # A table can be joined purely to filter, projecting nothing. It still belongs on the diagram:
+    # without it the join edge has no node to leave from and would be dropped silently.
+    driving = driving_table(select, dialect)
+    if driving and driving not in tables:
+        tables[driving] = []
     return edges, tables
 
 
 def to_mermaid(
-    edges: dict[str, set[tuple[str, str]]],
+    edges: list[tuple[str, set[tuple[str, str]]]],
     tables: dict[str, list[str]],
     joins: dict[str, str] | None = None,
     comments: dict[str, str] | None = None,
+    driving: str | None = None,
 ) -> str:
     """Build a Mermaid flowchart of the query's column-level lineage."""
     joins, comments = joins or {}, comments or {}
@@ -257,18 +332,18 @@ def to_mermaid(
         lines.append("  end")
 
     lines.append('  subgraph out["output"]')
-    out_ids = {col: f"o{i}" for i, col in enumerate(edges)}
-    lines += [f'    {out_ids[col]}["{col}"]' for col in edges]
+    lines += [f'    o{i}["{col}"]' for i, (col, _) in enumerate(edges)]
     lines.append("  end")
 
-    for col, sources in edges.items():
-        lines += [f"  {ids[src]} --> {out_ids[col]}" for src in sorted(sources)]
+    for i, (_, sources) in enumerate(edges):
+        lines += [f"  {ids[src]} --> o{i}" for src in sorted(sources)]
 
     # The join is a relationship between tables, not between columns, so it is drawn as a dotted
-    # edge between the subgraphs — visually distinct from the solid column-lineage arrows.
-    driving = next((t for t in tables if t not in joins and t != UNQUALIFIED), None)
+    # edge between the subgraphs — visually distinct from the solid column-lineage arrows. The
+    # driving table comes from the FROM clause: deducing it by elimination loses every join edge
+    # when the driving table happens to project no columns of its own.
     for table, clause in joins.items():
-        if table in node and driving:
+        if table in node and driving and driving in node:
             lines.append(f'  {node[driving]} -. "{_mermaid_safe(clause)}" .-> {node[table]}')
     return "\n".join(lines)
 
@@ -282,7 +357,7 @@ def plan_to_mermaid(stages: list[Stage], comments: dict[str, str] | None = None)
     lines = ["flowchart LR"]
     for stage in stages:
         label = f"<b>{_mermaid_safe(stage.title)}</b>"
-        note = next((c for t, c in comments.items() if stage.kind == "SCAN" and t in stage.title), None)
+        note = comments.get(stage.source) if stage.kind == "SCAN" else None
         if note:
             label += f"<br/><i>{_mermaid_safe(_shorten(note, 70))}</i>"
         for detail in stage.details:
@@ -309,7 +384,7 @@ def plan_to_svg(stages: list[Stage], title: str, comments: dict[str, str] | None
 
     text: dict[str, list[str]] = {}
     for stage in stages:
-        note = next((c for t, c in comments.items() if stage.kind == "SCAN" and t in stage.title), None)
+        note = comments.get(stage.source) if stage.kind == "SCAN" else None
         body = _wrap(note, 44, 2) if note else []
         for detail in stage.details:
             body += _wrap(detail, 44, 2)
@@ -477,15 +552,27 @@ def main():
     args = parser.parse_args()
 
     sql = open(args.file).read() if args.file else sys.stdin.read()
-    edges, tables = build_graph(sql, args.dialect)
-    joins = extract_joins(sql, args.dialect)
+    select = parse_select(sql, args.dialect)
+
+    # Each mode builds only what it renders. Sharing the work looked tidy but meant a plan run
+    # inherited lineage's constraints — a SELECT * query the plan draws fine used to die on the
+    # lineage tracer that never ran.
+    stages: list[Stage] = []
+    edges: list[tuple[str, set[tuple[str, str]]]] = []
+    tables: dict[str, list[str]] = {}
+    if args.mode == "plan":
+        stages = build_plan(select, args.dialect)
+        tables = {stage.source: [] for stage in stages if stage.kind == "SCAN" and stage.source}
+    else:
+        edges, tables = build_graph(sql, select, args.dialect)
+
     comments = fetch_comments(list(tables), args.profile) if args.comments else {}
 
     if args.mode == "plan":
-        stages = build_plan(sql, args.dialect)
         mermaid = plan_to_mermaid(stages, comments)
     else:
-        mermaid = to_mermaid(edges, tables, joins, comments)
+        joins = extract_joins(select, args.dialect)
+        mermaid = to_mermaid(edges, tables, joins, comments, driving_table(select, args.dialect))
 
     if args.stdout:
         print(mermaid)
