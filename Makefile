@@ -37,6 +37,13 @@ project-costs: aws-profile ?= costs
 project-costs:
 	uv run python ./scripts/project_costs.py $(if $(aws-profile),--aws-profile $(aws-profile),)
 
+# Diagram a SQL query with sqlglot, writing .mmd + .svg into reports/sql-diagram/. Pass the query
+# with sql=path/to/query.sql (stdin if omitted); optionally name=basename, mode=plan|lineage
+# (default plan: the query's steps) and comments=1 (looks up each table's Unity Catalog comment).
+sql-diagram:
+	uv run python ./scripts/sql_diagram.py $(if $(sql),--file $(sql),) $(if $(name),--name $(name),) \
+		$(if $(mode),--mode $(mode),) $(if $(comments),--comments,)
+
 # Regenerate the README star-history chart from the GitHub API. The SVGs are committed,
 # so the README renders from this repo rather than a third-party chart service.
 star-history:

@@ -4,10 +4,10 @@ analysis into the generated markdown report.
 ## Steps
 
 1. Run `make project-costs` via Bash and capture the full output. It prints to stdout **and**
-   writes `cost_report/YYYY-MM-DD.md` (gitignored) containing every table in markdown, ending with
+   writes `reports/cost/YYYY-MM-DD.md` (gitignored) containing every table in markdown, ending with
    an empty `## Analysis` section. The script writes only numbers, never prose.
 2. Analyze the output (see below).
-3. **Edit `cost_report/YYYY-MM-DD.md` and replace the `## Analysis` placeholder with your written
+3. **Edit `reports/cost/YYYY-MM-DD.md` and replace the `## Analysis` placeholder with your written
    analysis.** Do not retype the tables — they are already in the file, and re-transcribing numbers
    risks introducing errors. Reference them instead.
 4. Report the same analysis back in chat, and link the report path.

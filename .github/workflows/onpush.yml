@@ -57,7 +57,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
-          path: coverage_reports/
+          path: reports/coverage/
           retention-days: 14
 
       # Pin the CLI to a tagged release so an upstream change can't silently break CI.

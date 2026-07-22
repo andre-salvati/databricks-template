@@ -1,0 +1,22 @@
+flowchart LR
+  n0[("<b>SCAN system.lakeflow.pipelines</b><br/><i>The `pipelines` table is a slow-changing dimension table (SCD2) that…</i>")]
+  n1["<b>AGGREGATE</b><br/>GROUP BY pipeline_id<br/>MAX_BY(name, change_time) AS name"]
+  n2[("<b>SCAN pipe_names</b>")]
+  n3[("<b>SCAN system.billing.list_prices</b><br/><i>The pricing table gives you access to a historical log of SKU…</i>")]
+  n4[("<b>SCAN system.billing.usage</b><br/><i>The usage table gives you access to account-wide billable usage data.…</i>")]
+  n5{{"<b>JOIN 1 · LEFT · p</b><br/>u.sku_name = p.sku_name<br/>and u.usage_end_time >= p.price_start_time<br/>and (p.price_end_time IS NULL OR u.usage_end_time < p.price_end_time)"}}
+  n6{{"<b>JOIN 2 · LEFT · n</b><br/>u.usage_metadata.dlt_pipeline_id = n.pipeline_id"}}
+  n7["<b>WHERE</b><br/>u.usage_date >= CURRENT_DATE - INTERVAL '30' DAYS<br/>NOT COALESCE(u.usage_metadata.job_id,…"]
+  n8["<b>AGGREGATE</b><br/>GROUP BY entity, kind, u.usage_unit<br/>SUM(u.usage_quantity) AS quantity<br/>SUM(`_a_0`) AS usd<br/>COUNT(`_a_1`) AS active_days"]
+  n9["<b>SORT</b><br/>usd DESC"]
+  n10(["<b>OUTPUT</b><br/>entity<br/>kind<br/>quantity<br/>usage_unit<br/>usd<br/>active_days"])
+  n0 --> n1
+  n1 --> n2
+  n4 --> n5
+  n3 --> n5
+  n5 --> n6
+  n2 --> n6
+  n6 --> n7
+  n7 --> n8
+  n8 --> n9
+  n9 --> n10
