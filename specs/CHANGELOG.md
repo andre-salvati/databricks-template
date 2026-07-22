@@ -16,7 +16,7 @@ Replaced the README star-history chart with `scripts/star_history.py` + `make st
 
 ## [#47](https://github.com/andre-salvati/databricks-template/pull/47) · 2026-07-16 · feat: weekly USD cost pivots + generated markdown cost report
 
-Reworked `scripts/project_costs.py` from per-day dumps into three tables — AWS by week × service, Databricks by week × SKU, and a combined by-service rollup carrying `Quantity`/`Unit`/`USD` — monetizing Databricks usage through a date-scoped `system.billing.list_prices` join on `pricing.effective_list.default`, which shows Databricks is ~99.5% of project spend ($33.91 of $34.06 at list over 30 days) and that AWS is only ever a proxy for job activity since serverless SKUs bill compute inside the DBU rate. Two properties of that join are load-bearing and easy to get wrong: it must be date-scoped because `list_prices` is a slowly-changing dimension (joining on `sku_name` alone fans out 3.5× on `JOBS_SERVERLESS_COMPUTE`), and it must be a LEFT join so an unpriced SKU shows blank rather than vanishing; per-day `ROUND()` was also dropped, since rounding then summing zeroed sub-cent SKUs like internet egress. The script now writes `cost_report/YYYY-MM-DD.md` — gitignored, with this first report force-added and linked from the README's Features list as a worked example — holding every table in markdown plus an `## Analysis` section that the `/project-costs` skill fills in, so numbers are never re-transcribed by hand.
+Reworked `scripts/project_costs.py` from per-day dumps into three tables — AWS by week × service, Databricks by week × SKU, and a combined by-service rollup carrying `Quantity`/`Unit`/`USD` — monetizing Databricks usage through a date-scoped `system.billing.list_prices` join on `pricing.effective_list.default`, which shows Databricks is ~99.5% of project spend ($33.91 of $34.06 at list over 30 days). Two properties of that join are load-bearing and easy to get wrong: it must be date-scoped because `list_prices` is a slowly-changing dimension (joining on `sku_name` alone fans out 3.5× on `JOBS_SERVERLESS_COMPUTE`), and it must be a LEFT join so an unpriced SKU shows blank rather than vanishing; per-day `ROUND()` was also dropped, since rounding then summing zeroed sub-cent SKUs like internet egress. The script now writes a gitignored `cost_report/YYYY-MM-DD.md` holding every table plus an `## Analysis` section that the `/project-costs` skill fills in, so numbers are never re-transcribed by hand.
 
 ---
 
@@ -28,13 +28,13 @@ Added a `## Code style: PySpark transformation chains` section to `specs/archite
 
 ## [#45](https://github.com/andre-salvati/databricks-template/pull/45) · 2026-07-03 · docs: add workflow spec + license, move dashboard docs to data-model
 
-Added `specs/workflow.md` centralizing the development lifecycle (plan → ask-about-branch → hold-commits → PR), a research-backed PR description standard materialized as `.github/PULL_REQUEST_TEMPLATE.md`, and a production-table impact check with a schema-change alert table (add/remove/rename/type/cluster-key → risk → remediation, tied to the `overwriteSchema=false` guard); it also absorbs the former `specs/test-plan.md`, which was deleted. Consolidated the scattered dashboard documentation (README screenshot + `CLAUDE.md` deploy invariants + the latest-name binding) into a new `## Dashboard` section in `specs/data-model.md`, with the README section now linking to it. Added an Apache-2.0 `LICENSE` + `NOTICE`, a license badge and `## License` section in the README, and the SPDX `license` field in `pyproject.toml`, updating all cross-references (`README.md`, `CLAUDE.md`, `specs/README.md`, `specs/architecture.md`).
+Added `specs/workflow.md` centralizing the development lifecycle (plan → ask-about-branch → hold-commits → PR), a research-backed PR description standard materialized as `.github/PULL_REQUEST_TEMPLATE.md`, and a production-table impact check with a schema-change alert table (add/remove/rename/type/cluster-key → risk → remediation, tied to the `overwriteSchema=false` guard); it also absorbs the former `specs/test-plan.md`, which was deleted. Consolidated the scattered dashboard documentation (README screenshot + `CLAUDE.md` deploy invariants + the latest-name binding) into a new `## Dashboard` section in `specs/data-model.md`, with the README section now linking to it. Added an Apache-2.0 `LICENSE` + `NOTICE`, a license badge and `## License` section in the README, and the SPDX `license` field in `pyproject.toml`, updating all cross-references.
 
 ---
 
 ## [#43](https://github.com/andre-salvati/databricks-template/pull/43) · 2026-06-23 · feat: freeze product_name instead of line_revenue
 
-Removed the synthetic `line_revenue`/`unit_price_at_sale` columns — gold `total_value` is now `SUM(item_total)` (the line value the source already freezes on the order) — and re-pointed the silver insert-only-MERGE / streaming-table freeze at the mutable `product_name`, which the seed now changes by renaming 2 products per run (`Product N` → `Product N.k`); `unit_price` stays as a static attribute. The AI/BI "by product" chart and Product filter both identify a product by its latest name (consolidating by `product_id`, one line per physical product across renames, and filtering shows the full pre-/post-rename history); the frozen historical names remain in `report.order_agg` for audit. Also removed the batch `job1`'s standalone prod schedule (the SDP pipeline already had none) so `job1_prod_integration` is the single prod trigger orchestrating seed → batch + SDP, fixed `sdk_drop_tables.py` to fall back to `DROP TABLE` when a warehouse's parser rejects `DROP STREAMING TABLE`, added a `git_commit` (`${bundle.git.commit}`) deploy tag on every job so a deployed environment's exact commit is identifiable from `jobs list`, and updated unit/integration tests, schemas, the SDP pipeline, and docs.
+Removed the synthetic `line_revenue`/`unit_price_at_sale` columns — gold `total_value` is now `SUM(item_total)`, the line value the source already freezes on the order — and re-pointed the silver insert-only-MERGE / streaming-table freeze at the mutable `product_name`, which the seed now changes by renaming 2 products per run (`Product N` → `Product N.k`); `unit_price` stays a static attribute. The AI/BI "by product" chart and Product filter both identify a product by its latest name (consolidating by `product_id`, one line per physical product across renames), while the frozen historical names remain in `report.order_agg` for audit. Also removed the batch `job1`'s standalone prod schedule so `job1_prod_integration` is the single prod trigger, fixed `sdk_drop_tables.py` to fall back to `DROP TABLE` when a warehouse's parser rejects `DROP STREAMING TABLE`, and added a `git_commit` (`${bundle.git.commit}`) deploy tag so a deployed environment's exact commit is identifiable from `jobs list`.
 
 ---
 
@@ -44,91 +44,69 @@ Renamed the image-only `docs/` folder to `assets/` (it held no prose, only scree
 
 ---
 
-
 ## [#41](https://github.com/andre-salvati/databricks-template/pull/41) · 2026-06-12 · feat: raw cost DataFrames + by-service/SKU aggregation in project_costs.py
 
-`scripts/project_costs.py` now prints the raw per-day/service (AWS) and per-day/SKU (Databricks) DataFrames before each formatted daily table, plus an "AWS Costs by Service" rollup and a "Databricks Costs by SKU" rollup (quantity grouped by SKU and unit, since DBU/DSU/GB are not summable; NULL units kept, sorted within unit, AWS estimates flagged). Defaulted the `make project-costs` target to `--aws-profile costs` (the dedicated read-only Cost Explorer user), where `aws-profile=` now falls back to the default credential chain instead of hard-failing argparse. Also folded in code-review fixes: `scripts/sdk_drop_tables.py` now issues the kind-matched `DROP MATERIALIZED VIEW` / `DROP STREAMING TABLE` instead of a blind `DROP TABLE` (which aborted `make drop` mid-loop once the SDP pipeline had materialized its views/streaming tables), and `seed_sources.py` centralizes the product-category formula so the price-update path can't drift from the initial seed.
+`scripts/project_costs.py` now prints the raw per-day/service (AWS) and per-day/SKU (Databricks) DataFrames before each formatted daily table, plus an "AWS Costs by Service" rollup and a "Databricks Costs by SKU" rollup (quantity grouped by SKU and unit, since DBU/DSU/GB are not summable; NULL units kept, sorted within unit, AWS estimates flagged). Defaulted the `make project-costs` target to `--aws-profile costs` (the dedicated read-only Cost Explorer user), where `aws-profile=` now falls back to the default credential chain instead of hard-failing argparse. Also folded in code-review fixes: `scripts/sdk_drop_tables.py` now issues the kind-matched `DROP MATERIALIZED VIEW` / `DROP STREAMING TABLE` instead of a blind `DROP TABLE` (which aborted `make drop` mid-loop once the SDP pipeline had materialized its views), and `seed_sources.py` centralizes the product-category formula so the price-update path can't drift from the initial seed.
 
 ---
 
 ## [#40](https://github.com/andre-salvati/databricks-template/pull/40) · 2026-06-11 · docs: reorganize specs into specs/ folder, slim README and CLAUDE.md
 
-Extracted the deep technical documentation out of `README.md` and `CLAUDE.md` into a dedicated `specs/` folder (`architecture.md`, `data-model.md`, `test-plan.md`, an index, and `CHANGELOG.md` itself), leaving the README a landing page and `CLAUDE.md` working rules plus load-bearing invariants and pointers.
-Converted the medallion diagram to inline Mermaid (GitHub-rendered, diffable) and deleted the superseded `docs/medallion_data_flow.png`; the CI/CD diagram stays a draw.io export (`docs/ci_cd.drawio` → `docs/ci_cd.png`) because the layout it needs isn't expressible in GitHub-rendered (dagre) Mermaid.
-Added `specs/**` to the `onpush.yml` `paths-ignore` so docs-only changes don't trigger a CI run.
+Extracted the deep technical documentation out of `README.md` and `CLAUDE.md` into a dedicated `specs/` folder (`architecture.md`, `data-model.md`, `test-plan.md`, an index, and `CHANGELOG.md` itself), leaving the README a landing page and `CLAUDE.md` working rules plus load-bearing invariants and pointers. Converted the medallion diagram to inline Mermaid (GitHub-rendered, diffable) and deleted the superseded `docs/medallion_data_flow.png`; the CI/CD diagram stays a draw.io export (`docs/ci_cd.drawio` → `docs/ci_cd.png`) because the layout it needs isn't expressible in GitHub-rendered (dagre) Mermaid. Added `specs/**` to the `onpush.yml` `paths-ignore` so docs-only changes don't trigger a CI run.
 
 ---
 
 ## [#39](https://github.com/andre-salvati/databricks-template/pull/39) · 2026-06-11 · feat: add --aws-profile flag to project_costs.py
 
-Added an `--aws-profile` flag to `scripts/project_costs.py` so the AWS Cost Explorer query can target a dedicated AWS CLI profile (`aws_daily_costs` appends `--profile` only when set) instead of relying solely on the default credential chain.
-This unblocks headless runs and lets the script use a scoped read-only Cost Explorer user rather than the expiry-prone browser `aws login` session that this workspace defaults to.
-The flag defaults to `None`, so behavior is unchanged for anyone who does not pass it.
+Added an `--aws-profile` flag to `scripts/project_costs.py` so the AWS Cost Explorer query can target a dedicated AWS CLI profile (`aws_daily_costs` appends `--profile` only when set) instead of relying solely on the default credential chain. This unblocks headless runs and lets the script use a scoped read-only Cost Explorer user rather than the expiry-prone browser `aws login` session that this workspace defaults to. The flag defaults to `None`, so behavior is unchanged for anyone who does not pass it.
 
 ---
 
 ## [#38](https://github.com/andre-salvati/databricks-template/pull/38) · 2026-06-11 · feat: move category to the product dimension, commit dashboard JSON
 
-Moved product category off the order fact onto the product dimension — `external_source.product` now carries `category_id`/`category_name` and silver pulls them from the product join (both `job1` batch and `job1_sdp` paths) instead of deriving `"Category " + id` inline on the order, so a category rename flows correctly to gold and the dashboard.
-Committed `resources/orders_dashboard.lvdash.json` as the canonical dashboard definition (dropping the `_build_dashboard_json` generator); since DABs 0.298.0 does not substitute `${var.catalog}` inside `.lvdash.json` content, the generator now writes a gitignored deploy copy with the catalog resolved at deploy time.
-Verified end-to-end across unit, dev, staging, and prod; since the schema change is incompatible under `overwriteSchema=false`, replaced `make truncate`/`sdk_truncate_tables.py` (TRUNCATE, schema-preserving) with `make drop`/`sdk_drop_tables.py` (DROP all medallion tables so the next run recreates them with the new schema) and renamed the `make test` target to `make unit-test`.
+Moved product category off the order fact onto the product dimension — `external_source.product` now carries `category_id`/`category_name` and silver pulls them from the product join (both `job1` batch and `job1_sdp` paths) instead of deriving `"Category " + id` inline on the order, so a category rename flows correctly to gold and the dashboard. Committed `resources/orders_dashboard.lvdash.json` as the canonical dashboard definition (dropping the `_build_dashboard_json` generator); since DABs 0.298.0 does not substitute `${var.catalog}` inside `.lvdash.json` content, the generator now writes a gitignored deploy copy with the catalog resolved at deploy time. Verified end-to-end across unit, dev, staging, and prod; since the schema change is incompatible under `overwriteSchema=false`, `make truncate`/`sdk_truncate_tables.py` was replaced with `make drop`/`sdk_drop_tables.py` (DROP all medallion tables so the next run recreates them), and `make test` was renamed to `make unit-test`.
 
 ---
 
 ## [#36](https://github.com/andre-salvati/databricks-template/pull/36) · 2026-06-09 · feat: price-freeze incremental silver, liquid clustering, readable labels
 
-Added a mutable `external_source.product` dimension (daily `unit_price` MERGE) and frozen `line_revenue` in silver (`item_quantity × unit_price_at_sale`) so a later price change never restates booked revenue; `job1` freezes via an insert-only `MERGE`, `job1_sdp` via a streaming table + stream-static join — both carrying `product_name` and `category_name` labels through to gold.
-Applied Delta liquid clustering to all accumulating tables via `BaseTask.cluster_by` (batch) and the `cluster_by=` decorator (SDP); full-overwrite `raw.*` are intentionally left unclustered, and `integration_setup.py` now matches the prod clustering layout set by `seed_sources`.
-Added a medallion data flow diagram (`docs/medallion_data_flow.png`, also in README) showing both pipeline paths with write modes and clustering keys per table.
+Added a mutable `external_source.product` dimension (daily `unit_price` MERGE) and frozen `line_revenue` in silver (`item_quantity × unit_price_at_sale`) so a later price change never restates booked revenue; `job1` freezes via an insert-only `MERGE`, `job1_sdp` via a streaming table + stream-static join — both carrying `product_name` and `category_name` labels through to gold. Applied Delta liquid clustering to all accumulating tables via `BaseTask.cluster_by` (batch) and the `cluster_by=` decorator (SDP); full-overwrite `raw.*` are intentionally left unclustered, and `integration_setup.py` now matches the prod clustering layout set by `seed_sources`. Added a medallion data flow diagram (`docs/medallion_data_flow.png`, also in README) showing both pipeline paths with write modes and clustering keys per table.
 
 ---
 
 ## [#35](https://github.com/andre-salvati/databricks-template/pull/35) · 2026-06-08 · feat: add /project-costs Claude command and make target
 
-Added `scripts/project_costs.py`, which queries AWS Cost Explorer (daily, last 30 days) and the Databricks `system.billing.usage` system table via the SDK and prints two formatted cost tables, exposed through a `make project-costs` runner.
-Added a `/project-costs` Claude slash command (`.claude/commands/project-costs.md`) that runs the script and analyzes the output for anomalies, spikes, period comparisons, and cross-cloud S3/egress-vs-DBU correlation; `.gitignore` now tracks `.claude/commands/` so project slash commands are shared with the team while personal settings stay local.
-Hardened the script against credential leakage and runtime failures: sanitized AWS/SDK error messages (which can embed caller ARNs or the workspace URL), `FileNotFoundError` and JSON-decode guards, `StatementState.CLOSED` in the poll-exit set, a null-guard on `stmt.status.error` for canceled statements, and `--days >= 1` validation.
+Added `scripts/project_costs.py`, which queries AWS Cost Explorer (daily, last 30 days) and the Databricks `system.billing.usage` system table via the SDK and prints two formatted cost tables, exposed through a `make project-costs` runner. Added a `/project-costs` Claude slash command (`.claude/commands/project-costs.md`) that runs the script and analyzes the output for anomalies, spikes, period comparisons, and cross-cloud S3/egress-vs-DBU correlation; `.gitignore` now tracks `.claude/commands/` so project slash commands are shared with the team while personal settings stay local. Hardened the script against credential leakage and runtime failures: sanitized AWS/SDK error messages (which can embed caller ARNs or the workspace URL), `FileNotFoundError` and JSON-decode guards, `StatementState.CLOSED` in the poll-exit set, a null-guard on `stmt.status.error` for canceled statements, and `--days >= 1` validation.
 
 ---
 
 ## [#34](https://github.com/andre-salvati/databricks-template/pull/34) · 2026-06-05 · feat: standardize silver/gold field names, fix dashboard KPIs, add total_orders
 
-Dropped `ds_kpi` from the dashboard — all three KPI counters (Total Value, Total Orders, Number of Customers) now bind to `ds_orders` with aggregate expressions so all five filters update them; added a third KPI tile for Total Orders (`COUNT DISTINCT order_id`).
-Standardized field names across silver (`curated.order_enriched`) and gold (`report.order_agg`) following four rules: `{entity}_id` suffix, entity-qualified names, `item_*` prefix for item-level fields, no abbreviations; `date` is now cast to `DateType` in silver.
-Added `order_enriched_schema` and `order_agg_schema` to `commonSchemas.py` as canonical schemas for silver and gold; all tests and the integration validator import from there instead of inlining definitions.
+Dropped `ds_kpi` from the dashboard — all three KPI counters (Total Value, Total Orders, Number of Customers) now bind to `ds_orders` with aggregate expressions so all five filters update them; added a third KPI tile for Total Orders (`COUNT DISTINCT order_id`). Standardized field names across silver (`curated.order_enriched`) and gold (`report.order_agg`) following four rules: `{entity}_id` suffix, entity-qualified names, `item_*` prefix for item-level fields, no abbreviations; `date` is now cast to `DateType` in silver. Added `order_enriched_schema` and `order_agg_schema` to `commonSchemas.py` as canonical schemas for silver and gold; all tests and the integration validator import from there instead of inlining definitions.
 
 ---
 
 ## [#33](https://github.com/andre-salvati/databricks-template/pull/33) · 2026-06-04 · feat: AI/BI dashboard, country in gold layer, randomized seed data
 
-Added `country` to `curated.order_enriched` and `report.order_agg` (and SDP equivalents) so the gold layer carries the full customer dimension needed for country-based reporting.
-Added an AI/BI (Lakeview) dashboard with three line charts (total value by date × country, product, and category) and a global filter page; dashboard JSON is generated by `sdk_generate_template_job.py` at deploy time with the target catalog embedded and is gitignored.
-Improved seed data chart visibility with a non-uniform country distribution and `total_item` scaling with `prod_category_id` (category × $15 base + $10 noise), producing a ~6× spread across categories.
+Added `country` to `curated.order_enriched` and `report.order_agg` (and SDP equivalents) so the gold layer carries the full customer dimension needed for country-based reporting. Added an AI/BI (Lakeview) dashboard with three line charts (total value by date × country, product, and category) and a global filter page; dashboard JSON is generated by `sdk_generate_template_job.py` at deploy time with the target catalog embedded and is gitignored. Improved seed data chart visibility with a non-uniform country distribution and `total_item` scaling with `prod_category_id` (category × $15 base + $10 noise), producing a ~6× spread across categories.
 
 ---
 
 ## [#31](https://github.com/andre-salvati/databricks-template/pull/31) · 2026-06-03 · feat: product dimensions, seed enrichment, truncate script, prod schedule
 
-Added `product_id` (100 distinct) and `prod_category_id` (10 distinct) to the order schema and propagated them through extract → enrich → aggregate → SDP transforms; `report.order_agg` now groups by `name`, `date`, `product_id`, `prod_category_id`.
-Enriched seed data: 2M orders spread over 365 days with varied totals ($10–$990), 10 countries, 500 customers, 5 000 incremental orders/day; raised DQX WARN limit to 1 000 to match the new range.
-Added `scripts/sdk_truncate_tables.py` (with `make truncate env=X yes=--yes`) and `scripts/_sdk_sql.py` (shared `get_warehouse_id`/`run_sql` helpers extracted from `sdk_init_workspace.py`).
-Added a 6 am BRT daily cron schedule to `job1_prod_integration`.
+Added `product_id` (100 distinct) and `prod_category_id` (10 distinct) to the order schema and propagated them through extract → enrich → aggregate → SDP transforms; `report.order_agg` now groups by `name`, `date`, `product_id`, `prod_category_id`. Enriched seed data: 2M orders spread over 365 days with varied totals ($10–$990), 10 countries, 500 customers, 5 000 incremental orders/day; raised DQX WARN limit to 1 000 to match the new range. Added `scripts/sdk_truncate_tables.py` (with `make truncate env=X yes=--yes`) and `scripts/_sdk_sql.py` (shared `get_warehouse_id`/`run_sql` helpers extracted from `sdk_init_workspace.py`), plus a 6 am BRT daily cron schedule on `job1_prod_integration`.
 
 ---
 
 ## [#29](https://github.com/andre-salvati/databricks-template/pull/29) · 2026-05-29 · feat: scale load-test, rewrite seed_sources, add prod integration job
 
-Scaled load-test to 500 customers / 2M orders / 6M order_items so the batch vs incremental timing gap is measurable; updated `_validate_load_test` assertions accordingly.
-Rewrote `seed_sources`: initial load when `customer` count < 500, then daily append of 2000 orders + items and MERGE of 50 customer country updates; logs table totals after each run.
-Added `job1_prod_integration` job (seed → run + run_sdp in parallel, no validate); removed `seed_sources` from `job1_prod` so the prod ETL is structurally identical to staging.
+Scaled load-test to 500 customers / 2M orders / 6M order_items so the batch vs incremental timing gap is measurable; updated `_validate_load_test` assertions accordingly. Rewrote `seed_sources`: initial load when `customer` count < 500, then daily append of 2000 orders + items and MERGE of 50 customer country updates; logs table totals after each run. Added the `job1_prod_integration` job (seed → run + run_sdp in parallel, no validate) and removed `seed_sources` from `job1_prod` so the prod ETL is structurally identical to staging.
 
 ---
 
 ## [#28](https://github.com/andre-salvati/databricks-template/pull/28) · 2026-05-29 · feat: add load-test mode to integration tests via job parameter
 
-Added a `load_test` job parameter (default `"false"`) to the integration test job.
-When `"true"`, `Setup` seeds 200 customers / 500k orders / 200 order_items via `spark.range()` and `Validate` checks both `report.order_agg` and `report.order_agg_sdp` for deterministic aggregates.
-No new task classes — the existing integration test job handles both modes.
+Added a `load_test` job parameter (default `"false"`) to the integration test job. When `"true"`, `Setup` seeds 200 customers / 500k orders / 200 order_items via `spark.range()` and `Validate` checks both `report.order_agg` and `report.order_agg_sdp` for deterministic aggregates. No new task classes — the existing integration test job handles both modes.
 
 ---
 

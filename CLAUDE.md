@@ -8,13 +8,14 @@ A production-ready PySpark/Databricks ETL pipeline template using medallion arch
 
 ## Tooling: MCP servers, CLI, skills → see [`specs/tooling.md`](specs/tooling.md)
 
-Developed with the [Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit) (user-level, `~/.ai-dev-kit/`). MCP config (`.mcp.json`) and `.claude/` are gitignored — user-level tooling, not committed; the exception is `.claude/commands/`, which is un-ignored and committed. Quick decision list (full reference in `specs/tooling.md`):
+Developed with the [Databricks AI Dev Kit](https://github.com/databricks-solutions/ai-dev-kit) — **user-level tooling** (`~/.ai-dev-kit/`), never installed into or committed to this repo ([why that matters](specs/tooling.md#install-layout)). Quick decision list (full reference in [`specs/tooling.md`](specs/tooling.md)):
 
-- **Workspace / UC / Jobs / Pipelines / Apps / Serving / SQL** → prefer `mcp__databricks__*` tools over `databricks` CLI shell-outs or hand-rolled SDK scripts.
-- **Bundle / job changes** → `databricks-bundles` / `databricks-jobs` skills, and route job edits through `scripts/sdk_generate_template_job.py` + `make deploy`.
+- **Workspace / UC / Jobs / Pipelines / Apps / Serving / SQL** → prefer `mcp__databricks__*` tools over `databricks` CLI shell-outs or hand-rolled SDK scripts ([servers](specs/tooling.md#mcp-servers)).
+- **Bundle / job changes** → `databricks-bundles` / `databricks-jobs` skills, and route job edits through `scripts/sdk_generate_template_job.py` + `make deploy` ([skills](specs/tooling.md#skills)).
 - **Library/SDK docs** (PySpark, Databricks SDK, uv, ruff) → `context7` MCP, not memory or web search.
-- **Cloud spend / cost analysis** → `aws-billing-cost` MCP (`AWS_PROFILE=costs`) + `/project-costs` skill. **AWS docs** → `aws-documentation` MCP.
+- **Cloud spend / cost analysis** → `aws-billing-cost` MCP (`AWS_PROFILE=costs`) + `/project-costs`. **AWS docs** → `aws-documentation` MCP.
 - Use the `dev` profile unless told otherwise (`prod` for prod ops). If MCP tools are unavailable, fall back to CLI/SDK and flag it.
+- **MCP calls run as the prod SP, not as you** — `dev` is your user account, but the `databricks` MCP server is pinned to `DEFAULT`, which resolves to the same `template-sp` that `prod` uses. It can read/write `prod` tables; the catalog is the guardrail ([why](specs/tooling.md#mcp-runs-as-the-production-service-principal)).
 
 ## Commands
 
@@ -72,8 +73,8 @@ The detailed specs live in [`specs/`](specs/) — read the relevant one **before
 
 - **Ask "should I open a new branch?" before executing a plan**, and **never commit directly to `main`** — cut a feature branch and land via PR (a hook blocks direct commits and pushes to `main`).
 - **Hold commits until asked.** Before merging, update the PR description (a hook uses it as the merge commit message body) following the What / Why / How / Validation / **Impact in prod** template in [`.github/PULL_REQUEST_TEMPLATE.md`](.github/PULL_REQUEST_TEMPLATE.md); any table schema/data change needs the production-table impact check.
-- **Keep docs in sync in the same commit.** Don't ship changes to the CLI surface (`main.py:arg_parser`), runtime env vars, catalog/schema model, or production guardrails without updating `README.md`, the relevant doc under `specs/`, and this file (`CLAUDE.md`) together.
-- **Add a `specs/CHANGELOG.md` entry immediately before merging a PR** (not while the work is in progress — scope grows, and an early entry just gets rewritten). Append-only (never edit old ones). Each entry is **exactly 3 sentences** and **at most ~5 rendered lines** (~475 chars); keep it one unwrapped paragraph — the line cap is a length budget, not a wrap width.
+- **Keep docs in sync in the same commit** — the CLI surface (`main.py:arg_parser`), runtime env vars, catalog/schema model, and production guardrails each need `README.md` + the relevant `specs/` doc + this file updated together ([full rule](specs/workflow.md#keep-docs-in-sync)).
+- **Add a `specs/CHANGELOG.md` entry immediately before merging** — never earlier; append-only; one unwrapped paragraph, ~1000 characters ([full rule](specs/workflow.md#changelog-discipline)).
 
 ## Keep It Simple
 

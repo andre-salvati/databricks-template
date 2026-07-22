@@ -19,7 +19,10 @@ before starting any change. For what the code does, see [architecture.md](archit
 
 ## Branches & commits
 
-- Branch from an up-to-date `main`; one subject per branch/PR.
+- Branch from an up-to-date `main`; one subject per branch/PR. Check where you are first
+  (`git branch --show-current`): if you're on `main` or on a stale/already-merged branch, run
+  `git checkout main && git pull && git checkout -b <branch>` before editing. Starting from a
+  diverged base causes conflicts and can silently regress work from a merged PR.
 - Commit messages end with the `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>` trailer.
 - **Never commit generated / local-state files** (all gitignored): `resources/jobs.yml`,
   `resources/orders_dashboard_deploy.lvdash.json`, `.databricks-resources.json`.
@@ -73,14 +76,31 @@ default for schema migrations) / *rebuild* / *leave as-is*. On `staging`/`prod`,
 
 ## CHANGELOG discipline
 
-`specs/CHANGELOG.md` is **append-only** — add a new entry before every merge, never edit old ones.
-Each entry is **at most 3 sentences**. Header format:
+`specs/CHANGELOG.md` is **append-only** — add a new entry at the top before every merge, and never
+edit or reformat an existing one. This section is the authority on the rule; `CLAUDE.md` only points
+here.
+
+**Write it at merge time — not before.** Don't draft the entry when you cut the branch, when you
+commit, or when you open the PR. A branch's scope almost always grows, and an entry written early
+just gets rewritten every time it does. Write it once, against the branch's final scope, when merge
+is imminent. Forgetting isn't the risk: the `require-changelog-entry.sh` hook blocks `gh pr merge`
+when the branch adds no entry, so that block is the reminder.
+
+**Size — around 1000 characters**, written as one unwrapped paragraph. The cap is a length budget,
+not a wrap width: don't hard-wrap the entry, and don't pad a short one to reach it. Character count
+is the only limit — an earlier "exactly 3 sentences" rule was dropped because it constrained nothing
+(three sentences had drifted into 17-line run-ons; see the first draft of #48). Name what changed
+and the one fact a future reader needs — exhaustive detail belongs in the PR description and the
+commit message, which is where it survives anyway.
+
+**Header format** — use the PR URL directly, since the PR number is known once it's open:
 
 ```
-## [#NN] · <branch> · YYYY-MM-DD · <title>
+## [#NN](https://github.com/andre-salvati/databricks-template/pull/NN) · YYYY-MM-DD · <title>
 ```
 
-Replace `<branch>` with the PR URL after the PR is merged.
+The existing entries were normalized to this style once, in #49. That was a deliberate one-off to
+give the file a single voice; append-only applies from there on.
 
 ## Keep docs in sync
 
