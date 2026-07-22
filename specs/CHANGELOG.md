@@ -2,6 +2,12 @@
 
 ---
 
+## [#50](https://github.com/andre-salvati/databricks-template/pull/50) · 2026-07-22 · feat: SQL query-plan diagrams, and a reports/ folder for generated artifacts
+
+Added `make sql-diagram` / `/sql-diagram`, which parses a query with `sqlglot` and draws either its execution steps (default) or its column-level lineage, emitting the analysed `.sql` beside a Mermaid `.mmd` and a hand-written `.svg` — no `mmdc`, so no Node toolchain in a Python repo. `sqlglot` models a multi-table join as one n-ary step, so the plan builder splits it back into `JOIN 1`, `JOIN 2`, … in written order, which is what makes an under-constrained join predicate visible — the bug class behind the 3.5× fan-out fixed in #47. Table annotations come from Unity Catalog comments through the `dev` profile (the MCP service principal lacks `USE SCHEMA` on `system.billing`), opt-in as the only network call. Round-tripping the emitted SQL exposed that `planner.Step.dependencies` is a set, so node numbering followed the process hash seed and the `.mmd` churned on every run; dependencies are now walked in a stable order. Generated artifacts also moved under `reports/`: `coverage`, `cost` and `sql-diagram`.
+
+---
+
 ## [#49](https://github.com/andre-salvati/databricks-template/pull/49) · 2026-07-21 · feat: attribute Databricks spend to jobs and pipelines
 
 Added a fourth table to `make project-costs`, Databricks by Job / Pipeline, attributing spend to the job or SDP pipeline that incurred it. Job names come off `usage_metadata.job_name`; only pipelines need a lookup, pre-collapsed per `pipeline_id` because joining those slowly-changing dimensions to usage otherwise fans each row out per revision and overcounted one job 21×. Only usage carrying a `job_id` or `dlt_pipeline_id` is attributable, so it breaks down scheduled work, not the whole bill.
