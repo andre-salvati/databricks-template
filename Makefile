@@ -37,6 +37,11 @@ project-costs: aws-profile ?= costs
 project-costs:
 	uv run python ./scripts/project_costs.py $(if $(aws-profile),--aws-profile $(aws-profile),)
 
+# Column-level lineage diagram (Mermaid) for a SQL query, parsed by sqlglot.
+# Pass the query with sql=path/to/query.sql; omit it to read from stdin.
+sql-lineage:
+	uv run python ./scripts/sql_lineage.py $(if $(sql),--file $(sql),)
+
 # Regenerate the README star-history chart from the GitHub API. The SVGs are committed,
 # so the README renders from this repo rather than a third-party chart service.
 star-history:

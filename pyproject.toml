@@ -24,6 +24,7 @@ dev = [
     "pytest-cov==5.0.0",
     "pyspark==4.1.0",
     "databricks-bundles>=0.298.0",
+    "sqlglot==30.13.0",
 ]
 
 [project.scripts]
