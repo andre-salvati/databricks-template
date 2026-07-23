@@ -40,7 +40,9 @@ jobs:
           python-version: '3.12'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v9
+        # Pinned to the full release tag: setup-uv stopped publishing moving major
+        # tags (v1..v7) after v7, so `@v9` does not resolve — use the exact tag.
+        uses: astral-sh/setup-uv@v9.0.0
         with:
           version: "0.11.31"
           enable-cache: true
