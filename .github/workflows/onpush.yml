@@ -40,11 +40,19 @@ jobs:
           python-version: '3.12'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        # Pinned to the full release tag: setup-uv stopped publishing moving major
+        # tags (v1..v7) after v7, so `@v9` does not resolve — use the exact tag.
+        uses: astral-sh/setup-uv@v9.0.0
         with:
-          version: "0.9.8"
+          version: "0.11.31"
           enable-cache: true
           cache-dependency-glob: "uv.lock"
+
+      # Fail if a PR edited pyproject.toml without re-running `uv lock`. `make sync`
+      # would silently re-resolve and discard the update in CI's throwaway checkout,
+      # leaving the committed uv.lock stale. This read-only check keeps them in sync.
+      - name: Verify lockfile is current
+        run: uv lock --check
 
       - name: Install dependencies
         run: make sync
@@ -62,7 +70,7 @@ jobs:
 
       # Pin the CLI to a tagged release so an upstream change can't silently break CI.
       - name: Install Databricks CLI
-        uses: databricks/setup-cli@v0.298.0
+        uses: databricks/setup-cli@v1.9.0
 
       - name: Deploy on staging
         run: make deploy env=staging

@@ -1,7 +1,7 @@
 # See https://docs.databricks.com/dev-tools/bundles/index.html for documentation.
 bundle:
   name: default_python
-  databricks_cli_version: ">=0.298.0"
+  databricks_cli_version: ">=1.9.0"
   engine: direct
 
 artifacts:

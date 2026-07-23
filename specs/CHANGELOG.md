@@ -2,6 +2,12 @@
 
 ---
 
+## [#51](https://github.com/andre-salvati/databricks-template/pull/51) · 2026-07-23 · chore: upgrade Databricks CLI to 1.9.0, DQX to 0.15.0, and track uv.lock
+
+Bumped the deploy toolchain — Databricks CLI and `databricks-bundles` `0.298.0` → `1.9.0` — DQX `0.12.0` → `0.15.0`, and the dev/test pins (ruff, uv, pytest 9, coverage, pre-commit, pydantic). The serverless-mirror pins (`pyspark` 4.1.0, pandas, numpy, pyarrow) stay frozen to environment version 5, the runtime the wheel executes on, and now carry a comment saying so — bumping them past PyPI would put unit tests ahead of production, and there is no Spark 4.2 serverless environment yet. DQX 0.15 widens the quarantine `_errors`/`_warnings` structs with `rule_fingerprint`, `rule_set_fingerprint` and `skipped`; since every medallion write uses `overwriteSchema=false`, that fails against tables created under 0.12, so `raw.order_quarantine` needs `make drop` before the first run on each env (validated on staging: drop → deploy → run). CLI v1.0.0 also moved OAuth tokens to the OS keyring, so `databricks-cli` profiles need one `databricks auth login`; service-principal profiles and CI are unaffected. Finally, `uv.lock` is now tracked — a stale `*.lock` ignore from the 2024 pipenv migration had let transitive deps like `databricks-sdk` float on every CI run — guarded by a `uv lock --check` step.
+
+---
+
 ## [#50](https://github.com/andre-salvati/databricks-template/pull/50) · 2026-07-22 · feat: SQL query-plan diagrams, and a reports/ folder for generated artifacts
 
 Added `make sql-diagram` / `/sql-diagram`, which parses a query with `sqlglot` and draws either its execution steps (default) or its column-level lineage, emitting the analysed `.sql` beside a Mermaid `.mmd` and a hand-written `.svg` — no `mmdc`, so no Node toolchain in a Python repo. `sqlglot` models a multi-table join as one n-ary step, so the plan builder splits it back into `JOIN 1`, `JOIN 2`, … in written order, which is what makes an under-constrained join predicate visible — the bug class behind the 3.5× fan-out fixed in #47. Table annotations come from Unity Catalog comments through the `dev` profile (the MCP service principal lacks `USE SCHEMA` on `system.billing`), opt-in as the only network call. Round-tripping the emitted SQL exposed that `planner.Step.dependencies` is a set, so node numbering followed the process hash seed and the `.mmd` churned on every run; dependencies are now walked in a stable order. Generated artifacts also moved under `reports/`: `coverage`, `cost` and `sql-diagram`.
