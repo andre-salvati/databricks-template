@@ -40,9 +40,9 @@ jobs:
           python-version: '3.12'
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v7
+        uses: astral-sh/setup-uv@v9
         with:
-          version: "0.9.8"
+          version: "0.11.31"
           enable-cache: true
           cache-dependency-glob: "uv.lock"
 
@@ -62,7 +62,7 @@ jobs:
 
       # Pin the CLI to a tagged release so an upstream change can't silently break CI.
       - name: Install Databricks CLI
-        uses: databricks/setup-cli@v0.298.0
+        uses: databricks/setup-cli@v1.9.0
 
       - name: Deploy on staging
         run: make deploy env=staging

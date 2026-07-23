@@ -11,7 +11,9 @@ build/
 reports/coverage/
 src/template.egg-info/
 *.pyc
-*.lock
+# uv.lock IS tracked — it pins transitive deps (notably databricks-sdk, which arrives
+# via DQX under a wide `~=0.73` range) so CI resolves the same graph every run. The old
+# blanket `*.lock` ignore was a leftover from the 2024 pipenv era and silently excluded it.
 .coverage*
 resources/jobs.yml
 resources/orders_dashboard_deploy.lvdash.json
@@ -20,6 +22,10 @@ resources/orders_dashboard_deploy.lvdash.json
 .ai-dev-kit/
 .github/skills/
 .mcp.json
+.mcp.json.bak
+# Dev Kit 0.1.14 also writes Codex/Copilot agent configs into the project dir
+.agents/
+.codex/
 # Generated spend reports — local artifacts containing account cost figures.
 # A report that has been committed stays tracked (.gitignore only governs untracked files), so
 # new dated reports are ignored by default; `git add -f` a specific one to keep it.
