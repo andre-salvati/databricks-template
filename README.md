@@ -59,7 +59,7 @@ This project template demonstrates how to:
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) to manage permissions and get data lineage.
 - enforce production guardrails out of the box — identity-locked CI deploys, a health-check task, wheel version pinning, per-task timeouts, schema-drift guards, queued runs, and on-call alerting.
 - track project cloud spend in USD across AWS (Cost Explorer) and Databricks ([`system.billing`](https://docs.databricks.com/aws/en/admin/system-tables/pricing)) with `make project-costs` — see an [example report](reports/cost/2026-07-22.md).
-- diagram any SQL query with `make sql-diagram sql=<file>` — [`sqlglot`](https://github.com/tobymao/sqlglot) parses the AST and writes a Mermaid flowchart plus a standalone SVG to `reports/sql-diagram/`, either as the query's execution steps (each scan, each join with its keys, filter, aggregate, sort — [example](reports/sql-diagram/job_spend_plan.svg)) or as column-level lineage (`mode=lineage`), so what is drawn is what the query says rather than what a model guessed.
+- diagram any SQL query with [sqlglot](https://github.com/tobymao/sqlglot) — see an [example](reports/sql-diagram/job_spend_plan.svg).
 - utilize serverless job clusters on [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
 
 
