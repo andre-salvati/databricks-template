@@ -50,7 +50,7 @@ The detailed specs live in [`specs/`](specs/) — read the relevant one **before
 
 - [`specs/architecture.md`](specs/architecture.md) — execution flow, CLI surface, key classes, jobs DAG, job **generation**, CI/CD, job-level params, deploy-time env vars, logging, production guardrails, adding a new job.
 - [`specs/data-model.md`](specs/data-model.md) — plain-words pipeline overview, catalog/schema isolation, medallion flow, table schemas, **field naming conventions**, product-name freeze, liquid clustering, DQX/quarantine, lineage.
-- [`specs/workflow.md`](specs/workflow.md) — the development lifecycle (plan → branch → PR), PR description standard, production-table impact check, and the unit / integration / load test plan.
+- [`specs/workflow.md`](specs/workflow.md) — the development lifecycle (plan → branch → PR), PR description standard, production-table impact check, the prod rollback playbook, and the unit / integration / load test plan.
 - [`specs/tooling.md`](specs/tooling.md) — MCP servers (Databricks, AWS billing/docs, context7), CLI, and skills: what to reach for and when.
 - The AI/BI dashboard: latest-name binding and deploy mechanics are documented in [`specs/data-model.md#dashboard`](specs/data-model.md#dashboard) — edit the committed `resources/orders_dashboard.lvdash.json` (catalog `${var.catalog}`, resolved at deploy time).
 

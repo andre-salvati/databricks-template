@@ -69,7 +69,7 @@ Deep technical detail lives in [`specs/`](specs/) (the README stays a landing pa
 
 - [**Architecture**](specs/architecture.md) — wheel/CLI surface, jobs DAG, job generation, CI/CD, job-level params, deploy-time env vars, logging, production guardrails, folder structure.
 - [**Data model**](specs/data-model.md) — catalog/schema isolation, medallion data flow (diagram), table schemas, product-name freeze semantics, the dashboard, liquid clustering, DQX/quarantine, lineage.
-- [**Workflow**](specs/workflow.md) — the development lifecycle (plan → branch → PR), PR description standard, production-table impact check, and the unit / integration / load test plan.
+- [**Workflow**](specs/workflow.md) — the development lifecycle (plan → branch → PR), PR description standard, production-table impact check, the prod rollback playbook, and the unit / integration / load test plan.
 - [**Tooling**](specs/tooling.md) — MCP servers (Databricks, AWS billing/docs, context7), the Databricks CLI, and the bundled skills.
 
 ## 🧠 Resources
