@@ -241,6 +241,16 @@ metadata-only — it does not rewrite existing data.
 table. The `--quarantine-fail-ratio` job parameter hard-fails the task when too many rows are
 quarantined (silent quarantine bloat is the main DQX failure mode in prod).
 
+**`raw.order_quarantine` is written with `overwriteSchema=true`** — the one medallion table besides
+`ops._health` that is not schema-pinned. DQX appends `_errors` and `_warnings` structs to every
+quarantined row, and the *shape of those structs belongs to the DQX version*, not to the source data
+contract: upgrading to DQX 0.15.0 added `rule_fingerprint`, `rule_set_fingerprint` and `skipped` to
+them, which hard-failed `job1_prod` on the first run after the upgrade. Pinning library metadata
+turns every dependency bump into a production outage, and that is a false positive rather than the
+drift signal the guard is meant to raise. The guard is not lost: the business columns reaching
+quarantine come from the same DataFrame that `ExtractSource2` writes to `raw.order` a few lines
+later with `overwriteSchema=false`, so genuine source drift still hard-fails the same task.
+
 <img src="../assets/data_quality.png">
 
 ## Data lineage (Unity Catalog)

@@ -21,10 +21,13 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false
 
+# `DATABRICKS_CLIENT_SECRET` is deliberately NOT here: a workflow-level env var is visible
+# to every step, including dependency installation, where third-party action and package
+# code executes. It is injected per-step, only on the three steps that talk to Databricks.
+# (The host and client ID are identifiers, not credentials — leaking them grants nothing.)
 env:
   DATABRICKS_HOST: ${{ secrets.DATABRICKS_HOST }}
   DATABRICKS_CLIENT_ID: ${{ secrets.DATABRICKS_CLIENT_ID }}
-  DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
   TEMPLATE_ALERT_EMAILS: ${{ secrets.TEMPLATE_ALERT_EMAILS }}
 
 jobs:
@@ -32,17 +35,20 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v4
+      # Third-party actions are pinned to a full commit SHA, not a tag: tags are mutable,
+      # so whoever controls the action's repo can repoint one at new code that runs on this
+      # runner. The trailing comment records which release the SHA corresponds to.
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5
         with:
           python-version: '3.12'
 
       - name: Install uv
-        # Pinned to the full release tag: setup-uv stopped publishing moving major
-        # tags (v1..v7) after v7, so `@v9` does not resolve — use the exact tag.
-        uses: astral-sh/setup-uv@v9.0.0
+        # setup-uv stopped publishing moving major tags (v1..v7) after v7, so `@v9` does
+        # not resolve — the comment records the exact release this SHA belongs to.
+        uses: astral-sh/setup-uv@c771a70e6277c0a99b617c7a806ffedaca235ff9  # v9.0.0
         with:
           version: "0.11.31"
           enable-cache: true
@@ -62,22 +68,28 @@ jobs:
 
       - name: Upload coverage report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
         with:
           name: coverage-report
           path: reports/coverage/
           retention-days: 14
 
-      # Pin the CLI to a tagged release so an upstream change can't silently break CI.
+      # Pinned so an upstream change can't silently break CI; comment records the release.
       - name: Install Databricks CLI
-        uses: databricks/setup-cli@v1.9.0
+        uses: databricks/setup-cli@8b7b124dc4f5b9621e959ea61cf4d3dd4e421f67  # v1.9.0
 
       - name: Deploy on staging
+        env:
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
         run: make deploy env=staging
 
       - name: Run integration tests on staging
+        env:
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
         run: make run env=staging
 
       - name: Deploy on prod
         if: github.ref == 'refs/heads/main'
+        env:
+          DATABRICKS_CLIENT_SECRET: ${{ secrets.DATABRICKS_CLIENT_SECRET }}
         run: make deploy env=prod

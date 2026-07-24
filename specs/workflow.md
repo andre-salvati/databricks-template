@@ -74,6 +74,70 @@ Declare the chosen strategy in the PR: *modify in place* / *drop + recreate* (`m
 default for schema migrations) / *rebuild* / *leave as-is*. On `staging`/`prod`, `make drop` requires
 `yes=--yes`.
 
+## Rollback
+
+The impact check above anticipates breakage; this section is what to do once prod is already broken.
+Merging to `main` deploys to prod with no approval gate, so the rollback path has to be known before
+it is needed — **rehearse it on `staging`, never improvise it on prod**.
+
+The rule that organises everything else: **a redeploy reverts code, never data.** Decide which of the
+two you actually need — often it is only the first.
+
+### 1. Stop what is running
+
+A rollback that races an in-flight run leaves tables half-written by two different code versions.
+Cancel first, then deploy:
+
+```bash
+databricks jobs cancel-all-runs --job-id <id> --profile prod   # job1_prod, and the integration job
+databricks pipelines stop job1_sdp --profile prod              # the SDP pipeline update
+```
+
+### 2. Roll back the code
+
+```bash
+git checkout <last-good-sha>     # the merge commit of the last healthy PR on main
+make deploy env=prod
+git checkout main                # don't leave the working tree detached
+```
+
+This works because **nothing deployed is stored separately from the checkout**: `make deploy`
+regenerates `resources/jobs.yml`, the SDP pipeline definition and the dashboard JSON from
+`scripts/sdk_generate_template_job.py`, and the bundle rebuilds and re-uploads the wheel. There is no
+artifact registry to reconcile and no previous bundle to retain — the git history *is* the artifact
+store. The next merge to `main` redeploys forward, so a rollback is never a dead end.
+
+### 3. Roll back the data (only if the bad code wrote rows)
+
+Every medallion table is Delta, so rollback is per-table time travel:
+
+```sql
+DESCRIBE HISTORY prod.curated.order_enriched;
+RESTORE TABLE prod.curated.order_enriched TO VERSION AS OF <n>;
+```
+
+Two things to get right:
+
+- **Silver cannot be rebuilt by re-running.** `curated.order_enriched` freezes `product_name` onto
+  each order line at sale time (see [data-model.md](data-model.md)). Re-deriving it from `raw` stamps
+  *today's* product names onto historical orders — the numbers look plausible and the history is
+  silently wrong. `RESTORE` is the only faithful rollback for silver; for `report.order_agg` (a pure
+  aggregation) re-running is equivalent and simpler.
+- **Restore upstream first, then re-derive downstream**, so gold is recomputed from restored silver
+  rather than restored independently to a mismatched version.
+
+### 4. Roll back a schema change
+
+The nuclear option, and the remediation the impact-check table already points at: `make drop
+env=prod yes=--yes` drops the medallion tables so the next run recreates them at the rolled-back
+schema. It **destroys history** — no time travel afterwards — so it is the last resort, valid when
+the data is reproducible from `external_source` and the freeze caveat above does not apply.
+
+### 5. Confirm you are actually back
+
+`make whoami` (identity is `template-sp`), rerun `job1_prod`, then check `ops._health` for the
+current run and the dashboard for plausible gold numbers.
+
 ## CHANGELOG discipline
 
 `specs/CHANGELOG.md` is **append-only** — add a new entry at the top before every merge, and never

@@ -50,7 +50,7 @@ The detailed specs live in [`specs/`](specs/) — read the relevant one **before
 
 - [`specs/architecture.md`](specs/architecture.md) — execution flow, CLI surface, key classes, jobs DAG, job **generation**, CI/CD, job-level params, deploy-time env vars, logging, production guardrails, adding a new job.
 - [`specs/data-model.md`](specs/data-model.md) — plain-words pipeline overview, catalog/schema isolation, medallion flow, table schemas, **field naming conventions**, product-name freeze, liquid clustering, DQX/quarantine, lineage.
-- [`specs/workflow.md`](specs/workflow.md) — the development lifecycle (plan → branch → PR), PR description standard, production-table impact check, and the unit / integration / load test plan.
+- [`specs/workflow.md`](specs/workflow.md) — the development lifecycle (plan → branch → PR), PR description standard, production-table impact check, the prod rollback playbook, and the unit / integration / load test plan.
 - [`specs/tooling.md`](specs/tooling.md) — MCP servers (Databricks, AWS billing/docs, context7), CLI, and skills: what to reach for and when.
 - The AI/BI dashboard: latest-name binding and deploy mechanics are documented in [`specs/data-model.md#dashboard`](specs/data-model.md#dashboard) — edit the committed `resources/orders_dashboard.lvdash.json` (catalog `${var.catalog}`, resolved at deploy time).
 
@@ -67,7 +67,7 @@ The detailed specs live in [`specs/`](specs/) — read the relevant one **before
 - **Do not use `print()`.** Use `self.logger.info(...)` so output is structured and visible in the Databricks driver log. The logger handler is installed in `config.py:_configure_logging` (`template` logger, `propagate = False` to avoid py4j teardown noise).
 - **Do not pass `${workspace.current_user.short_name}` as a `--user` arg.** Identity comes from `WorkspaceClient` at runtime with sanitization. If you re-add the CLI arg, you reintroduce a deploy-time/runtime mismatch.
 - **`run_as` field on a job dict takes `application_id` (int), not `display_name`** — the dict key is named `service_principal_name` for legacy reasons, but the value is the numeric app ID.
-- **All writes must use `.option("overwriteSchema", "false")`** on medallion tables. Schema drift is a failure signal, not something to silently absorb. The only exception is `ops._health` (intentional; `overwriteSchema=true` is fine there).
+- **All writes must use `.option("overwriteSchema", "false")`** on medallion tables. Schema drift is a failure signal, not something to silently absorb. Two intentional exceptions use `overwriteSchema=true`: `ops._health`, and `raw.order_quarantine` — the quarantine table's `_errors`/`_warnings` structs are shaped by the DQX library version, so pinning them turns every DQX upgrade into a prod outage (it did, on 0.15.0). Real drift there is still caught by the `raw.order` write in the same task.
 
 ## Git Workflow → full detail in [`specs/workflow.md`](specs/workflow.md)
 
