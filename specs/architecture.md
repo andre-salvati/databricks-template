@@ -101,7 +101,55 @@ and `specs/**`. There is **no `bundle validate` step** — `make deploy` regener
 trigger allows re-running CI without a new commit.
 
 Requires `DATABRICKS_HOST`, `DATABRICKS_CLIENT_ID`, `DATABRICKS_CLIENT_SECRET`, and
-`TEMPLATE_ALERT_EMAILS` repo secrets. CLI and action versions are pinned.
+`TEMPLATE_ALERT_EMAILS` repo secrets. Every third-party action is pinned to a **full commit SHA**
+(with the release in a trailing comment) rather than a tag — tags are mutable, so whoever controls an
+action's repository can repoint one at code that then runs on the runner. `databricks/setup-cli`
+resolves the CLI version from a `VERSION` file at the pinned ref, so the SHA pin also keeps the CLI
+version fixed.
+
+### CI authentication — why the client secret, and what replaces it
+
+CI authenticates as `template-sp` with a **long-lived OAuth client secret** stored as a GitHub
+secret. Databricks explicitly recommends against this: the preferred mechanism is
+[workload identity federation](https://docs.databricks.com/aws/en/dev-tools/auth/provider-github)
+(OIDC), where the runner mints a short-lived JWT signed by GitHub and Databricks exchanges it for an
+OAuth token — nothing stored, nothing to rotate, useless if leaked.
+
+**This template cannot use it, because it runs on Databricks Free Edition**, which has
+[no access to the account console or account-level APIs](https://docs.databricks.com/aws/en/getting-started/free-edition-limitations).
+The trust anchor for OIDC is a *service principal federation policy*, and that is an account-level
+API — every call returns `unauthenticated` on Free Edition regardless of workspace admin rights.
+
+Two mitigations do apply here, and are in place. First, `DATABRICKS_CLIENT_SECRET` is injected
+**per-step**, only on the three steps that talk to Databricks — a workflow-level `env:` would expose
+it to every step, including dependency installation, which is exactly where third-party code
+executes. Second, the SHA pinning described above closes the other route to that runner environment.
+Neither shortens the credential's lifetime, which is what only OIDC fixes.
+
+If you fork this template onto a paid account, this is the first hardening to apply. An account
+admin creates the policy once:
+
+```bash
+databricks account service-principal-federation-policy create <TEMPLATE_SP_NUMERIC_ID> --json '{
+  "oidc_policy": {
+    "issuer": "https://token.actions.githubusercontent.com",
+    "subject_claim": "repository",
+    "subject": "<github-org>/<repo>"
+  }
+}'
+```
+
+then in `onpush.yml` add `permissions: {id-token: write, contents: read}`, set
+`DATABRICKS_AUTH_TYPE: github-oidc`, and drop `DATABRICKS_CLIENT_SECRET`. Match on the `repository`
+claim rather than the default `sub`: `sub` embeds the branch
+(`repo:org/repo:ref:refs/heads/main`) and policy subjects are exact matches with no wildcards, but
+CI deploys to staging on **every** branch — one policy on `repository` covers them all. That does
+not widen prod access, which is gated by `if: github.ref == 'refs/heads/main'` in the workflow. (A
+per-environment policy, `...:environment:staging` / `...:environment:production`, is tighter and
+pairs naturally with GitHub Environments and required reviewers.)
+
+Local development is unaffected either way — it authenticates through the `dev`/`staging`/`prod`
+profiles in `.databrickscfg`.
 
 <!-- Diagram source: assets/ci_cd.drawio (edit in https://app.diagrams.net, then export over assets/ci_cd.png) -->
 <img src="../assets/ci_cd.png" alt="CI/CD: local dev loop and the onpush.yml GitHub Actions pipeline">
