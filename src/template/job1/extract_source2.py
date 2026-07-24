@@ -50,11 +50,15 @@ class ExtractSource2(BaseTask):
         df_order, df_order_invalid = self.validate_order(df_order)
 
         # Persist quarantine first so it survives a downstream failure.
-        (
-            df_order_invalid.write.mode("overwrite")
-            .option("overwriteSchema", "false")
-            .saveAsTable("raw.order_quarantine")
-        )
+        #
+        # overwriteSchema=true here, unlike every other medallion write. The quarantine table
+        # carries DQX's `_errors`/`_warnings` structs, whose shape is owned by the DQX library
+        # version, not by the source data contract — a DQX upgrade adds fields to them and would
+        # otherwise hard-fail prod (it did: 0.15.0 added rule_fingerprint / rule_set_fingerprint /
+        # skipped). That is a false positive, not schema drift. Real drift is still caught: the
+        # business columns here come from the same DataFrame written to raw.order below, which
+        # keeps overwriteSchema=false.
+        (df_order_invalid.write.mode("overwrite").option("overwriteSchema", "true").saveAsTable("raw.order_quarantine"))
 
         valid_count = df_order.count()
         invalid_count = df_order_invalid.count()

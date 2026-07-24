@@ -67,7 +67,7 @@ The detailed specs live in [`specs/`](specs/) — read the relevant one **before
 - **Do not use `print()`.** Use `self.logger.info(...)` so output is structured and visible in the Databricks driver log. The logger handler is installed in `config.py:_configure_logging` (`template` logger, `propagate = False` to avoid py4j teardown noise).
 - **Do not pass `${workspace.current_user.short_name}` as a `--user` arg.** Identity comes from `WorkspaceClient` at runtime with sanitization. If you re-add the CLI arg, you reintroduce a deploy-time/runtime mismatch.
 - **`run_as` field on a job dict takes `application_id` (int), not `display_name`** — the dict key is named `service_principal_name` for legacy reasons, but the value is the numeric app ID.
-- **All writes must use `.option("overwriteSchema", "false")`** on medallion tables. Schema drift is a failure signal, not something to silently absorb. The only exception is `ops._health` (intentional; `overwriteSchema=true` is fine there).
+- **All writes must use `.option("overwriteSchema", "false")`** on medallion tables. Schema drift is a failure signal, not something to silently absorb. Two intentional exceptions use `overwriteSchema=true`: `ops._health`, and `raw.order_quarantine` — the quarantine table's `_errors`/`_warnings` structs are shaped by the DQX library version, so pinning them turns every DQX upgrade into a prod outage (it did, on 0.15.0). Real drift there is still caught by the `raw.order` write in the same task.
 
 ## Git Workflow → full detail in [`specs/workflow.md`](specs/workflow.md)
 
