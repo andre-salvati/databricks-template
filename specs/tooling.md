@@ -32,8 +32,16 @@ undetectable from a session. This repo carried exactly that: a project-scoped in
 `.github/skills/` and `.ai-dev-kit/` remain (gitignored, stale, and only relevant to Copilot).
 
 `.gitignore` keeps all of it out of the repo: `.mcp.json`, `.ai-dev-kit/`, `.github/skills/`, and
-`.claude/*`. The one exception is `.claude/commands/`, which is un-ignored so project slash commands
-(e.g. `/project-costs`) are committed and every developer gets them.
+`.claude/*`. Four things are un-ignored so every developer gets them: `.claude/commands/` (project
+slash commands, e.g. `/project-costs`), `.claude/hooks/` and `.claude/settings.json` (see
+[Hooks](#hooks)), and `.claude/skills/data-divergence/` — this repo's own skill, named explicitly
+rather than by a wildcard so the kit's skills in the same directory stay ignored. Adding another repo
+skill means adding another negation pair; `git add -An .claude/` should still stage only our files,
+and is the check to re-run after touching those lines.
+
+**`.claude/settings.local.json` stays ignored** — it is personal (permissions, machine-specific
+paths, per-developer MCP toggles). Anything absolute or specific to one machine belongs there, not in
+the committed `settings.json`; Claude Code merges the two.
 
 ## MCP servers
 
@@ -77,6 +85,31 @@ uses `prod`), which is what `make whoami` reports on.
 If MCP tools are unavailable in a session, fall back to the `databricks` CLI or `databricks-sdk`
 directly (or `aws` CLI / web search for the AWS and context7 cases) — but flag the fallback.
 
+## Hooks
+
+`.claude/hooks/` holds the three shell hooks that enforce the git workflow in
+[workflow.md](workflow.md). They are **committed** — the rules they enforce are stated as project
+rules in `CLAUDE.md`, so shipping the scripts is what makes those statements true for a fresh clone
+rather than a description of one machine's setup.
+
+| Hook | Fires on | Effect |
+|---|---|---|
+| `protect-main-branch.sh` | any Bash `git commit` / `git push` | blocks a commit made while on `main`, and any push targeting `main`. |
+| `require-changelog-entry.sh` | Bash `gh pr merge` | blocks the merge unless the branch diff touches `specs/CHANGELOG.md`, compared against `origin/main`/`main` via a merge-base (`...`) diff. |
+| `pr-merge-description.sh` | Bash `gh pr merge` | pushes the PR title/body to GitHub, then rewrites the command with `--subject`/`--body-file` so the description becomes the merge commit message. Skips if `--body`/`--subject`/`--body-file` or `--rebase` is already present. |
+
+The scripts are portable — no absolute paths, no secrets — and are committed mode `755`.
+
+**The wiring is committed too.** A hook only runs if a settings file registers it, so
+`.claude/settings.json` is un-ignored and registers all three as `PreToolUse` command hooks matching
+`Bash`. It refers to them as `$CLAUDE_PROJECT_DIR/.claude/hooks/<name>.sh`, never as an absolute
+path — that variable is what keeps the file valid in any clone, and a hardcoded path is the one edit
+that would quietly break it for everyone else. Keep machine-specific hooks (an update check pointing
+into `~/.ai-dev-kit/`, say) in `.claude/settings.local.json` instead; the two files are merged.
+
+`require-changelog-entry.sh` and `protect-main-branch.sh` self-gate on the command text instead of
+trusting a settings-level `if:` filter, so they stay correct however they are registered.
+
 ## Databricks CLI
 
 Used for bundle work and as the MCP fallback. The day-to-day surface is wrapped in the `Makefile`
@@ -96,11 +129,17 @@ is the kit's entry point for CLI, auth, and bundle work — load it first, then 
 - **databricks-python-sdk** — SDK code under `src/template/` and in `scripts/`.
 - **databricks-unity-catalog**, **databricks-aibi-dashboards**, **databricks-spark-declarative-pipelines**,
   etc. — invoke when the task is squarely in that area.
+- **data-divergence** — *this repo's own skill*, not the kit's: investigating why two datasets that
+  should agree don't. Written generically (no table or column names from this project), so it covers
+  batch vs SDP, a gold rollup vs the silver it aggregates, a dashboard tile vs its source, and prod
+  vs staging alike. Lives in `.claude/skills/data-divergence/` and is committed; see the un-ignore
+  note above.
 
 Two gotchas. Some skills' frontmatter `name:` differs from their directory (`databricks` declares
 `databricks-core`; `analyze-mlflow-trace` declares `analyzing-mlflow-trace`) — **invoke by directory
-name**, which is what the session's skill list shows; the frontmatter name is not the handle. And
-`/project-costs` is **not** a kit skill; it's this repo's own committed slash command
+name**, which is what the session's skill list shows; the frontmatter name is not the handle.
+(`data-divergence` declares a matching name, so it has no such split.) And `/project-costs` is
+**not** a kit skill either; it's this repo's own committed slash command
 (`.claude/commands/project-costs.md`) wrapping `scripts/project_costs.py`.
 
 `databricks-core` also cross-references skills by their *post-migration* names — it points at

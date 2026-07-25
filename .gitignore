@@ -5,6 +5,21 @@ notes/
 .claude/*
 !.claude/commands/
 !.claude/commands/**
+# The workflow hooks referenced by specs/workflow.md and CLAUDE.md (branch protection, PR-description
+# merge body, CHANGELOG gate). Committed so those documented rules hold for a fresh clone; note the
+# scripts are inert until wired up in a settings file — see specs/tooling.md#hooks.
+!.claude/hooks/
+!.claude/hooks/**
+# ...and the settings file that registers them, kept portable via $CLAUDE_PROJECT_DIR.
+# settings.local.json stays ignored — it is personal (permissions, machine-specific paths).
+!.claude/settings.json
+# The AI Dev Kit's skills are user-level tooling and stay ignored (specs/tooling.md#install-layout);
+# only this repo's own skills are committed. Git won't descend into an excluded directory, so
+# .claude/skills/ has to be re-included before a leaf under it can be.
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/data-divergence/
+!.claude/skills/data-divergence/**
 .pytest_cache/
 dist/
 build/

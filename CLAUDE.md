@@ -14,6 +14,7 @@ Developed with the [Databricks AI Dev Kit](https://github.com/databricks-solutio
 - **Bundle / job changes** → `databricks-bundles` / `databricks-jobs` skills, and route job edits through `scripts/sdk_generate_template_job.py` + `make deploy` ([skills](specs/tooling.md#skills)).
 - **Library/SDK docs** (PySpark, Databricks SDK, uv, ruff) → `context7` MCP, not memory or web search.
 - **Cloud spend / cost analysis** → `aws-billing-cost` MCP (`AWS_PROFILE=costs`) + `/project-costs`. **AWS docs** → `aws-documentation` MCP.
+- **Records disagree between two tables** (batch vs SDP, dashboard vs its table, prod vs staging) → the `data-divergence` skill ([skills](specs/tooling.md#skills)) before writing ad-hoc diff SQL.
 - Use the `dev` profile unless told otherwise (`prod` for prod ops). If MCP tools are unavailable, fall back to CLI/SDK and flag it.
 - **MCP calls run as the prod SP, not as you** — `dev` is your user account, but the `databricks` MCP server is pinned to `DEFAULT`, which resolves to the same `template-sp` that `prod` uses. It can read/write `prod` tables; the catalog is the guardrail ([why](specs/tooling.md#mcp-runs-as-the-production-service-principal)).
 

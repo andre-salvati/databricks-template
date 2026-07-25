@@ -1,0 +1,30 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "if": "Bash(gh pr merge*)",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pr-merge-description.sh\"",
+            "timeout": 15,
+            "statusMessage": "Updating PR description and injecting into merge commit..."
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-main-branch.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking branch protection..."
+          },
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/require-changelog-entry.sh\"",
+            "timeout": 10,
+            "statusMessage": "Checking for a CHANGELOG entry..."
+          }
+        ]
+      }
+    ]
+  }
+}
