@@ -1,8 +1,9 @@
-# Worked example — `reports/cost/2026-07-22.md`
+# Worked example — `examples/2026-07-22.md`
 
-A committed 30-day report, force-added past the `reports/cost/` gitignore so one finished example
-survives. Read the file itself; this page is about *why* its Analysis section is written the way it
-is. Do not copy its numbers into a new report — they are a snapshot of one window.
+A finished 30-day report, kept here rather than under `reports/` (which is entirely gitignored
+generated output). Read the file itself; this page is about *why* its Analysis section is written the
+way it is. Do not copy its numbers into a new report — they are a snapshot of one window, and a live
+run writes to `reports/cost/YYYY-MM-DD.md`.
 
 ## What the numbers were
 

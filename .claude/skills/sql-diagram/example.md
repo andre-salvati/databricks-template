@@ -1,17 +1,19 @@
 # Worked example — `job_spend_plan`
 
-A committed `mode=plan` diagram of the per-job spend query from `scripts/project_costs.py`. The
-three artifacts live in `reports/sql-diagram/` and are force-added past the gitignore precisely so
-this example survives:
+A committed `mode=plan` diagram of the per-job spend query from `scripts/project_costs.py`. All of
+`reports/` is gitignored generated output, so the three artifacts live here in `examples/` instead —
+a committed path — and that is where any future example belongs too:
 
-- `job_spend_plan.sql` — the query as analysed, f-string placeholders already resolved
-- `job_spend_plan.mmd` — the graph
-- `job_spend_plan.svg` — the same graph, for prose that can't render Mermaid
+- `examples/job_spend_plan.sql` — the query as analysed, f-string placeholders already resolved
+- `examples/job_spend_plan.mmd` — the graph
+- `examples/job_spend_plan.svg` — the same graph, for prose that can't render Mermaid
 
 Regenerate it with:
 
 ```bash
-make sql-diagram sql=reports/sql-diagram/job_spend_plan.sql name=job_spend_plan comments=1
+make sql-diagram sql=.claude/skills/sql-diagram/examples/job_spend_plan.sql \
+  name=job_spend_plan comments=1
+# then copy reports/sql-diagram/job_spend_plan.* back over examples/ to refresh this example
 ```
 
 Because the committed `.sql` is the post-substitution query, that command reproduces the diagram

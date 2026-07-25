@@ -26,7 +26,6 @@ notes/
 .pytest_cache/
 dist/
 build/
-reports/coverage/
 src/template.egg-info/
 *.pyc
 # uv.lock IS tracked — it pins transitive deps (notably databricks-sdk, which arrives
@@ -44,10 +43,10 @@ resources/orders_dashboard_deploy.lvdash.json
 # Dev Kit 0.1.14 also writes Codex/Copilot agent configs into the project dir
 .agents/
 .codex/
-# Generated spend reports — local artifacts containing account cost figures.
-# A report that has been committed stays tracked (.gitignore only governs untracked files), so
-# new dated reports are ignored by default; `git add -f` a specific one to keep it.
-reports/cost/
-# Generated query diagrams — same rule: ignored by default, `git add -f` one to keep it as an
-# example. They are derived artifacts, regenerable from the query at any time.
-reports/sql-diagram/
+# reports/ is generated output, all of it: coverage, spend reports (which carry account cost
+# figures), query diagrams. Nothing in here is committed — it is all regenerable from the code or
+# the query that produced it. Don't `git add -f` an artifact to keep it as an example: put the
+# example in the skill that explains it (.claude/skills/<skill>/examples/), which is a committed
+# path. Note .gitignore only governs UNTRACKED files, so anything already tracked under here must
+# be `git rm --cached`-ed before this rule takes effect on it.
+reports/

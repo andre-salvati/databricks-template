@@ -145,10 +145,11 @@ update them, and do keep them in sync with the code they wrap.
 - **sql-diagram** — wraps `scripts/sql_diagram.py` via `make sql-diagram`: query plan or column
   lineage as `.mmd` + `.svg`, plus how to read each mode.
 
-The latter two each ship an `example.md` beside the `SKILL.md`, walking a committed artifact
-(`reports/cost/2026-07-22.md`, `reports/sql-diagram/job_spend_plan.*`) to show what good output
-looks like. Those artifacts are force-added past the `reports/` gitignore for exactly that reason —
-if you regenerate them, re-add with `git add -f` or the example silently goes stale.
+The latter two each ship an `example.md` beside the `SKILL.md`, walking a real artifact in the
+skill's own `examples/` directory to show what good output looks like. Those artifacts live under
+`.claude/skills/<skill>/examples/` rather than in `reports/`, because **all of `reports/` is
+gitignored generated output** — that is where the tools write, and nothing there is committed. A new
+example is a copy into `examples/`, never a `git add -f` out of `reports/`.
 
 One gotcha on the kit's skills. Some have a frontmatter `name:` that differs from their directory
 (`databricks` declares `databricks-core`; `analyze-mlflow-trace` declares `analyzing-mlflow-trace`)
