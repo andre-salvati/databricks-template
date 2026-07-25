@@ -145,11 +145,17 @@ update them, and do keep them in sync with the code they wrap.
 - **sql-diagram** — wraps `scripts/sql_diagram.py` via `make sql-diagram`: query plan or column
   lineage as `.mmd` + `.svg`, plus how to read each mode.
 
-The latter two each ship an `example.md` beside the `SKILL.md`, walking a real artifact in the
-skill's own `examples/` directory to show what good output looks like. Those artifacts live under
+The latter two each ship a worked example showing what good output looks like, kept under
 `.claude/skills/<skill>/examples/` rather than in `reports/`, because **all of `reports/` is
 gitignored generated output** — that is where the tools write, and nothing there is committed. A new
 example is a copy into `examples/`, never a `git add -f` out of `reports/`.
+
+The two take different forms, and the difference is the rule worth copying. `sql-diagram` ships
+`job_spend_plan.html`, which *is* the deliverable — diagram plus a data trace — so it needs no prose
+companion; it had one, and the file was deleted once the page demonstrated with data what the prose
+had asserted. `project-costs` ships `example.md` beside its report, because a page of cost tables
+does not explain why its analysis is written the way it is. **Add a commentary file only when the
+artifact cannot speak for itself**; two files narrating one artifact will drift.
 
 One gotcha on the kit's skills. Some have a frontmatter `name:` that differs from their directory
 (`databricks` declares `databricks-core`; `analyze-mlflow-trace` declares `analyzing-mlflow-trace`)

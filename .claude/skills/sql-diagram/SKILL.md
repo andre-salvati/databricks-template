@@ -1,6 +1,6 @@
 ---
 name: sql-diagram
-description: Diagram a SQL query and explain what it shows — either its execution steps (mode=plan) or its column lineage (mode=lineage). Use when asked to visualize, diagram, explain or review what a query does, how it joins its tables, or where an output column comes from. Wraps `make sql-diagram`, which emits .mmd and .svg into reports/sql-diagram/. See example.md for a worked reading of a committed diagram.
+description: Diagram a SQL query and explain what it shows — either its execution steps (mode=plan) or its column lineage (mode=lineage) — then trace it through small data so the defects the picture cannot show become visible. Use when asked to visualize, diagram, explain or review what a query does, how it joins its tables, or where an output column comes from. Wraps `make sql-diagram`, which emits .mmd and .svg into reports/sql-diagram/, and delivers a self-contained HTML page. See examples/job_spend_plan.html for a worked instance.
 ---
 
 # Diagramming a SQL query
@@ -18,10 +18,14 @@ Diagram a SQL query and explain what it shows — either its execution steps or 
 3. Run `make sql-diagram sql=<path> name=<basename> comments=1` via Bash. It writes three files to
    `reports/sql-diagram/`: `<basename>.sql` (the query as analysed), `.mmd` and `.svg`. All of
    `reports/` is gitignored generated output — never `git add -f` out of it. To keep a diagram as a
-   committed example, copy the trio into `.claude/skills/sql-diagram/examples/`. Pass `--stdout` to
+   committed example, copy the trio into `.claude/skills/sql-diagram/examples/` and re-run against
+   the copied `.sql`; because that file is the *post-substitution* query, the run reproduces the
+   diagram exactly, which is why the `.sql` is kept beside the picture. Pass `--stdout` to
    `scripts/sql_diagram.py` for a throwaway look with no files written.
 4. Read the `.mmd`, show it in a ```mermaid fence, and explain it (see below). The `.svg` is the
    same graph for linking from prose where no Mermaid renderer is available.
+5. **Simulate the query on small data** (see [Simulation](#simulation)) and deliver the diagram and
+   the trace together as one HTML page in `reports/sql-diagram/<basename>.html`.
 
 **Explaining a query and reviewing one are different jobs.** For an explanation the diagram is
 enough. For a *review*, read the `.sql` alongside it and treat the graph as an index into the text:
@@ -41,7 +45,8 @@ to question.
 
 Nodes are the query's steps, bottom-up: `SCAN` per table, one `JOIN n` per individual join, then
 `WHERE`, `AGGREGATE`, `SORT`, `OUTPUT`. A CTE appears as its own sub-pipeline feeding the `SCAN`
-that reads it.
+that reads it — a two-node `SCAN <base table> → AGGREGATE → SCAN <cte>` chain is one CTE being built
+and then read back, not the same table scanned twice.
 
 - **Each join is numbered in the order the query writes it** and carries its side and keys.
   `sqlglot` models a multi-table join as one n-ary step; the script splits it back apart. An
@@ -70,6 +75,46 @@ that reads it.
 - `AGGREGATE` may show synthetic operand names (`_a_0`) for `DISTINCT`/expression arguments that
   `sqlglot` lifted out. Read the intent off the original SQL rather than repeating the placeholder —
   `COUNT(\`_a_0\`)` and `COUNT(DISTINCT …)` are indistinguishable in the picture.
+
+## Simulation
+
+The diagram shows structure; it cannot show what the query *does to rows*. After the chart, trace the
+query on a handful of hand-built rows — that trace is where defects become visible, because the graph
+is silent on exactly the stages that produce wrong numbers.
+
+1. **Build the smallest input that can expose something.** A few rows per source table, not a
+   realistic extract. Choose the values deliberately: two dates, a renamed dimension row, a fact whose
+   key is missing from a dimension it inner-joins to, ranges that overlap between two id columns you
+   suspect are being confused. Data that can only produce a clean result proves nothing.
+2. **Show the initial state first** — every source table, in full, before anything runs.
+3. **Then one block per stage**, in execution order, each with the operation and the *whole* output
+   at that point. Row counts should be small enough to print entirely; never elide with "…".
+4. **Mark what changed at each stage** — a row dropped, a column newly populated, a rank assigned.
+   Strike dropped rows rather than deleting them silently; that disappearance is usually the finding.
+5. **Never hand-trace.** Rewrite the query with each source table replaced by a literal `VALUES` CTE
+   and run it through `mcp__databricks__execute_sql`, then paste the real result. A hand-trace that
+   quietly disagrees with the engine is worse than no trace, and `NULL` propagation, `COUNT(DISTINCT)`
+   and window ordering are all easy to get wrong on paper. Run intermediate CTEs the same way.
+6. **State that the trace was executed**, and that the sample data is illustrative while the defects
+   are real.
+
+The output is one self-contained HTML page: the plan diagram, then the initial tables, then the
+per-stage trace, then the final result set.
+
+**Embed the `.svg`, not the `.mmd`.** The script already rendered the graph; re-rendering it from
+Mermaid in the page only adds a way for it to break. Inline the SVG as a base64 `data:` URI in an
+`<img>` — the artifact CSP blocks external refs, and an `<img>` also walls the SVG's own `<style>`
+block off from the page cascade (it ships generic class names like `.output`, `.filter` and `.step`
+that will otherwise collide with yours). Give it a white plate in both themes; it is a printed
+figure, not a UI surface.
+
+`.claude/skills/sql-diagram/examples/job_spend_plan.html` is the worked instance: five usage rows
+through the repo's own per-job spend query. It shows a date-scoped price join picking exactly one
+price per row — with the verified counterfactual that removing the range predicates doubles quantity
+and inflates spend from $10.00 to $19.50 — a `LEFT` join keeping an unpriced SKU alive, and a filter
+that deliberately discards unattributable usage, which is why the attributed total never equals the
+Databricks total. Only two of the five are visible in the diagram; the one that silently doubles the
+bill needs the data.
 
 ## Reading `mode=lineage`
 
@@ -112,8 +157,8 @@ has no comment the space is blank, and that absence is itself worth reporting.
   joins a dimension that varies *within* `A × B`, either that dimension is fabricated or the join
   fans out and inflates every measure. The `AGGREGATE` node's `GROUP BY` line is where to check.
 
-See `example.md` for a committed diagram read end to end, including what each of these points looks
-like when it actually fires.
+`examples/job_spend_plan.html` is a committed instance of all of this — the diagram read end to end,
+then the same query traced through data so each point is demonstrated rather than asserted.
 
 ## Limits worth stating rather than hiding
 

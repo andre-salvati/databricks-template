@@ -1,0 +1,327 @@
+<title>job_spend_plan.sql — plan and data walkthrough</title>
+
+<style>
+  :root {
+    --paper:#F6F8F8; --surface:#FFFFFF; --ink:#12181D; --ink-soft:#4A5A60; --ink-faint:#7C8B90;
+    --rule:#DBE4E4; --rule-soft:#EAF0F0; --accent:#176E6E; --accent-bg:#E4F0EF;
+    --warn:#A9741F; --warn-bg:#FAF1E0; --drop:#A33A3A;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --paper:#0F1416; --surface:#161D20; --ink:#E4EAE9; --ink-soft:#A3B2B4; --ink-faint:#74868A;
+      --rule:#2A3639; --rule-soft:#202A2D; --accent:#4FB3AC; --accent-bg:#14312F;
+      --warn:#D9A441; --warn-bg:#33270F; --drop:#D97C7C; }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0F1416; --surface:#161D20; --ink:#E4EAE9; --ink-soft:#A3B2B4; --ink-faint:#74868A;
+    --rule:#2A3639; --rule-soft:#202A2D; --accent:#4FB3AC; --accent-bg:#14312F;
+    --warn:#D9A441; --warn-bg:#33270F; --drop:#D97C7C;
+  }
+  :root[data-theme="light"] {
+    --paper:#F6F8F8; --surface:#FFFFFF; --ink:#12181D; --ink-soft:#4A5A60; --ink-faint:#7C8B90;
+    --rule:#DBE4E4; --rule-soft:#EAF0F0; --accent:#176E6E; --accent-bg:#E4F0EF;
+    --warn:#A9741F; --warn-bg:#FAF1E0; --drop:#A33A3A;
+  }
+
+  body { background:var(--paper); color:var(--ink); font-family:var(--sans); line-height:1.6;
+         -webkit-font-smoothing:antialiased; }
+  .wrap { max-width:60rem; margin:0 auto; padding:3.5rem 1.5rem 6rem; }
+
+  .eyebrow { font-family:var(--mono); font-size:.7rem; letter-spacing:.14em; text-transform:uppercase;
+             color:var(--accent); margin-bottom:.9rem; }
+  h1 { font-family:var(--mono); font-size:clamp(1.5rem,3.4vw,2.1rem); font-weight:600;
+       letter-spacing:-.01em; text-wrap:balance; margin-bottom:.6rem; }
+  .lede { font-size:1.05rem; color:var(--ink-soft); max-width:62ch; }
+  h2 { font-family:var(--mono); font-size:.78rem; letter-spacing:.14em; text-transform:uppercase;
+       color:var(--ink-faint); padding-bottom:.6rem; border-bottom:1px solid var(--rule);
+       margin:3.5rem 0 1.5rem; }
+
+  /* the plan SVG keeps a light plate in both themes — it is a printed figure, not a UI surface */
+  .plate { background:#FFFFFF; border:1px solid var(--rule); border-radius:3px;
+           padding:1rem; overflow-x:auto; }
+  .plate img { display:block; width:100%; min-width:34rem; max-width:53rem; height:auto; margin:0 auto; }
+
+  .panel { background:var(--surface); border:1px solid var(--rule); border-radius:3px;
+           padding:1.25rem; overflow-x:auto; }
+  .sources { display:grid; gap:1.25rem; grid-template-columns:repeat(auto-fit,minmax(21rem,1fr)); }
+  .src { background:var(--surface); border:1px solid var(--rule); border-radius:3px; }
+  .src-name { font-family:var(--mono); font-size:.74rem; color:var(--ink-soft);
+              padding:.6rem .85rem; border-bottom:1px solid var(--rule-soft); }
+  .src-name b { color:var(--ink); font-weight:600; }
+  .scroll { overflow-x:auto; }
+  .wide { grid-column:1/-1; }
+
+  .stage { display:grid; grid-template-columns:8.5rem 1fr; gap:1.5rem; margin-bottom:2.25rem; }
+  @media (max-width:46rem){ .stage{ grid-template-columns:1fr; gap:.75rem; } }
+  .rail { border-left:2px solid var(--rule); padding-left:.9rem; }
+  .stage.flag .rail { border-left-color:var(--warn); }
+  .num { font-family:var(--mono); font-size:1.55rem; font-weight:600; line-height:1;
+         color:var(--ink-faint); font-variant-numeric:tabular-nums; }
+  .stage.flag .num { color:var(--warn); }
+  .kind { font-family:var(--mono); font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+          color:var(--accent); margin-top:.5rem; }
+  .out-of { font-family:var(--mono); font-size:.66rem; color:var(--ink-faint); margin-top:.35rem; }
+  .body-col { min-width:0; }
+  .op { font-family:var(--mono); font-size:.82rem; color:var(--ink); background:var(--rule-soft);
+        border-radius:3px; padding:.55rem .75rem; margin-bottom:.8rem; overflow-x:auto; white-space:pre; }
+  .note { color:var(--ink-soft); font-size:.92rem; margin-top:.8rem; max-width:68ch; }
+
+  table { border-collapse:collapse; width:100%; font-family:var(--mono); font-size:.78rem; }
+  th,td { text-align:left; padding:.42rem .7rem; white-space:nowrap; border-bottom:1px solid var(--rule-soft); }
+  th { font-weight:600; font-size:.68rem; letter-spacing:.05em; text-transform:uppercase;
+       color:var(--ink-faint); border-bottom:1px solid var(--rule); }
+  td.n { text-align:right; font-variant-numeric:tabular-nums; }
+  tbody tr:last-child td { border-bottom:none; }
+  tr.gone td { color:var(--drop); text-decoration:line-through; opacity:.75; }
+  td.nul { color:var(--ink-faint); font-style:italic; }
+  td.hi { color:var(--accent); font-weight:600; }
+  td.bad { color:var(--warn); font-weight:600; }
+  .cap { font-family:var(--mono); font-size:.68rem; color:var(--ink-faint); margin-top:.55rem; }
+
+  .keeps { background:var(--accent-bg); border-left:2px solid var(--accent); border-radius:0 3px 3px 0;
+           padding:.8rem 1rem; margin-top:.9rem; font-size:.9rem; }
+  .keeps b { font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+             color:var(--accent); display:block; margin-bottom:.3rem; }
+  .breaks { background:var(--warn-bg); border-left:2px solid var(--warn); border-radius:0 3px 3px 0;
+            padding:.8rem 1rem; margin-top:.9rem; font-size:.9rem; }
+  .breaks b { font-family:var(--mono); font-size:.72rem; letter-spacing:.08em; text-transform:uppercase;
+              color:var(--warn); display:block; margin-bottom:.3rem; }
+
+  .final { border:1px solid var(--accent); border-radius:3px; overflow:hidden; }
+  .final .src-name { background:var(--accent-bg); border-bottom-color:var(--accent); }
+  ol.findings { margin:0; padding-left:1.3rem; }
+  ol.findings li { margin-bottom:.9rem; color:var(--ink-soft); }
+  ol.findings b { color:var(--ink); }
+  code { font-family:var(--mono); font-size:.88em; background:var(--rule-soft);
+         padding:.1em .35em; border-radius:2px; }
+  footer { margin-top:4rem; padding-top:1.25rem; border-top:1px solid var(--rule);
+           font-family:var(--mono); font-size:.7rem; color:var(--ink-faint); line-height:1.8; }
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">Query plan · mode=plan</p>
+  <h1>job_spend_plan.sql</h1>
+  <p class="lede">
+    Thirty days of Databricks spend, attributed to the job or pipeline that incurred it — the query
+    behind the <em>by Job / Pipeline</em> table in <code>scripts/project_costs.py</code>. Below: the
+    execution plan, then the same query traced through five usage rows, one stage at a time. The trace
+    was executed on Databricks SQL with each source table replaced by a literal <code>VALUES</code> CTE;
+    every result on this page is that run's real output.
+  </p>
+
+  <h2>1 · Execution plan</h2>
+  <div class="plate">
+    <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4NTAiIGhlaWdodD0iODI5IiB2aWV3Qm94PSIwIDAgODUwIDgyOSIgZm9udC1mYW1pbHk9Ii1hcHBsZS1zeXN0ZW0sIEJsaW5rTWFjU3lzdGVtRm9udCwgU2Vnb2UgVUksIEhlbHZldGljYSwgQXJpYWwsIHNhbnMtc2VyaWYiPgo8c3R5bGU+LmJne2ZpbGw6I2ZmZmZmZn0uc3R0e2ZpbGw6IzFmMjMyODtmb250LXNpemU6MTJweDtmb250LXdlaWdodDo2MDB9LnN0ZHtmaWxsOiM1NzYwNmE7Zm9udC1zaXplOjEwLjVweH0udHRse2ZpbGw6IzFmMjMyODtmb250LXNpemU6MTRweDtmb250LXdlaWdodDo2MDB9LnNjYW57ZmlsbDojZWVmNmZmO3N0cm9rZTojNTRhZWZmO3J4OjV9LmpvaW57ZmlsbDojZmJlZmZmO3N0cm9rZTojYzI5N2ZmO3J4OjV9LmZpbHRlcntmaWxsOiNmZmY4ZTY7c3Ryb2tlOiNlNWIzNGE7cng6NX0uYWdncmVnYXRle2ZpbGw6I2VhZmFlZjtzdHJva2U6IzViYjk3NDtyeDo1fS5zb3J0e2ZpbGw6I2Y2ZjhmYTtzdHJva2U6I2QwZDdkZTtyeDo1fS5vdXRwdXR7ZmlsbDojZWNlZWYxO3N0cm9rZTojOGM5NTlmO3J4OjV9LnN0ZXB7ZmlsbDojZjZmOGZhO3N0cm9rZTojZDBkN2RlO3J4OjV9LmVkZ2V7ZmlsbDpub25lO3N0cm9rZTojOGM5NTlmO3N0cm9rZS13aWR0aDoxLjM7b3BhY2l0eTouOH1AbWVkaWEocHJlZmVycy1jb2xvci1zY2hlbWU6ZGFyayl7LmJne2ZpbGw6IzBkMTExN30uc3R0e2ZpbGw6I2U2ZWRmM30uc3Rke2ZpbGw6IzhiOTQ5ZX0udHRse2ZpbGw6I2U2ZWRmM30uc2NhbntmaWxsOiMwZDI4NDc7c3Ryb2tlOiMxZjZmZWJ9LmpvaW57ZmlsbDojMmIxYTNkO3N0cm9rZTojODk1N2U1fS5maWx0ZXJ7ZmlsbDojM2EyZDEwO3N0cm9rZTojOWU2YTAzfS5hZ2dyZWdhdGV7ZmlsbDojMGYyZTFiO3N0cm9rZTojMmVhMDQzfS5zb3J0e2ZpbGw6IzE2MWIyMjtzdHJva2U6IzMwMzYzZH0uc3RlcHtmaWxsOiMxNjFiMjI7c3Ryb2tlOiMzMDM2M2R9Lm91dHB1dHtmaWxsOiMyMTI2MmQ7c3Ryb2tlOiM2ZTc2ODF9fTwvc3R5bGU+CjxyZWN0IHdpZHRoPSI4NTAiIGhlaWdodD0iODI5IiBjbGFzcz0iYmciLz4KPHRleHQgeD0iMjQiIHk9IjMyIiBjbGFzcz0idHRsIj5qb2Jfc3BlbmRfcGxhbiDigJQgbG9naWNhbCBwbGFuPC90ZXh0Pgo8cGF0aCBkPSJNMTQ5LjAsMTEyIEMxNDkuMCwxMzAgMjg3LjAsMTI4IDI4Ny4wLDE0NiIgY2xhc3M9ImVkZ2UiLz4KPHBhdGggZD0iTTI4Ny4wLDE5OCBDMjg3LjAsMjE2IDQyNS4wLDI0MCA0MjUuMCwyNTgiIGNsYXNzPSJlZGdlIi8+CjxwYXRoIGQ9Ik03MDEuMCwxMTIgQzcwMS4wLDEzMCA1NjMuMCwxMjggNTYzLjAsMTQ2IiBjbGFzcz0iZWRnZSIvPgo8cGF0aCBkPSJNNDI1LjAsMTEyIEM0MjUuMCwxMzAgNTYzLjAsMTI4IDU2My4wLDE0NiIgY2xhc3M9ImVkZ2UiLz4KPHBhdGggZD0iTTU2My4wLDIyNCBDNTYzLjAsMjQyIDQyNS4wLDMwMCA0MjUuMCwzMTgiIGNsYXNzPSJlZGdlIi8+CjxwYXRoIGQ9Ik00MjUuMCwyODQgQzQyNS4wLDMwMiA0MjUuMCwzMDAgNDI1LjAsMzE4IiBjbGFzcz0iZWRnZSIvPgo8cGF0aCBkPSJNNDI1LjAsMzcwIEM0MjUuMCwzODggNDI1LjAsMzg2IDQyNS4wLDQwNCIgY2xhc3M9ImVkZ2UiLz4KPHBhdGggZD0iTTQyNS4wLDQ4MiBDNDI1LjAsNTAwIDQyNS4wLDQ5OCA0MjUuMCw1MTYiIGNsYXNzPSJlZGdlIi8+CjxwYXRoIGQ9Ik00MjUuMCw1OTQgQzQyNS4wLDYxMiA0MjUuMCw2MTAgNDI1LjAsNjI4IiBjbGFzcz0iZWRnZSIvPgo8cGF0aCBkPSJNNDI1LjAsNjY3IEM0MjUuMCw2ODUgNDI1LjAsNjgzIDQyNS4wLDcwMSIgY2xhc3M9ImVkZ2UiLz4KPHJlY3QgeD0iMjQuMCIgeT0iNjAiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTIiIGNsYXNzPSJzY2FuIi8+Cjx0ZXh0IHg9IjM0LjAiIHk9Ijc3IiBjbGFzcz0ic3R0Ij5TQ0FOIHN5c3RlbS5sYWtlZmxvdy5waXBlbGluZXM8L3RleHQ+Cjx0ZXh0IHg9IjM0LjAiIHk9Ijg5IiBjbGFzcz0ic3RkIj5UaGUgYHBpcGVsaW5lc2AgdGFibGUgaXMgYSBzbG93LWNoYW5naW5nPC90ZXh0Pgo8dGV4dCB4PSIzNC4wIiB5PSIxMDIiIGNsYXNzPSJzdGQiPmRpbWVuc2lvbiB0YWJsZSAoU0NEMikgdGhhdCBjb250YWlucyB0aGUg4oCmPC90ZXh0Pgo8cmVjdCB4PSIxNjIuMCIgeT0iMTQ2IiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjUyIiBjbGFzcz0iYWdncmVnYXRlIi8+Cjx0ZXh0IHg9IjE3Mi4wIiB5PSIxNjMiIGNsYXNzPSJzdHQiPkFHR1JFR0FURTwvdGV4dD4KPHRleHQgeD0iMTcyLjAiIHk9IjE3NSIgY2xhc3M9InN0ZCI+R1JPVVAgQlkgcGlwZWxpbmVfaWQ8L3RleHQ+Cjx0ZXh0IHg9IjE3Mi4wIiB5PSIxODgiIGNsYXNzPSJzdGQiPk1BWF9CWShuYW1lLCBjaGFuZ2VfdGltZSkgQVMgbmFtZTwvdGV4dD4KPHJlY3QgeD0iMzAwLjAiIHk9IjI1OCIgd2lkdGg9IjI1MCIgaGVpZ2h0PSIyNiIgY2xhc3M9InNjYW4iLz4KPHRleHQgeD0iMzEwLjAiIHk9IjI3NSIgY2xhc3M9InN0dCI+U0NBTiBwaXBlX25hbWVzPC90ZXh0Pgo8cmVjdCB4PSIzMDAuMCIgeT0iNjAiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTIiIGNsYXNzPSJzY2FuIi8+Cjx0ZXh0IHg9IjMxMC4wIiB5PSI3NyIgY2xhc3M9InN0dCI+U0NBTiBzeXN0ZW0uYmlsbGluZy5saXN0X3ByaWNlczwvdGV4dD4KPHRleHQgeD0iMzEwLjAiIHk9Ijg5IiBjbGFzcz0ic3RkIj5UaGUgcHJpY2luZyB0YWJsZSBnaXZlcyB5b3UgYWNjZXNzIHRvIGE8L3RleHQ+Cjx0ZXh0IHg9IjMxMC4wIiB5PSIxMDIiIGNsYXNzPSJzdGQiPmhpc3RvcmljYWwgbG9nIG9mIFNLVSBwcmljaW5nLiBBIHJlY29yZCBnZXRzIOKApjwvdGV4dD4KPHJlY3QgeD0iNTc2LjAiIHk9IjYwIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjUyIiBjbGFzcz0ic2NhbiIvPgo8dGV4dCB4PSI1ODYuMCIgeT0iNzciIGNsYXNzPSJzdHQiPlNDQU4gc3lzdGVtLmJpbGxpbmcudXNhZ2U8L3RleHQ+Cjx0ZXh0IHg9IjU4Ni4wIiB5PSI4OSIgY2xhc3M9InN0ZCI+VGhlIHVzYWdlIHRhYmxlIGdpdmVzIHlvdSBhY2Nlc3MgdG88L3RleHQ+Cjx0ZXh0IHg9IjU4Ni4wIiB5PSIxMDIiIGNsYXNzPSJzdGQiPmFjY291bnQtd2lkZSBiaWxsYWJsZSB1c2FnZSBkYXRhLiBUaGUgZGF0YSDigKY8L3RleHQ+CjxyZWN0IHg9IjQzOC4wIiB5PSIxNDYiIHdpZHRoPSIyNTAiIGhlaWdodD0iNzgiIGNsYXNzPSJqb2luIi8+Cjx0ZXh0IHg9IjQ0OC4wIiB5PSIxNjMiIGNsYXNzPSJzdHQiPkpPSU4gMSDCtyBMRUZUIMK3IHA8L3RleHQ+Cjx0ZXh0IHg9IjQ0OC4wIiB5PSIxNzUiIGNsYXNzPSJzdGQiPnUuc2t1X25hbWUgPSBwLnNrdV9uYW1lPC90ZXh0Pgo8dGV4dCB4PSI0NDguMCIgeT0iMTg4IiBjbGFzcz0ic3RkIj5hbmQgdS51c2FnZV9lbmRfdGltZSAmZ3Q7PSBwLnByaWNlX3N0YXJ0X3RpbWU8L3RleHQ+Cjx0ZXh0IHg9IjQ0OC4wIiB5PSIyMDEiIGNsYXNzPSJzdGQiPmFuZCAocC5wcmljZV9lbmRfdGltZSBJUyBOVUxMIE9SPC90ZXh0Pgo8dGV4dCB4PSI0NDguMCIgeT0iMjE0IiBjbGFzcz0ic3RkIj51LnVzYWdlX2VuZF90aW1lICZsdDsgcC5wcmljZV9lbmRfdGltZSk8L3RleHQ+CjxyZWN0IHg9IjMwMC4wIiB5PSIzMTgiIHdpZHRoPSIyNTAiIGhlaWdodD0iNTIiIGNsYXNzPSJqb2luIi8+Cjx0ZXh0IHg9IjMxMC4wIiB5PSIzMzUiIGNsYXNzPSJzdHQiPkpPSU4gMiDCtyBMRUZUIMK3IG48L3RleHQ+Cjx0ZXh0IHg9IjMxMC4wIiB5PSIzNDciIGNsYXNzPSJzdGQiPnUudXNhZ2VfbWV0YWRhdGEuZGx0X3BpcGVsaW5lX2lkID08L3RleHQ+Cjx0ZXh0IHg9IjMxMC4wIiB5PSIzNjAiIGNsYXNzPSJzdGQiPm4ucGlwZWxpbmVfaWQ8L3RleHQ+CjxyZWN0IHg9IjMwMC4wIiB5PSI0MDQiIHdpZHRoPSIyNTAiIGhlaWdodD0iNzgiIGNsYXNzPSJmaWx0ZXIiLz4KPHRleHQgeD0iMzEwLjAiIHk9IjQyMSIgY2xhc3M9InN0dCI+V0hFUkU8L3RleHQ+Cjx0ZXh0IHg9IjMxMC4wIiB5PSI0MzMiIGNsYXNzPSJzdGQiPnUudXNhZ2VfZGF0ZSAmZ3Q7PSBDVVJSRU5UX0RBVEUgLSBJTlRFUlZBTCAmI3gyNzszMCYjeDI3OzwvdGV4dD4KPHRleHQgeD0iMzEwLjAiIHk9IjQ0NiIgY2xhc3M9InN0ZCI+REFZUzwvdGV4dD4KPHRleHQgeD0iMzEwLjAiIHk9IjQ1OSIgY2xhc3M9InN0ZCI+Tk9UIENPQUxFU0NFKHUudXNhZ2VfbWV0YWRhdGEuam9iX2lkLDwvdGV4dD4KPHRleHQgeD0iMzEwLjAiIHk9IjQ3MiIgY2xhc3M9InN0ZCI+dS51c2FnZV9tZXRhZGF0YS5kbHRfcGlwZWxpbmVfaWQpIElTIE5VTEw8L3RleHQ+CjxyZWN0IHg9IjMwMC4wIiB5PSI1MTYiIHdpZHRoPSIyNTAiIGhlaWdodD0iNzgiIGNsYXNzPSJhZ2dyZWdhdGUiLz4KPHRleHQgeD0iMzEwLjAiIHk9IjUzMyIgY2xhc3M9InN0dCI+QUdHUkVHQVRFPC90ZXh0Pgo8dGV4dCB4PSIzMTAuMCIgeT0iNTQ1IiBjbGFzcz0ic3RkIj5HUk9VUCBCWSBlbnRpdHksIGtpbmQsIHUudXNhZ2VfdW5pdDwvdGV4dD4KPHRleHQgeD0iMzEwLjAiIHk9IjU1OCIgY2xhc3M9InN0ZCI+U1VNKHUudXNhZ2VfcXVhbnRpdHkpIEFTIHF1YW50aXR5PC90ZXh0Pgo8dGV4dCB4PSIzMTAuMCIgeT0iNTcxIiBjbGFzcz0ic3RkIj5TVU0oYF9hXzBgKSBBUyB1c2Q8L3RleHQ+Cjx0ZXh0IHg9IjMxMC4wIiB5PSI1ODQiIGNsYXNzPSJzdGQiPkNPVU5UKGBfYV8xYCkgQVMgYWN0aXZlX2RheXM8L3RleHQ+CjxyZWN0IHg9IjMwMC4wIiB5PSI2MjgiIHdpZHRoPSIyNTAiIGhlaWdodD0iMzkiIGNsYXNzPSJzb3J0Ii8+Cjx0ZXh0IHg9IjMxMC4wIiB5PSI2NDUiIGNsYXNzPSJzdHQiPlNPUlQ8L3RleHQ+Cjx0ZXh0IHg9IjMxMC4wIiB5PSI2NTciIGNsYXNzPSJzdGQiPnVzZCBERVNDPC90ZXh0Pgo8cmVjdCB4PSIzMDAuMCIgeT0iNzAxIiB3aWR0aD0iMjUwIiBoZWlnaHQ9IjEwNCIgY2xhc3M9Im91dHB1dCIvPgo8dGV4dCB4PSIzMTAuMCIgeT0iNzE4IiBjbGFzcz0ic3R0Ij5PVVRQVVQ8L3RleHQ+Cjx0ZXh0IHg9IjMxMC4wIiB5PSI3MzAiIGNsYXNzPSJzdGQiPmVudGl0eTwvdGV4dD4KPHRleHQgeD0iMzEwLjAiIHk9Ijc0MyIgY2xhc3M9InN0ZCI+a2luZDwvdGV4dD4KPHRleHQgeD0iMzEwLjAiIHk9Ijc1NiIgY2xhc3M9InN0ZCI+cXVhbnRpdHk8L3RleHQ+Cjx0ZXh0IHg9IjMxMC4wIiB5PSI3NjkiIGNsYXNzPSJzdGQiPnVzYWdlX3VuaXQ8L3RleHQ+Cjx0ZXh0IHg9IjMxMC4wIiB5PSI3ODIiIGNsYXNzPSJzdGQiPnVzZDwvdGV4dD4KPHRleHQgeD0iMzEwLjAiIHk9Ijc5NSIgY2xhc3M9InN0ZCI+YWN0aXZlX2RheXM8L3RleHQ+Cjwvc3ZnPgo=" alt="Execution plan: three source tables, two LEFT joins, a filter, an aggregate and a sort.">
+  </div>
+  <p class="cap">Generated by <code>scripts/sql_diagram.py --mode plan</code>. Note what the graph does <em>not</em> contain: no node for either CTE-level filter, and <code>COUNT(DISTINCT …)</code> renders as <code>COUNT(_a_1)</code>.</p>
+
+  <h2>2 · Initial state</h2>
+  <div class="sources">
+
+    <div class="src">
+      <div class="src-name"><b>system.lakeflow.pipelines</b> · 2 rows</div>
+      <div class="scroll"><table>
+        <thead><tr><th>pipeline_id</th><th>name</th><th>change_time</th></tr></thead>
+        <tbody>
+          <tr><td>pl1</td><td>job1_sdp</td><td>2026-06-01</td></tr>
+          <tr><td>pl1</td><td>job1_sdp_prod</td><td>2026-07-01</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="src">
+      <div class="src-name"><b>system.billing.list_prices</b> · 3 rows</div>
+      <div class="scroll"><table>
+        <thead><tr><th>sku_name</th><th>…effective_list.default</th><th>price_start_time</th><th>price_end_time</th></tr></thead>
+        <tbody>
+          <tr><td>JOBS_SERVERLESS</td><td class="n">0.30</td><td>2026-06-01</td><td>2026-07-10</td></tr>
+          <tr><td>JOBS_SERVERLESS</td><td class="n">0.35</td><td>2026-07-10</td><td class="nul">NULL</td></tr>
+          <tr><td>SQL_SERVERLESS</td><td class="n">0.70</td><td>2026-06-01</td><td class="nul">NULL</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="src wide">
+      <div class="src-name"><b>system.billing.usage</b> · 5 rows &nbsp;·&nbsp; <span style="opacity:.75">job_id / job_name / dlt_pipeline_id are fields of the <code>usage_metadata</code> struct</span></div>
+      <div class="scroll"><table>
+        <thead><tr><th>usage_date</th><th>sku_name</th><th>qty</th><th>unit</th><th>…job_id</th><th>…job_name</th><th>…dlt_pipeline_id</th></tr></thead>
+        <tbody>
+          <tr><td>2026-07-08</td><td>JOBS_SERVERLESS</td><td class="n">10.0</td><td>DBU</td><td>j1</td><td>job1_prod</td><td class="nul">NULL</td></tr>
+          <tr><td>2026-07-12</td><td>JOBS_SERVERLESS</td><td class="n">20.0</td><td>DBU</td><td>j1</td><td>job1_prod</td><td class="nul">NULL</td></tr>
+          <tr><td>2026-07-12</td><td>JOBS_SERVERLESS</td><td class="n">8.0</td><td>DBU</td><td class="nul">NULL</td><td class="nul">NULL</td><td>pl1</td></tr>
+          <tr><td>2026-07-14</td><td>STORAGE</td><td class="n">5.0</td><td>DSU</td><td>j1</td><td>job1_prod</td><td class="nul">NULL</td></tr>
+          <tr><td>2026-07-15</td><td>SQL_SERVERLESS</td><td class="n">4.0</td><td>DBU</td><td class="nul">NULL</td><td class="nul">NULL</td><td class="nul">NULL</td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+  </div>
+  <p class="cap">Three deliberate shapes: a price that changes mid-window, a SKU (<code>STORAGE</code>) with no price row at all, and a usage row carrying neither a job nor a pipeline.</p>
+
+  <h2>3 · Stage by stage</h2>
+
+  <div class="stage">
+    <div class="rail"><div class="num">01</div><div class="kind">Aggregate</div><div class="out-of">1 row</div></div>
+    <div class="body-col">
+      <div class="op">pipe_names — GROUP BY pipeline_id, MAX_BY(name, change_time)</div>
+      <div class="panel"><table>
+        <thead><tr><th>pipeline_id</th><th>name</th></tr></thead>
+        <tbody><tr><td>pl1</td><td class="hi">job1_sdp_prod</td></tr></tbody>
+      </table></div>
+      <p class="note"><code>system.lakeflow.pipelines</code> is an SCD2 table — one row per change. <code>MAX_BY</code>
+      collapses the two rows to the name at the latest <code>change_time</code>, so the pipeline resolves to its
+      <em>current</em> name and the old <code>job1_sdp</code> never reaches the report.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="rail"><div class="num">02</div><div class="kind">Join 1 · Left</div><div class="out-of">5 rows</div></div>
+    <div class="body-col">
+      <div class="op">LEFT JOIN list_prices p ON u.sku_name = p.sku_name
+     AND u.usage_end_time &gt;= p.price_start_time
+     AND (p.price_end_time IS NULL OR u.usage_end_time &lt; p.price_end_time)</div>
+      <div class="panel"><table>
+        <thead><tr><th>usage_date</th><th>sku_name</th><th>qty</th><th>price picked</th><th>row usd</th></tr></thead>
+        <tbody>
+          <tr><td>2026-07-08</td><td>JOBS_SERVERLESS</td><td class="n">10.0</td><td class="n hi">0.30</td><td class="n">3.00</td></tr>
+          <tr><td>2026-07-12</td><td>JOBS_SERVERLESS</td><td class="n">20.0</td><td class="n hi">0.35</td><td class="n">7.00</td></tr>
+          <tr><td>2026-07-12</td><td>JOBS_SERVERLESS</td><td class="n">8.0</td><td class="n hi">0.35</td><td class="n">2.80</td></tr>
+          <tr><td>2026-07-14</td><td>STORAGE</td><td class="n">5.0</td><td class="nul">no price row</td><td class="nul">NULL</td></tr>
+          <tr><td>2026-07-15</td><td>SQL_SERVERLESS</td><td class="n">4.0</td><td class="n">0.70</td><td class="n">2.80</td></tr>
+        </tbody>
+      </table></div>
+      <div class="keeps">
+        <b>Still 5 rows — the join did not fan out</b>
+        <code>JOBS_SERVERLESS</code> has two price rows, but the two range predicates select exactly one per
+        usage row: the 07-08 row prices at the old 0.30, the 07-12 rows at the new 0.35. And because the
+        join is <code>LEFT</code>, the unpriced <code>STORAGE</code> row survives with a NULL price instead of
+        vanishing — an <code>INNER</code> join here would silently drop 5 DSU of storage from the report.
+      </div>
+      <div class="breaks">
+        <b>Counterfactual · drop the two range predicates</b>
+        Joining on <code>sku_name</code> alone, each <code>JOBS_SERVERLESS</code> row matches <em>both</em>
+        price rows. Verified by re-running: <code>job1_prod</code> goes from 30 → <strong>60 DBU</strong> and
+        $10.00 → <strong>$19.50</strong>; <code>job1_sdp_prod</code> from 8 → 16 DBU. Quantity exactly doubles,
+        spend nearly doubles, and nothing errors.
+      </div>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="rail"><div class="num">03</div><div class="kind">Join 2 · Left</div><div class="out-of">5 rows</div></div>
+    <div class="body-col">
+      <div class="op">LEFT JOIN pipe_names n ON n.pipeline_id = u.usage_metadata.dlt_pipeline_id</div>
+      <div class="panel"><table>
+        <thead><tr><th>usage_date</th><th>…job_name</th><th>n.name</th><th>entity = COALESCE(job_name, n.name, '(unnamed)')</th></tr></thead>
+        <tbody>
+          <tr><td>2026-07-08</td><td>job1_prod</td><td class="nul">NULL</td><td class="hi">job1_prod</td></tr>
+          <tr><td>2026-07-12</td><td>job1_prod</td><td class="nul">NULL</td><td class="hi">job1_prod</td></tr>
+          <tr><td>2026-07-12</td><td class="nul">NULL</td><td>job1_sdp_prod</td><td class="hi">job1_sdp_prod</td></tr>
+          <tr><td>2026-07-14</td><td>job1_prod</td><td class="nul">NULL</td><td class="hi">job1_prod</td></tr>
+          <tr><td>2026-07-15</td><td class="nul">NULL</td><td class="nul">NULL</td><td class="nul">(unnamed)</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">Jobs carry their name in the usage record; pipelines do not, which is the only reason
+      this join exists. The <code>COALESCE</code> ladder tries the job name, then the pipeline name, then a
+      literal fallback — so the row with neither is not dropped here, it is merely unnamed.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="rail"><div class="num">04</div><div class="kind">Filter</div><div class="out-of">4 rows</div></div>
+    <div class="body-col">
+      <div class="op">WHERE u.usage_date &gt;= CURRENT_DATE() - INTERVAL 30 DAYS
+  AND COALESCE(u.usage_metadata.job_id, u.usage_metadata.dlt_pipeline_id) IS NOT NULL</div>
+      <div class="panel"><table>
+        <thead><tr><th>usage_date</th><th>sku_name</th><th>entity</th><th>row usd</th></tr></thead>
+        <tbody>
+          <tr><td>2026-07-08</td><td>JOBS_SERVERLESS</td><td>job1_prod</td><td class="n">3.00</td></tr>
+          <tr><td>2026-07-12</td><td>JOBS_SERVERLESS</td><td>job1_prod</td><td class="n">7.00</td></tr>
+          <tr><td>2026-07-12</td><td>JOBS_SERVERLESS</td><td>job1_sdp_prod</td><td class="n">2.80</td></tr>
+          <tr><td>2026-07-14</td><td>STORAGE</td><td>job1_prod</td><td class="nul">NULL</td></tr>
+          <tr class="gone"><td>2026-07-15</td><td>SQL_SERVERLESS</td><td>(unnamed)</td><td class="n">2.80</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note">The SQL-warehouse row has neither a <code>job_id</code> nor a
+      <code>dlt_pipeline_id</code>, so it is discarded — along with its $2.80. <strong>This is why the
+      attributed total is always less than the Databricks total</strong>, and why the cost report states the
+      attributed share rather than implying the breakdown is exhaustive. The gap is interactive and SQL
+      compute, by construction, not a defect.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="rail"><div class="num">05</div><div class="kind">Aggregate</div><div class="out-of">3 rows</div></div>
+    <div class="body-col">
+      <div class="op">GROUP BY entity, kind, u.usage_unit
+SUM(usage_quantity) · SUM(usage_quantity * price) · COUNT(DISTINCT usage_date)</div>
+      <div class="panel"><table>
+        <thead><tr><th>entity</th><th>kind</th><th>quantity</th><th>unit</th><th>usd</th><th>active_days</th></tr></thead>
+        <tbody>
+          <tr><td>job1_prod</td><td>job</td><td class="n">30.0</td><td>DBU</td><td class="n">10.000</td><td class="n hi">2</td></tr>
+          <tr><td>job1_sdp_prod</td><td>pipeline</td><td class="n">8.0</td><td>DBU</td><td class="n">2.800</td><td class="n">1</td></tr>
+          <tr><td>job1_prod</td><td>job</td><td class="n">5.0</td><td class="hi">DSU</td><td class="nul">NULL</td><td class="n">1</td></tr>
+        </tbody>
+      </table></div>
+      <p class="note"><code>job1_prod</code> appears <em>twice</em> — once per unit, because
+      <code>usage_unit</code> is in the <code>GROUP BY</code>. DBU and DSU bill at different rates and are not
+      comparable, so the report never totals the Quantity column. <code>active_days = 2</code> comes from
+      <code>COUNT(DISTINCT usage_date)</code> over the 07-08 and 07-12 rows: it counts <em>days</em>, not
+      records, which is what makes per-active-day comparison between prod and staging possible.</p>
+    </div>
+  </div>
+
+  <div class="stage">
+    <div class="rail"><div class="num">06</div><div class="kind">Sort</div><div class="out-of">3 rows</div></div>
+    <div class="body-col">
+      <div class="op">ORDER BY usd DESC</div>
+      <p class="note">Descending by dollars, so the biggest spender leads. The NULL-priced storage row sorts
+      last — Spark places NULLs last on a <code>DESC</code> sort — which is the behaviour you want: an
+      unpriced SKU should be visible at the bottom of the table, not at the top pretending to be the
+      largest.</p>
+    </div>
+  </div>
+
+  <h2>4 · Result</h2>
+  <div class="final">
+    <div class="src-name"><b>output</b> · 3 rows</div>
+    <div class="scroll"><table>
+      <thead><tr><th>entity</th><th>kind</th><th>quantity</th><th>usage_unit</th><th>usd</th><th>active_days</th></tr></thead>
+      <tbody>
+        <tr><td>job1_prod</td><td>job</td><td class="n">30.0</td><td>DBU</td><td class="n">10.000</td><td class="n">2</td></tr>
+        <tr><td>job1_sdp_prod</td><td>pipeline</td><td class="n">8.0</td><td>DBU</td><td class="n">2.800</td><td class="n">1</td></tr>
+        <tr><td>job1_prod</td><td>job</td><td class="n">5.0</td><td>DSU</td><td class="nul">NULL</td><td class="n">1</td></tr>
+      </tbody>
+    </table></div>
+  </div>
+  <p class="cap">Verified output — the actual result set, not a hand-trace.</p>
+
+  <h2>5 · What five rows proved</h2>
+  <ol class="findings">
+    <li><b>The price join is date-scoped, and that is load-bearing.</b> Two price rows, one picked per
+      usage row. Remove the range predicates and quantity doubles to 60 DBU and spend to $19.50 — verified,
+      not asserted. The diagram shows those predicates as <code>and …</code> under the join keys; they read
+      as noise and are the difference between a correct number and a doubled one.</li>
+    <li><b>Both joins must stay LEFT.</b> The unpriced <code>STORAGE</code> row survives with a NULL price.
+      Under <code>INNER</code> it would disappear silently and the report would under-count.</li>
+    <li><b>The attributed total is deliberately incomplete.</b> One row of SQL-warehouse usage carries no
+      job or pipeline id and is filtered out. Any reconciliation against the Databricks total must expect
+      that gap rather than treat it as missing data.</li>
+    <li><b>Quantity never sums across units.</b> <code>job1_prod</code> emits two rows, DBU and DSU,
+      because the unit is part of the grain.</li>
+    <li><b>A renamed pipeline reports under its current name.</b> <code>MAX_BY(name, change_time)</code>
+      resolves <code>pl1</code> to <code>job1_sdp_prod</code>; the superseded <code>job1_sdp</code> never
+      appears.</li>
+  </ol>
+  <p class="note">Only the second and third are visible in the plan diagram, and only if you already know to
+  look at the join side and the filter. The first — the one that silently doubles the bill — needs the data.</p>
+
+  <footer>
+    job_spend_plan.sql · plan by scripts/sql_diagram.py --mode plan · SVG inlined as a data URI<br>
+    trace executed on Databricks SQL with source tables replaced by literal VALUES<br>
+    sample data is illustrative; the query is the real one from scripts/project_costs.py
+  </footer>
+
+</div>
