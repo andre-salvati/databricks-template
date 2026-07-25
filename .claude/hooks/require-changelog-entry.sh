@@ -40,9 +40,12 @@ print(json.dumps({
     "continue": False,
     "stopReason": (
         f"Merge blocked: this branch ({branch}) adds no entry to specs/CHANGELOG.md.\n"
-        "Add one at the top before merging — append-only, never edit an existing entry.\n"
-        "Header: ## [#<PR>] · " + branch + " · YYYY-MM-DD · <title>\n"
-        "Body: at most 3 sentences. Replace the branch name with the PR URL after merge."
+        "Add one at the top before merging — append-only, never edit or reformat an existing entry.\n"
+        "Header (use the PR URL directly; the number is known once the PR is open):\n"
+        "  ## [#NN](https://github.com/andre-salvati/databricks-template/pull/NN) · YYYY-MM-DD · <title>\n"
+        "Body: one unwrapped paragraph, around 1000 characters. Character count is the only limit —\n"
+        "do not hard-wrap, and do not pad a short entry to reach it.\n"
+        "Full rule: specs/workflow.md#changelog-discipline"
     ),
 }))
 PYEOF

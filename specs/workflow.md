@@ -23,7 +23,7 @@ before starting any change. For what the code does, see [architecture.md](archit
   (`git branch --show-current`): if you're on `main` or on a stale/already-merged branch, run
   `git checkout main && git pull && git checkout -b <branch>` before editing. Starting from a
   diverged base causes conflicts and can silently regress work from a merged PR.
-- Commit messages end with the `Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>` trailer.
+- Commit messages end with the `Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>` trailer.
 - **Never commit generated / local-state files** (all gitignored): `resources/jobs.yml`,
   `resources/orders_dashboard_deploy.lvdash.json`, `.databricks-resources.json`.
 
@@ -55,8 +55,9 @@ Operational rules:
 The **final check before merge** must anticipate whether the change can break tables in production
 and **raise an explicit alert in the PR**, classifying the change and declaring the remediation.
 This is not merely documentation: every medallion write uses `.option("overwriteSchema", "false")`
-(the schema-drift guard — the only exception is `ops._health`), so **any schema drift hard-fails the
-job at runtime by design**. Schema drift is a failure signal, not something to absorb silently. The
+(the schema-drift guard — the two exceptions are `ops._health` and `raw.order_quarantine`, whose
+`_errors`/`_warnings` structs are shaped by the DQX version rather than the data contract), so **any
+schema drift hard-fails the job at runtime by design**. Schema drift is a failure signal, not something to absorb silently. The
 alert in the PR is the human anticipation of that failure.
 
 Changes that touch table schemas typically live in `src/template/commonSchemas.py` (the canonical
