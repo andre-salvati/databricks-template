@@ -32,12 +32,15 @@ undetectable from a session. This repo carried exactly that: a project-scoped in
 `.github/skills/` and `.ai-dev-kit/` remain (gitignored, stale, and only relevant to Copilot).
 
 `.gitignore` keeps all of it out of the repo: `.mcp.json`, `.ai-dev-kit/`, `.github/skills/`, and
-`.claude/*`. Four things are un-ignored so every developer gets them: `.claude/commands/` (project
-slash commands, e.g. `/project-costs`), `.claude/hooks/` and `.claude/settings.json` (see
-[Hooks](#hooks)), and `.claude/skills/data-divergence/` — this repo's own skill, named explicitly
-rather than by a wildcard so the kit's skills in the same directory stay ignored. Adding another repo
-skill means adding another negation pair; `git add -An .claude/` should still stage only our files,
-and is the check to re-run after touching those lines.
+`.claude/*`. Un-ignored so every developer gets them: `.claude/hooks/` and `.claude/settings.json`
+(see [Hooks](#hooks)), and this repo's own three skills — `data-divergence`, `project-costs` and
+`sql-diagram` — each named explicitly rather than by a wildcard, so the kit's skills in the same
+directory stay ignored. Adding a repo skill means adding another negation pair; `git add -An
+.claude/` should still stage only our files, and is the check to re-run after touching those lines.
+
+There is no `.claude/commands/` any more: `/project-costs` and `/sql-diagram` began as slash commands
+and were converted to skills, so their instructions load on relevance rather than only when typed.
+Typing `/project-costs` still works — it resolves to the skill.
 
 **`.claude/settings.local.json` stays ignored** — it is personal (permissions, machine-specific
 paths, per-developer MCP toggles). Anything absolute or specific to one machine belongs there, not in
@@ -129,18 +132,28 @@ is the kit's entry point for CLI, auth, and bundle work — load it first, then 
 - **databricks-python-sdk** — SDK code under `src/template/` and in `scripts/`.
 - **databricks-unity-catalog**, **databricks-aibi-dashboards**, **databricks-spark-declarative-pipelines**,
   etc. — invoke when the task is squarely in that area.
-- **data-divergence** — *this repo's own skill*, not the kit's: investigating why two datasets that
-  should agree don't. Written generically (no table or column names from this project), so it covers
-  batch vs SDP, a gold rollup vs the silver it aggregates, a dashboard tile vs its source, and prod
-  vs staging alike. Lives in `.claude/skills/data-divergence/` and is committed; see the un-ignore
-  note above.
+### This repo's own skills
 
-Two gotchas. Some skills' frontmatter `name:` differs from their directory (`databricks` declares
-`databricks-core`; `analyze-mlflow-trace` declares `analyzing-mlflow-trace`) — **invoke by directory
-name**, which is what the session's skill list shows; the frontmatter name is not the handle.
-(`data-divergence` declares a matching name, so it has no such split.) And `/project-costs` is
-**not** a kit skill either; it's this repo's own committed slash command
-(`.claude/commands/project-costs.md`) wrapping `scripts/project_costs.py`.
+Committed under `.claude/skills/`, and **not** part of the kit — don't expect `install.sh` to
+update them, and do keep them in sync with the code they wrap.
+
+- **data-divergence** — investigating why two datasets that should agree don't. Written generically
+  (no table or column names from this project), so it covers batch vs SDP, a gold rollup vs the
+  silver it aggregates, a dashboard tile vs its source, and prod vs staging alike.
+- **project-costs** — wraps `scripts/project_costs.py` via `make project-costs`: runs the report,
+  then writes the analysis into its `## Analysis` placeholder.
+- **sql-diagram** — wraps `scripts/sql_diagram.py` via `make sql-diagram`: query plan or column
+  lineage as `.mmd` + `.svg`, plus how to read each mode.
+
+The latter two each ship an `example.md` beside the `SKILL.md`, walking a committed artifact
+(`reports/cost/2026-07-22.md`, `reports/sql-diagram/job_spend_plan.*`) to show what good output
+looks like. Those artifacts are force-added past the `reports/` gitignore for exactly that reason —
+if you regenerate them, re-add with `git add -f` or the example silently goes stale.
+
+One gotcha on the kit's skills. Some have a frontmatter `name:` that differs from their directory
+(`databricks` declares `databricks-core`; `analyze-mlflow-trace` declares `analyzing-mlflow-trace`)
+— **invoke by directory name**, which is what the session's skill list shows; the frontmatter name
+is not the handle. All three repo skills above declare a matching name, so they have no such split.
 
 `databricks-core` also cross-references skills by their *post-migration* names — it points at
 `/databricks-dabs` and `databricks-data-discovery`, neither of which is installed yet. Read those as

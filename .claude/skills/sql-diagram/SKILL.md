@@ -1,3 +1,10 @@
+---
+name: sql-diagram
+description: Diagram a SQL query and explain what it shows — either its execution steps (mode=plan) or its column lineage (mode=lineage). Use when asked to visualize, diagram, explain or review what a query does, how it joins its tables, or where an output column comes from. Wraps `make sql-diagram`, which emits .mmd and .svg into reports/sql-diagram/. See example.md for a worked reading of a committed diagram.
+---
+
+# Diagramming a SQL query
+
 Diagram a SQL query and explain what it shows — either its execution steps or its column lineage.
 
 ## Steps
@@ -73,6 +80,9 @@ has no comment the space is blank, and that absence is itself worth reporting.
 - Join predicates that look under-constrained. A join on a slowly-changing dimension without a
   time-range predicate fans rows out and silently multiplies aggregates — this repo has been bitten
   by exactly that (see the `#47` entry in `specs/CHANGELOG.md`).
+
+See `example.md` for a committed diagram read end to end, including what each of these points looks
+like when it actually fires.
 
 ## Limits worth stating rather than hiding
 

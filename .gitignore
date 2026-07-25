@@ -2,24 +2,27 @@ notes/
 .databricks/
 .vscode/
 .venv/
+# .claude/ is ignored wholesale; this repo's own agent tooling is un-ignored BY NAME below.
+# Never use a wildcard here: the AI Dev Kit installs its user-level skills into .claude/skills/
+# (specs/tooling.md#install-layout) and they must stay out of the repo. Git will not descend into an
+# excluded directory, so .claude/skills/ is re-included before its children are re-excluded.
+# After editing this block run `git add -An .claude/` — it must list only the paths named here.
 .claude/*
-!.claude/commands/
-!.claude/commands/**
-# The workflow hooks referenced by specs/workflow.md and CLAUDE.md (branch protection, PR-description
-# merge body, CHANGELOG gate). Committed so those documented rules hold for a fresh clone; note the
-# scripts are inert until wired up in a settings file — see specs/tooling.md#hooks.
+# Workflow hooks + the settings file that registers them (specs/tooling.md#hooks). Committed so the
+# rules CLAUDE.md and specs/workflow.md state hold for a fresh clone, not just on one machine.
+# settings.local.json stays ignored — it is personal (permissions, machine-specific paths).
 !.claude/hooks/
 !.claude/hooks/**
-# ...and the settings file that registers them, kept portable via $CLAUDE_PROJECT_DIR.
-# settings.local.json stays ignored — it is personal (permissions, machine-specific paths).
 !.claude/settings.json
-# The AI Dev Kit's skills are user-level tooling and stay ignored (specs/tooling.md#install-layout);
-# only this repo's own skills are committed. Git won't descend into an excluded directory, so
-# .claude/skills/ has to be re-included before a leaf under it can be.
+# Project skills — one negation pair each; add another pair when adding a skill.
 !.claude/skills/
 .claude/skills/*
 !.claude/skills/data-divergence/
 !.claude/skills/data-divergence/**
+!.claude/skills/project-costs/
+!.claude/skills/project-costs/**
+!.claude/skills/sql-diagram/
+!.claude/skills/sql-diagram/**
 .pytest_cache/
 dist/
 build/

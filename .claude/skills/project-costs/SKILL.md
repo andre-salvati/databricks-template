@@ -1,3 +1,10 @@
+---
+name: project-costs
+description: Run the project cost report and write the analysis into it. Use when asked about this project's cloud spend, cost anomalies, spikes or trends, DBU/DSU consumption, per-job or per-pipeline cost, or the AWS vs Databricks split. Runs `make project-costs` (AWS Cost Explorer + Databricks system.billing), then analyses the generated report and replaces its Analysis placeholder. See example.md for a committed report read end to end.
+---
+
+# Project cost analysis
+
 Run the project cost script, analyze the output for anomalies, spikes and trends, and write the
 analysis into the generated markdown report.
 
@@ -76,6 +83,9 @@ to dollars before calling them big or small.
 - Remember serverless SKUs are all-in: Databricks bills the compute inside the DBU rate rather than
   charging the AWS account for EC2. AWS spend is therefore a *proxy for job activity*, never a
   measure of pipeline cost.
+
+`example.md` walks a committed report showing what each of these sections looks like when written
+against real numbers.
 
 ## Caveats to respect
 
