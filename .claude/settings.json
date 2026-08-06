@@ -7,6 +7,13 @@
           {
             "type": "command",
             "if": "Bash(gh pr merge*)",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/require-fresh-pr-description.sh\"",
+            "timeout": 15,
+            "statusMessage": "Checking the PR description is current..."
+          },
+          {
+            "type": "command",
+            "if": "Bash(gh pr merge*)",
             "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/pr-merge-description.sh\"",
             "timeout": 15,
             "statusMessage": "Updating PR description and injecting into merge commit..."

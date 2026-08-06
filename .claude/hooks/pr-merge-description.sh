@@ -6,7 +6,7 @@ INPUT=$(cat)
 
 # Use Python for all JSON parsing and output (jq has snap confinement issues in this env)
 python3 - "$INPUT" <<'PYEOF'
-import json, sys, os, subprocess, tempfile, shlex
+import json, sys, os, re, subprocess, tempfile, shlex
 
 raw = sys.argv[1]
 try:
@@ -15,6 +15,13 @@ except json.JSONDecodeError:
     sys.exit(0)
 
 command = data.get("tool_input", {}).get("command", "")
+
+# Self-gate on the command text rather than trusting the settings.json `if:` filter.
+# Without this the hook runs on EVERY Bash call: it appends --subject/--body-file to
+# unrelated commands (breaking them) and fires a `gh pr edit` network write each time.
+# Observed in practice, which is why the check is here and not only in settings.json.
+if not re.search(r'\bgh\s+pr\s+merge\b', command):
+    sys.exit(0)
 
 # Already has explicit body/subject — don't override user's intent
 if any(f in command for f in ("--body", "--subject", "--body-file")):
@@ -25,7 +32,6 @@ if "--rebase" in command:
     sys.exit(0)
 
 # Extract PR ref (number, URL, or branch) — first non-flag token after 'gh pr merge'
-import re
 m = re.search(r'gh pr merge\s+([^\s-]\S*)', command)
 pr_arg = m.group(1) if m else None
 

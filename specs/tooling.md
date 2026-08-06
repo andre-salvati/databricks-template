@@ -90,7 +90,7 @@ directly (or `aws` CLI / web search for the AWS and context7 cases) — but flag
 
 ## Hooks
 
-`.claude/hooks/` holds the three shell hooks that enforce the git workflow in
+`.claude/hooks/` holds the four shell hooks that enforce the git workflow in
 [workflow.md](workflow.md). They are **committed** — the rules they enforce are stated as project
 rules in `CLAUDE.md`, so shipping the scripts is what makes those statements true for a fresh clone
 rather than a description of one machine's setup.
@@ -99,6 +99,7 @@ rather than a description of one machine's setup.
 |---|---|---|
 | `protect-main-branch.sh` | any Bash `git commit` / `git push` | blocks a commit made while on `main`, and any push targeting `main`. |
 | `require-changelog-entry.sh` | Bash `gh pr merge` | blocks the merge unless the branch diff touches `specs/CHANGELOG.md`, compared against `origin/main`/`main` via a merge-base (`...`) diff. |
+| `require-fresh-pr-description.sh` | Bash `gh pr merge` | blocks the merge unless the PR body carries `<!-- description-verified: <sha> -->` matching the commit being merged. |
 | `pr-merge-description.sh` | Bash `gh pr merge` | pushes the PR title/body to GitHub, then rewrites the command with `--subject`/`--body-file` so the description becomes the merge commit message. Skips if `--body`/`--subject`/`--body-file` or `--rebase` is already present. |
 
 The scripts are portable — no absolute paths, no secrets — and are committed mode `755`.
@@ -110,8 +111,18 @@ path — that variable is what keeps the file valid in any clone, and a hardcode
 that would quietly break it for everyone else. Keep machine-specific hooks (an update check pointing
 into `~/.ai-dev-kit/`, say) in `.claude/settings.local.json` instead; the two files are merged.
 
-`require-changelog-entry.sh` and `protect-main-branch.sh` self-gate on the command text instead of
-trusting a settings-level `if:` filter, so they stay correct however they are registered.
+**Every hook self-gates on the command text** instead of trusting a settings-level `if:` filter, so
+they stay correct however they are registered. `pr-merge-description.sh` originally did not, and the
+filter alone proved not to hold: it ran on unrelated Bash calls, appending `--subject`/`--body-file`
+to commands that were not merges (breaking them) and firing a `gh pr edit` network write each time.
+A settings filter is a convenience; the gate belongs in the script.
+
+The two merge gates are ordered deliberately — `require-fresh-pr-description.sh` runs *before*
+`pr-merge-description.sh`, because the second one copies the body into the merge commit message. A
+stale description caught after that point is already permanent history. Note what the freshness gate
+does and does not prove: it cannot judge whether prose is accurate, only that someone re-stamped it
+against the exact commit being merged. Re-stamping without reading is possible; it enforces a
+deliberate act, not honesty.
 
 ## Databricks CLI
 
