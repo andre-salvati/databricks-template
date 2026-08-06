@@ -2,13 +2,30 @@ notes/
 .databricks/
 .vscode/
 .venv/
+# .claude/ is ignored wholesale; this repo's own agent tooling is un-ignored BY NAME below.
+# Never use a wildcard here: the AI Dev Kit installs its user-level skills into .claude/skills/
+# (specs/tooling.md#install-layout) and they must stay out of the repo. Git will not descend into an
+# excluded directory, so .claude/skills/ is re-included before its children are re-excluded.
+# After editing this block run `git add -An .claude/` — it must list only the paths named here.
 .claude/*
-!.claude/commands/
-!.claude/commands/**
+# Workflow hooks + the settings file that registers them (specs/tooling.md#hooks). Committed so the
+# rules CLAUDE.md and specs/workflow.md state hold for a fresh clone, not just on one machine.
+# settings.local.json stays ignored — it is personal (permissions, machine-specific paths).
+!.claude/hooks/
+!.claude/hooks/**
+!.claude/settings.json
+# Project skills — one negation pair each; add another pair when adding a skill.
+!.claude/skills/
+.claude/skills/*
+!.claude/skills/data-divergence/
+!.claude/skills/data-divergence/**
+!.claude/skills/project-costs/
+!.claude/skills/project-costs/**
+!.claude/skills/sql-diagram/
+!.claude/skills/sql-diagram/**
 .pytest_cache/
 dist/
 build/
-reports/coverage/
 src/template.egg-info/
 *.pyc
 # uv.lock IS tracked — it pins transitive deps (notably databricks-sdk, which arrives
@@ -26,10 +43,10 @@ resources/orders_dashboard_deploy.lvdash.json
 # Dev Kit 0.1.14 also writes Codex/Copilot agent configs into the project dir
 .agents/
 .codex/
-# Generated spend reports — local artifacts containing account cost figures.
-# A report that has been committed stays tracked (.gitignore only governs untracked files), so
-# new dated reports are ignored by default; `git add -f` a specific one to keep it.
-reports/cost/
-# Generated query diagrams — same rule: ignored by default, `git add -f` one to keep it as an
-# example. They are derived artifacts, regenerable from the query at any time.
-reports/sql-diagram/
+# reports/ is generated output, all of it: coverage, spend reports (which carry account cost
+# figures), query diagrams. Nothing in here is committed — it is all regenerable from the code or
+# the query that produced it. Don't `git add -f` an artifact to keep it as an example: put the
+# example in the skill that explains it (.claude/skills/<skill>/examples/), which is a committed
+# path. Note .gitignore only governs UNTRACKED files, so anything already tracked under here must
+# be `git rm --cached`-ed before this rule takes effect on it.
+reports/

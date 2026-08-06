@@ -1,3 +1,10 @@
+---
+name: project-costs
+description: Run the project cost report and write the analysis into it. Use when asked about this project's cloud spend, cost anomalies, spikes or trends, DBU/DSU consumption, per-job or per-pipeline cost, or the AWS vs Databricks split. Runs `make project-costs` (AWS Cost Explorer + Databricks system.billing), then analyses the generated report and replaces its Analysis placeholder. See examples/ for a finished report.
+---
+
+# Project cost analysis
+
 Run the project cost script, analyze the output for anomalies, spikes and trends, and write the
 analysis into the generated markdown report.
 
@@ -62,7 +69,9 @@ to dollars before calling them big or small.
   the days someone deployed, so compare *per active day*, never raw totals. The `Days` column is
   what makes that comparison possible.
 - Compare `job1_*` against its `job1_sdp_*` counterpart: they produce the same medallion tables by
-  different execution models, so a persistent gap between them is a real finding, not noise.
+  different execution models, so a persistent gap between them is a real finding, not noise. What
+  makes it a finding is **durability** — a gap that holds across the whole window *and* repeats in a
+  second environment is an argument; the same gap seen once is a number.
 - Watch the integration-test jobs. They are easy to overlook and can rival the pipeline they test.
 - Reconcile before trusting: the attributed total is always *less* than the Databricks total, since
   SQL warehouse and interactive compute carry no `job_id`. The note under the table gives the
@@ -76,6 +85,10 @@ to dollars before calling them big or small.
 - Remember serverless SKUs are all-in: Databricks bills the compute inside the DBU rate rather than
   charging the AWS account for EC2. AWS spend is therefore a *proxy for job activity*, never a
   measure of pipeline cost.
+
+`examples/2026-07-22.md` is a finished report showing what these sections look like written against
+real numbers. Read it for shape, not for figures — they are a snapshot of one 30-day window, and a
+live run writes a fresh `reports/cost/YYYY-MM-DD.md`.
 
 ## Caveats to respect
 
