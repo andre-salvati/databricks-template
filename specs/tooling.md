@@ -156,12 +156,12 @@ run would produce much the same document, so one example is enough. An investiga
 output — its example is kept for the **findings**, which are live defects in `prod`, and a second
 investigation would be a second example rather than a replacement.
 
-The other two take different forms, and the difference is the rule worth copying. `sql-diagram` ships
-`job_spend_plan.html`, which *is* the deliverable — diagram plus a data trace — so it needs no prose
-companion; it had one, and the file was deleted once the page demonstrated with data what the prose
-had asserted. `project-costs` ships `example.md` beside its report, because a page of cost tables
-does not explain why its analysis is written the way it is. **Add a commentary file only when the
-artifact cannot speak for itself**; two files narrating one artifact will drift.
+**An example is the artifact, never a commentary file beside it.** Both `sql-diagram` and
+`project-costs` once shipped an `example.md` explaining their example; both were deleted, and in each
+case the explanation belonged in one of two places — the artifact itself, or the `SKILL.md` as
+guidance that applies to every run, not just to the committed one. Two files narrating one artifact
+will drift, and the prose is the copy that goes stale. If an example needs a companion to be
+intelligible, fix the example.
 
 One gotcha on the kit's skills. Some have a frontmatter `name:` that differs from their directory
 (`databricks` declares `databricks-core`; `analyze-mlflow-trace` declares `analyzing-mlflow-trace`)
