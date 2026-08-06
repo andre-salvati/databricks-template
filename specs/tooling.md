@@ -137,20 +137,26 @@ is the kit's entry point for CLI, auth, and bundle work — load it first, then 
 Committed under `.claude/skills/`, and **not** part of the kit — don't expect `install.sh` to
 update them, and do keep them in sync with the code they wrap.
 
-- **data-divergence** — investigating why two datasets that should agree don't. Written generically
-  (no table or column names from this project), so it covers batch vs SDP, a gold rollup vs the
-  silver it aggregates, a dashboard tile vs its source, and prod vs staging alike.
+- **data-divergence** — investigating why two datasets that should agree don't. The procedure is
+  written generically (no table or column names from this project), so it covers batch vs SDP, a
+  gold rollup vs the silver it aggregates, a dashboard tile vs its source, and prod vs staging
+  alike; its `examples/` report is the one place it names real `prod` tables.
 - **project-costs** — wraps `scripts/project_costs.py` via `make project-costs`: runs the report,
   then writes the analysis into its `## Analysis` placeholder.
 - **sql-diagram** — wraps `scripts/sql_diagram.py` via `make sql-diagram`: query plan or column
   lineage as `.mmd` + `.svg`, plus how to read each mode.
 
-The latter two each ship a worked example showing what good output looks like, kept under
+Each ships a worked example showing what good output looks like, kept under
 `.claude/skills/<skill>/examples/` rather than in `reports/`, because **all of `reports/` is
 gitignored generated output** — that is where the tools write, and nothing there is committed. A new
 example is a copy into `examples/`, never a `git add -f` out of `reports/`.
 
-The two take different forms, and the difference is the rule worth copying. `sql-diagram` ships
+`data-divergence`'s example is the odd one out: the other two demonstrate a *format*, and a second
+run would produce much the same document, so one example is enough. An investigation has no fixed
+output — its example is kept for the **findings**, which are live defects in `prod`, and a second
+investigation would be a second example rather than a replacement.
+
+The other two take different forms, and the difference is the rule worth copying. `sql-diagram` ships
 `job_spend_plan.html`, which *is* the deliverable — diagram plus a data trace — so it needs no prose
 companion; it had one, and the file was deleted once the page demonstrated with data what the prose
 had asserted. `project-costs` ships `example.md` beside its report, because a page of cost tables

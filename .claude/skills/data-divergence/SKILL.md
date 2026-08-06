@@ -1,6 +1,6 @@
 ---
 name: data-divergence
-description: Investigate why two datasets that should agree don't — two pipelines writing the same logical table, a rollup vs the detail it aggregates, a dashboard vs its source, one environment vs another. Use when row counts, totals, or date ranges disagree and the question is what happened rather than just what differs. Covers localizing the first layer that diverges, diffing by grain and by key, reconciling across an aggregation boundary, reading Delta history and row_commit_version, why append-only tables diverge permanently, and what a fix actually costs.
+description: Investigate why two datasets that should agree don't — two pipelines writing the same logical table, a rollup vs the detail it aggregates, a dashboard vs its source, one environment vs another. Use when row counts, totals, or date ranges disagree and the question is what happened rather than just what differs. Covers localizing the first layer that diverges, diffing by grain and by key, reconciling across an aggregation boundary, reading Delta history and row_commit_version, why append-only tables diverge permanently, and what a fix actually costs. See examples/ for a worked investigation.
 ---
 
 # Investigating a data divergence
@@ -178,3 +178,19 @@ broken column **and** discards every frozen value it was carrying — you may be
 in one column for a divergence in another. Say which columns move, in both directions, before
 recommending it. Check the run state of the other path first too: resetting a table whose writer is
 currently failing leaves it empty.
+
+## The worked example
+
+`examples/2026-08-06-prod-batch-vs-sdp.md` is a full investigation of this repo's own `prod` catalog,
+written to the shape above: layer counts, a key-level diff, `row_commit_version` to pin the blast
+radius, a Delta-history timeline, then proven-vs-inferred and costed fix options.
+
+It is the only place this skill names real tables, and it is worth reading for what it found rather
+than for the procedure. The reported complaint was one shifted date column; three further divergences
+turned up, including a **live gap in a production gold table** that nobody had reported — a failed
+daily run whose date-scoped incremental MERGE meant no later run ever backfilled it, while the
+full-overwrite layer above it self-healed and hid the failure. Two of the four also came from a
+single append-only commit freezing a column nobody intended to freeze.
+
+Structure a report the same way, and keep the appendix of queries: the next investigation starts by
+editing them rather than by rewriting them.

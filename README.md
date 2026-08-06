@@ -58,8 +58,9 @@ This project template demonstrates how to:
 - utilize the [Databricks SDK for Python](https://docs.databricks.com/en/dev-tools/sdk-python.html) to manage catalogs, schemas, workspaces, and accounts. Refer to the `scripts` folder for examples.
 - utilize [Databricks Unity Catalog](https://www.databricks.com/product/unity-catalog) to manage permissions and get data lineage.
 - enforce production guardrails out of the box — identity-locked CI deploys, a health-check task, wheel version pinning, per-task timeouts, schema-drift guards, queued runs, and on-call alerting.
-- track project cloud spend in USD across AWS (Cost Explorer) and Databricks ([`system.billing`](https://docs.databricks.com/aws/en/admin/system-tables/pricing)) with `make project-costs` — see an [example report](.claude/skills/project-costs/examples/2026-07-22.md).
-- diagram any SQL query with [sqlglot](https://github.com/tobymao/sqlglot) — see an [example](.claude/skills/sql-diagram/examples/job_spend_plan.svg).
+- use a Claude 'project-costs' skill to track project cloud spend in USD across AWS (Cost Explorer) and Databricks — see an [example](.claude/skills/project-costs/examples/2026-07-22.md).
+- use a Claude 'sql-diagram' skill to diagram any SQL query with [sqlglot](https://github.com/tobymao/sqlglot) — see an [example](.claude/skills/sql-diagram/examples/job_spend_plan.svg).
+- use a Claude 'data-divergence' skill to investigate why two datasets that should agree don't — see an [example](.claude/skills/data-divergence/examples/2026-08-06-prod-batch-vs-sdp.md).
 - utilize serverless job clusters on [Databricks Free Edition](https://docs.databricks.com/aws/en/getting-started/free-edition) to deploy your pipelines.
 
 
