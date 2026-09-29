@@ -119,7 +119,7 @@ def _environments() -> list[JobEnvironment]:
     return [
         JobEnvironment(
             environment_key="default",
-            spec=Environment(client="5", dependencies=[WHEEL_GLOB]),
+            spec=Environment(environment_version="6", dependencies=[WHEEL_GLOB]),
         )
     ]
 

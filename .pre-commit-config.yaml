@@ -2,10 +2,13 @@ default_language_version:
     python: python3
 repos:
 -   repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.22
+    rev: v0.16.9
     hooks:
-    -   id: ruff
+    -   id: ruff-check
         args:
           - --fix
         files: ^(src|scripts)/
     -   id: ruff-format
+        # ruff 0.16 also formats Markdown code blocks; the ones in specs/ and skill examples are
+        # quoted excerpts and style illustrations, and reformatting changes what they show.
+        files: ^(src|scripts)/

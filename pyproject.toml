@@ -9,26 +9,26 @@ readme = "README.md"
 license = "Apache-2.0"
 requires-python = "==3.12.*"
 dependencies = [
-    "databricks-labs-dqx==0.15.0",
+    "databricks-labs-dqx==0.16.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-    # Frozen to mirror serverless environment version 5 (the runtime the wheel executes
-    # on): Spark 4.1.0 via Databricks Connect 18, plus its exact pandas/numpy/pyarrow.
+    # Frozen to mirror serverless environment version 6 (the runtime the wheel executes
+    # on): Spark 4.2.0 via Databricks Connect 19, plus its exact pandas/numpy/pyarrow/pydantic.
     # Do not bump these to the newest PyPI release — that puts unit tests ahead of the
-    # runtime. They move only when `client=` in scripts/sdk_generate_template_job.py does.
-    "numpy==2.1.3",
-    "pandas==2.2.3",
+    # runtime. They move only when `environment_version=` in scripts/sdk_generate_template_job.py does.
+    "numpy==2.3.4",
+    "pandas==2.3.3",
     "pyarrow==21.0.0",
-    "pyspark==4.1.0",
-    "pydantic==2.13.4",
-    "coverage==7.15.2",
-    "pre-commit==4.6.1",
+    "pyspark==4.2.0",
+    "pydantic==2.13.3",
+    "coverage==7.16.2",
+    "pre-commit==4.6.2",
     "pytest==9.1.1",
     "pytest-cov==7.1.0",
-    "databricks-bundles>=1.9.0",
-    "sqlglot==30.13.0",
+    "databricks-bundles>=1.18.0",
+    "sqlglot==30.20.0",
 ]
 
 [project.scripts]
