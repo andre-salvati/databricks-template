@@ -25,7 +25,7 @@ If this saves you time, a star helps others find it. Let's [connect on LinkedIn]
 - Databricks AI Dev Kit
 - Databricks Dashboards
 - Claude Code
-- PySpark 4.1
+- PySpark 4.2
 - Spark Declarative Pipelines (SDP)
 - Python 3.12
 - GitHub Actions

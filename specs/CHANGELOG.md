@@ -2,6 +2,12 @@
 
 ---
 
+## [#54](https://github.com/andre-salvati/databricks-template/pull/54) · 2026-09-29 · chore: upgrade to serverless environment 6 (Spark 4.2), CLI 1.18, DQX 0.16
+
+Moved the wheel from serverless environment 5 to 6 (Spark 4.2, Databricks Connect 19), which went GA on 2026-09-03. #51 had kept the runtime-mirror pins on 5 because no 4.2 environment existed then. Those pins follow env 6 exactly, not the latest PyPI release — pyspark 4.2.0, pandas 2.3.3, numpy 2.3.4, pyarrow 21.0.0, and pydantic 2.13.3, a slight downgrade — and the generator now sets `environment_version`, since `client` is deprecated. The Databricks CLI and `databricks-bundles` went from 1.9.0 to 1.18.0, DQX from 0.15.0 to 0.16.0, and CI to uv 0.12.20 with checkout/setup-python/upload-artifact v7 and setup-uv v10, all SHA-pinned. Neither env 6's breaking changes (Py4J off, `info.json` removed) nor DQX 0.16's touch this code, and there is no schema change. ruff 0.16 also formats Markdown code blocks and rewrote quoted excerpts in `specs/` — once into a tuple — so `ruff-format` is now scoped to `src|scripts`. Validated by the batch-vs-SDP integration test on dev and staging.
+
+---
+
 ## [#53](https://github.com/andre-salvati/databricks-template/pull/53) · 2026-08-06 · Commit the agent tooling: workflow hooks, three project skills, and a fully ignored reports/
 
 Made this repo's agent tooling part of the repo instead of one developer's local config. `.claude/hooks/` and the `settings.json` registering them are committed, so the rules `CLAUDE.md` and `specs/workflow.md` state — no direct commits to `main`, a CHANGELOG entry before merge, the PR description as merge commit body — hold for a fresh clone rather than describing one machine. The two slash commands became skills (`project-costs`, `sql-diagram`) so their descriptions match on relevance instead of waiting to be typed, joined by a new `data-divergence` skill for investigating why two datasets that should agree don't. `.gitignore` un-ignores `.claude/` by name, never by wildcard, which would sweep in the Dev Kit's user-level skills. All of `reports/` is now ignored, with each skill's worked example committed beside it. A fourth hook blocks merges unless the PR body carries a `description-verified` sentinel matching the commit being merged, because that body becomes permanent history — this PR's own stale description was the case in point.
